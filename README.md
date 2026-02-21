@@ -17,17 +17,22 @@
 
 ```bash
 # Clone the repository
-git clone <repo-url>
-cd <project-name>
+git clone https://github.com/cs423sp26-homeworks/team-01.git
 
 # Install dependencies
-<command>
+cd server
+npm install
+cd ../client
+npm install
 ```
 
 ## Running the Application
 
 ```bash
-<command>
+cd server
+npm run dev
+cd ../client
+npm run dev
 ```
 
 ## Running Tests
