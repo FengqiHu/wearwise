@@ -1,112 +1,112 @@
-# Product Requirement Document
+## Functional Requirements
 
-## Overview
+### **Must-Have**
 
-### Problem Statement
+* Users can create a personal account/profile.
 
-<!-- What problem does your application solve? Who experiences this problem? -->
+* Users can upload, replace, and delete their own profile images (face and full-body) and their height and weight.
 
-### Proposed Solution
+* Users can upload and delete images of clothing items.
 
-<!-- How does your application address the problem? 1-2 sentences. -->
+* The system analyzes uploaded clothing images and extracts clothing features, generating cloth's name, category (tops, pants, shoes, etc.), tag (fabric, color, long/short), and description.
 
-### Target Users
+* Users can modify the features (including name, category, tag, and description) for their clothes.
 
-<!-- Who will use this application? Describe your primary audience. -->
+* Users can communicate their clothing needs to the agent and ask for clothing recommendations.
 
-### AI Component
+* Users can vote some outfits from recommendation results as their preferences.
 
-<!-- How does your application use AI? What AI services or models are involved? -->
+* Users can permanently delete their accounts.
 
-### Similar Existing Solutions
+* The system stores extracted clothing features (category, tag, description) in a per-user private database which can be used by users and LLMs to filter and search.
 
-<!-- List 2-3 similar products and explain how yours differs. -->
+* The system can invoke weather query tool to get the weather condition for making the recommendation.&#x20;
 
-## Requirements
+* The system generates realistic images showing how each recommended outfit would look on the user’s body (virtual try-on visualization). The image must basicly match the user's body shape and appearance.
 
-### Functional Requirements
+* The system recommends three outfits per request based on the user’s existing cloud closet. Each recommended outfit must include the new item plus compatible items from the user’s cloud closet.
 
-#### Essential (Must-Have)
+* The system can summeriuze user's preferences to give more personalized recommendations in future sessions.
 
-<!-- Features required for the minimum viable product. -->
+* Users can upload an online product image and request a visual try-on of that item on themselves. The system can recommand possible combinations with the user’s existing cloud closet. This function is triggered by a user request, and the system will provide three recommendations based on the categories and tags of these clothes.
 
-#### Non-Essential (Nice-to-Have)
+### Nice-to-Have
 
-<!-- Features to add if time permits. -->
+* Users can select clothes from the cloud closet to have the agent make recommendations instead of relying on all the clothes in the entire cloud closet.
 
-#### Out of Scope (Won't Have)
+* The system can recognize and recommend accessories (jewjlry,hats,bags).This stays nice-to-have because accessory-heavy image parsing adds extra visual attributes and increases inference time,which may slow down the user experience.
 
-<!-- Features explicitly excluded from this project. -->
+* The system will automatically detect whether user-uploaded images contain pornography or nudity, violence, gore, offensive content and refuse to upload.
 
-### Non-Functional Requirements
+### Won't Have
 
-#### Performance
+* Build a social network for users to post content.
 
-<!-- Response time, load capacity, etc. -->
+* Establish the workflow for end-to-end ecommerce including purchase, payment, order tracking, and returns.
 
-#### Security
+* Give any advice on health care such as weight loss and body shaping based on the uploaded body photos
 
-<!-- Authentication, authorization, data protection. -->
+## Non-Functional Requirements
 
-#### Privacy
+### **Performance**
 
-<!-- How user data is stored, shared, and deleted. -->
+* Text recommendation result will return within 45 seconds.
 
-#### Usability
+* Try-on image generation completes within an acceptable waiting window (target: within \~90 seconds per request, mainly decided by LLM).
 
-<!-- Accessibility, responsive design, ease of use. -->
+* Cloud closet browsing/search stays responsive (target: within \~2 seconds for common operations).
 
-### Technology Stack
+### **Security**
 
-- **Frontend:**
-- **Backend:**
-- **Database:**
-- **Auth:**
-- **AI Services:**
-- **External:**
-- **Deployment:**
-- **Testing:**
+* User's username, gmail will be encrypted by SHA256, and uploaded images need to be encrypted by AES. Once the user logs in, the system will generate a JWT as a credential for request validation.
 
-## Product Roadmap
+* User accounts and sessions are handled with the Google portal.
 
-<!-- For each iteration, define a goal and split features into must-have vs nice-to-have. -->
+* User photos and cloud closet assets are protected in database and transmission.
 
-### Iteration 1
+* API keys will not be exposed to users and will be stored securely.
 
-**Dates:** Week 5-6
+* We will have age verification and explicit consent gating before any face/body upload or try-on
 
-**Goal:**
+### **Privacy**
 
-**Must-Have Features:**
+* Users have full control of their data including deleting the uploaded information and their accounts.
 
-**Nice-to-Have Features:**
+* Only the data needed for cloud closet and recommendations will be stored. It includes account and login information(via Google OAuth),  profile information (height, weight, and user-uploaded face/full-body photos), cloud closet content (uploaded clothing images and the extracted/editable clothing attributes , e.g., category, tags, description), user's feedback on recommended outfits, virtual try-on data(user-provided product images and generated try-on results).
 
-### Iteration 2
+* Our AI providers (Google Gemini API Paid Tier and Cloud Vision API) state that user content, including uploaded images, is not used to train or improve their models (specific links are in the appendix).
 
-**Dates:** Week 7-8
+### **Usability**
 
-**Goal:**
+* Users can complete account sign-in and reach the chat screen in ≤ 3 user actions, then they can chat and interact with agent.
 
-**Must-Have Features:**
+* The interaction page can be accessed on both desktop and mobile.
 
-**Nice-to-Have Features:**
+## Technology Stack
 
-### Iteration 3
+* **Frontend**: TypeScript, React
 
-**Dates:** Week 10-11
+* **Backend**: TypeScript, Vercel
 
-**Goal:**
+* **Database**: MongoDB
 
-**Must-Have Features:**
+* **Image Storage:&#x20;**&#x43;loudflare R2
 
-**Nice-to-Have Features:**
+* **Auth:** Google OAuth 2.0
 
-### Iteration 4
+* **Consent Review:** Google Cloud Vision – SafeSearch
 
-**Dates:** Week 12-13
+* **Weather API**:OpenWeather(weather query)
 
-**Goal:**
+* **AI Services:&#x20;**&#x47;emini (reasoning for recommendation), Nano Banana (image generation)
 
-**Must-Have Features:**
+* **Deployment:** Vercel for web app and serverless APIs, Render for long-running workers
 
-**Nice-to-Have Features:**
+* **Testing:** Vitest
+
+## Appendix:
+
+Gemini API Additional Terms of Service: https://ai.google.dev/gemini-api/docs/zdr
+
+Cloud Vision API — Data Usage FAQ: https://docs.cloud.google.com/vision/docs/data-usage
+
