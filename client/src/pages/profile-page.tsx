@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
@@ -32,6 +32,10 @@ export function ProfilePage() {
   const [form, setForm] = useState(initialForm);
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setForm(initialForm);
+  }, [initialForm]);
 
   const updateField = (field: keyof typeof form, value: string): void => {
     setForm((previous) => ({

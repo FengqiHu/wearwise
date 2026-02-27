@@ -11,14 +11,6 @@ export function WelcomePage() {
   const { isAuthenticated, isBootstrapping, profile } = useAuth();
   const [configError, setConfigError] = useState<string | null>(null);
 
-  if (isAuthenticated && profile) {
-    return <Navigate to="/chat" replace />;
-  }
-
-  if (isAuthenticated && !profile) {
-    return <Navigate to="/profile" replace />;
-  }
-
   if (isBootstrapping) {
     return (
       <div className="mx-auto mt-20 max-w-xl">
@@ -28,6 +20,14 @@ export function WelcomePage() {
         </Card>
       </div>
     );
+  }
+
+  if (isAuthenticated && profile) {
+    return <Navigate to="/chat" replace />;
+  }
+
+  if (isAuthenticated && !profile) {
+    return <Navigate to="/profile" replace />;
   }
 
   const handleGoogleLogin = async (): Promise<void> => {

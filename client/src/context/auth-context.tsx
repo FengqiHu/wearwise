@@ -28,11 +28,17 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
     setTokenState(nextToken);
 
     if (nextToken) {
+      setIsBootstrapping(true);
+      setUserState(null);
+      setProfileState(null);
       setAuthToken(nextToken);
       return;
     }
 
     clearAuthToken();
+    setUserState(null);
+    setProfileState(null);
+    setIsBootstrapping(false);
   }, []);
 
   const refreshSession = useCallback(async (): Promise<void> => {
@@ -44,7 +50,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
     const session = await fetchCurrentSession(token);
     setUserState(session.user);
-    setProfileState(session.profile);
+    setProfileState(session.profile ?? null);
   }, [token]);
 
   useEffect(() => {
@@ -74,7 +80,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
         }
 
         setUserState(session.user);
-        setProfileState(session.profile);
+        setProfileState(session.profile ?? null);
       } catch {
         if (!active) {
           return;
@@ -106,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }): ReactNode {
 
       const response = await saveProfileToApi(token, nextProfile);
       setUserState(response.user);
-      setProfileState(response.profile);
+      setProfileState(response.profile ?? null);
     },
     [token]
   );
