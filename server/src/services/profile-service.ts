@@ -5,6 +5,15 @@ interface ParseProfileResult {
   error?: string;
 }
 
+function normalizeOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
 export function parseProfileFromRequest(input: unknown): ParseProfileResult {
   if (!input || typeof input !== "object") {
     return { error: "Invalid profile payload." };
@@ -13,8 +22,9 @@ export function parseProfileFromRequest(input: unknown): ParseProfileResult {
   const payload = input as Record<string, unknown>;
   const name = typeof payload.name === "string" ? payload.name.trim() : "";
   const styleNote = typeof payload.styleNote === "string" ? payload.styleNote.trim() : "";
-  const avatarUrlRaw = payload.avatarUrl;
-  const avatarUrl = typeof avatarUrlRaw === "string" && avatarUrlRaw.trim().length > 0 ? avatarUrlRaw.trim() : null;
+  const fullBodyImageUrl = normalizeOptionalString(payload.fullBodyImageUrl);
+  const headshotImageUrl = normalizeOptionalString(payload.headshotImageUrl);
+  const avatarUrl = normalizeOptionalString(payload.avatarUrl);
   const heightCm =
     typeof payload.heightCm === "number"
       ? payload.heightCm
@@ -46,7 +56,9 @@ export function parseProfileFromRequest(input: unknown): ParseProfileResult {
       heightCm,
       weightKg,
       styleNote,
-      avatarUrl
+      avatarUrl,
+      fullBodyImageUrl,
+      headshotImageUrl
     }
   };
 }

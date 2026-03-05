@@ -27,6 +27,10 @@ function parseSessionTtlSeconds(): number {
   return 60 * 60 * 24 * 7;
 }
 
+function stripTrailingSlashes(rawUrl: string): string {
+  return rawUrl.replace(/\/+$/, "");
+}
+
 const rawGoogleClientId = getEnv("GOOGLE_CLIENT_ID");
 const googleClientIdFromEnv = sanitizeGoogleClientId(rawGoogleClientId);
 
@@ -39,6 +43,13 @@ const mongoUri = getEnv("MONGODB_URI") || "mongodb://127.0.0.1:27017";
 const mongoDatabaseName = getEnv("MONGODB_DB_NAME") || "wearwise";
 const mongoUsersCollection = getEnv("MONGODB_USERS_COLLECTION") || "users";
 const mongoConversationsCollection = getEnv("MONGODB_CONVERSATIONS_COLLECTION") || "conversations";
+
+const s3Bucket = getEnv("S3_BUCKET");
+const s3Region = getEnv("S3_REGION") || "auto";
+const s3Endpoint = getEnv("S3_ENDPOINT");
+const s3AccessKeyId = getEnv("S3_ACCESS_KEY_ID");
+const s3SecretAccessKey = getEnv("S3_SECRET_ACCESS_KEY");
+const s3PublicBaseUrl = stripTrailingSlashes(getEnv("S3_PUBLIC_BASE_URL"));
 
 export const env = {
   port: Number.parseInt(process.env.PORT ?? "3001", 10),
@@ -57,5 +68,11 @@ export const env = {
   mongoUri,
   mongoDatabaseName,
   mongoUsersCollection,
-  mongoConversationsCollection
+  mongoConversationsCollection,
+  s3Bucket,
+  s3Region,
+  s3Endpoint,
+  s3AccessKeyId,
+  s3SecretAccessKey,
+  s3PublicBaseUrl
 };
