@@ -123,6 +123,7 @@ export class UserRepository {
 
       if (!concurrentUser) {
         throw error;
+        
       }
 
       const reconciledUser: UserDocument = {
