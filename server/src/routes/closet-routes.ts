@@ -13,6 +13,29 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
   const router = Router();
 
   /**
+   * GET /api/closet/items
+   *
+   * Returns the authenticated user's closet items, newest first.
+   */
+  router.get("/closet/items", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const items = await closetRepository.listByUser(authResolution.user.id);
+      res.json({ items });
+    } catch (error) {
+      console.error("Closet list error:", error);
+      res.status(500).json({ error: "Failed to fetch closet items." });
+    }
+  });
+
+  /**
    * POST /api/closet/items
    *
    * Creates a closet item record and returns a presigned R2 upload URL.

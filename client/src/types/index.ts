@@ -21,6 +21,19 @@ export interface ClothingItem {
   createdAt: string;
 }
 
+export interface ClosetItemRecord {
+  id: string;
+  userId: string;
+  imageUrl: string;
+  analysisStatus: "pending" | "ready";
+  name: string | null;
+  category: string | null;
+  tags: string[];
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UserProfile {
   name: string;
   heightCm: number;

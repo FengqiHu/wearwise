@@ -3,52 +3,22 @@ import type { DragEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { useAuth } from "../context/auth-context";
+import { createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
 import {
   CLOTHING_CATEGORIES,
-  type ClothingCategory,
-  type ClothingItem
+  type ClothingCategory
 } from "../types";
-import { addWardrobeItems, updateWardrobeItemsStatus } from "../lib/storage";
-
-function fileToDataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      resolve(String(reader.result));
-    };
-
-    reader.onerror = () => {
-      reject(new Error(`Unable to read file ${file.name}`));
-    };
-
-    reader.readAsDataURL(file);
-  });
-}
-
-function titleFromFileName(fileName: string): string {
-  const withoutExtension = fileName.replace(/\.[^./]+$/, "");
-  return withoutExtension
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function tagsFromTitle(title: string): string[] {
-  return title
-    .toLowerCase()
-    .split(" ")
-    .filter((segment) => segment.length > 2)
-    .slice(0, 3);
-}
 
 export function AddPage() {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [category, setCategory] = useState<ClothingCategory>("tops");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const addFiles = (fileList: FileList | null): void => {
@@ -76,45 +46,37 @@ export function AddPage() {
   };
 
   const startUpload = async (): Promise<void> => {
-    if (selectedFiles.length === 0 || isUploading) {
+    if (selectedFiles.length === 0 || isUploading || !token) {
       return;
     }
 
     setIsUploading(true);
     setFeedback(null);
+    setUploadProgress(null);
+
+    let successCount = 0;
 
     try {
-      const imageUrls = await Promise.all(selectedFiles.map((file) => fileToDataUrl(file)));
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const file = selectedFiles[i];
+        if (!file) continue;
 
-      const uploadTimestamp = Date.now();
-      const items: ClothingItem[] = selectedFiles.map((file, index) => {
-        const title = titleFromFileName(file.name);
+        setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
 
-        return {
-          id: crypto.randomUUID(),
-          title: title || `Uploaded cloth ${index + 1}`,
-          category,
-          tags: tagsFromTitle(title || file.name),
-          description: "Uploaded by user. AI analysis is running and details will appear once processing is complete.",
-          imageUrl: imageUrls[index],
-          status: "unfinished",
-          createdAt: new Date(uploadTimestamp + index).toISOString()
-        };
-      });
-
-      addWardrobeItems(items);
-
-      const uploadedIds = items.map((item) => item.id);
-      window.setTimeout(() => {
-        updateWardrobeItemsStatus(uploadedIds, "finished");
-      }, 7000);
+        const contentType = file.type || "image/jpeg";
+        const { uploadUrl } = await createClosetItem(token, contentType);
+        await uploadFileToPresignedUrl(uploadUrl, file);
+        successCount++;
+      }
 
       setSelectedFiles([]);
-      setFeedback(`${items.length} item(s) uploaded. AI processing started.`);
-    } catch {
-      setFeedback("Upload failed. Please try again with valid image files.");
+      setFeedback(`${successCount} item(s) uploaded successfully. AI processing will start shortly.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Upload failed.";
+      setFeedback(`Upload failed after ${successCount} item(s): ${message}`);
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -165,14 +127,14 @@ export function AddPage() {
                 onClick={() => void startUpload()}
                 disabled={selectedFiles.length === 0 || isUploading}
               >
-                {isUploading ? "Uploading..." : "Upload"}
+                {uploadProgress ?? (isUploading ? "Uploading..." : "Upload")}
               </Button>
             </div>
 
             <input
               ref={fileInputRef}
               type="file"
-              accept="image/*"
+              accept="image/jpeg,image/png,image/webp"
               multiple
               className="hidden"
               onChange={(event) => addFiles(event.target.files)}

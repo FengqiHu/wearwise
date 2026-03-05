@@ -1,4 +1,5 @@
-import type { AuthenticatedUser, ChatConversationDetail, ChatConversationSummary, UserProfile } from "../types";
+import type { AuthenticatedUser, ChatConversationDetail, ChatConversationSummary, ClothingItem, ClosetItemRecord, UserProfile } from "../types";
+import { CLOTHING_CATEGORIES } from "../types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
@@ -213,6 +214,62 @@ export async function deleteChatConversation(token: string, conversationId: stri
     const message = await parseResponseError(response, "Failed to delete conversation.");
     throw new Error(message);
   }
+}
+
+const validCategorySet = new Set<string>(CLOTHING_CATEGORIES);
+
+function closetItemToClothingItem(record: ClosetItemRecord): ClothingItem {
+  return {
+    id: record.id,
+    title: record.name ?? "Processing...",
+    category: record.category !== null && validCategorySet.has(record.category)
+      ? (record.category as ClothingItem["category"])
+      : "tops",
+    tags: record.tags,
+    description: record.description ?? "",
+    imageUrl: record.imageUrl,
+    status: record.analysisStatus === "ready" ? "finished" : "unfinished",
+    createdAt: record.createdAt
+  };
+}
+
+interface CreateClosetItemResponse {
+  item: ClosetItemRecord;
+  uploadUrl: string;
+}
+
+export async function createClosetItem(
+  token: string,
+  contentType: string
+): Promise<CreateClosetItemResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ contentType })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to create closet item.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as CreateClosetItemResponse;
+}
+
+export async function fetchClosetItems(token: string): Promise<ClothingItem[]> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items`, {
+    method: "GET",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to fetch closet items.");
+    throw new Error(message);
+  }
+
+  const payload = (await response.json()) as { items?: ClosetItemRecord[] };
+  const records = Array.isArray(payload.items) ? payload.items : [];
+  return records.map(closetItemToClothingItem);
 }
 
 export async function streamChatResponse(
