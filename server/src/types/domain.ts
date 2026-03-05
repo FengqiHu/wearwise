@@ -82,3 +82,18 @@ export interface ConversationSummary {
   lastMessagePreview: string;
   messageCount: number;
 }
+
+export type ClosetItemStatus = "pending" | "ready";
+
+export interface ClosetItemRecord {
+  id: string;
+  userId: string;
+  imageUrl: string;
+  analysisStatus: ClosetItemStatus;
+  name: string | null;
+  category: string | null;
+  tags: string[];
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
