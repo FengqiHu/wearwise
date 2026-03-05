@@ -26,7 +26,9 @@ export interface UserProfile {
   heightCm: number;
   weightKg: number;
   styleNote: string;
-  avatarUrl?: string;
+  avatarUrl?: string | null;
+  fullBodyImageUrl?: string | null;
+  headshotImageUrl?: string | null;
 }
 
 export interface AuthenticatedUser {

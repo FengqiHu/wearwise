@@ -1,0 +1,16 @@
+<svg width="600" height="900" xmlns="http://www.w3.org/2000/svg">
+ <defs>
+  <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+   <stop offset="0%" stop-color="#f6efe4"/>
+   <stop offset="100%" stop-color="#e6dac8"/>
+  </linearGradient>
+ </defs>
+ <g>
+  <title>Layer 1</title>
+  <rect width="600" height="900" fill="url(#bg)" id="svg_1" y="0" x="-1"/>
+  <circle cx="300" cy="380" r="230" fill="#eadcc8" id="svg_2"/>
+  <circle cx="300" cy="320" r="120" fill="#bfa07b" opacity="0.9" id="svg_3"/>
+  <path d="m72.99998,554c0,-90 459.00002,-90 459.00002,0l0,80l-459.00002,0l0,-80z" fill="#b08d66" opacity="0.9" id="svg_4" stroke="null"/>
+  <text x="50%" y="92%" text-anchor="middle" fill="#6f5942" font-size="50" font-family="Arial, sans-serif" id="svg_5">Headshot default</text>
+ </g>
+</svg>

@@ -7,6 +7,7 @@ import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
+import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
@@ -22,8 +23,8 @@ export function createApp() {
     })
   );
 
-  app.use(express.json());
-  app.use(express.urlencoded({ extended: false }));
+  app.use(express.json({ limit: "20mb" }));
+  app.use(express.urlencoded({ extended: false, limit: "20mb" }));
 
   const userRepository = new UserRepository({
     mongoUri: env.mongoUri,
@@ -60,6 +61,13 @@ export function createApp() {
     createProfileRoutes({
       authService,
       userRepository
+    })
+  );
+
+  app.use(
+    "/api",
+    createUploadsRoutes({
+      authService
     })
   );
 
