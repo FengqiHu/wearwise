@@ -17,10 +17,6 @@ function sanitizeGoogleClientId(rawClientId: string): string {
   return rawClientId.trim();
 }
 
-function stripTrailingSlashes(rawUrl: string): string {
-  return rawUrl.replace(/\/+$/, "");
-}
-
 function parseSessionTtlSeconds(): number {
   const parsed = Number.parseInt(getEnv("AUTH_SESSION_TTL_SECONDS"), 10);
 
@@ -29,6 +25,10 @@ function parseSessionTtlSeconds(): number {
   }
 
   return 60 * 60 * 24 * 7;
+}
+
+function stripTrailingSlashes(rawUrl: string): string {
+  return rawUrl.replace(/\/+$/, "");
 }
 
 const rawGoogleClientId = getEnv("GOOGLE_CLIENT_ID");
