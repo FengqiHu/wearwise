@@ -9,6 +9,8 @@ export interface UserProfile {
   weightKg: number;
   styleNote: string;
   avatarUrl: string | null;
+  fullBodyImageUrl: string | null;
+  headshotImageUrl: string | null;
 }
 
 export interface UserRecord {

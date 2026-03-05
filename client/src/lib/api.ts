@@ -25,6 +25,14 @@ interface GoogleExchangePayload {
   codeVerifier?: string;
 }
 
+interface PresignedUploadResponse {
+  uploadUrl: string;
+  publicUrl: string;
+  key: string;
+}
+
+export type ImageUploadFolder = "avatar" | "headshot" | "full-body";
+
 function getErrorMessage(status: number, fallbackText: string): string {
   if (status === 401) {
     return "Authentication failed. Please sign in again.";
@@ -107,6 +115,48 @@ export async function fetchCurrentSession(token: string): Promise<AuthEnvelope> 
   }
 
   return (await response.json()) as AuthEnvelope;
+}
+
+export async function createPresignedImageUpload(
+  token: string,
+  payload: { contentType: string; folder: ImageUploadFolder; fileName: string }
+): Promise<PresignedUploadResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/uploads/presign-image`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to prepare image upload.");
+    throw new Error(message);
+  }
+
+  const parsed = (await response.json()) as Partial<PresignedUploadResponse>;
+
+  if (!parsed.uploadUrl || !parsed.publicUrl || !parsed.key) {
+    throw new Error("Invalid upload response from server.");
+  }
+
+  return {
+    uploadUrl: parsed.uploadUrl,
+    publicUrl: parsed.publicUrl,
+    key: parsed.key
+  };
+}
+
+export async function uploadFileToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
+  const response = await fetch(uploadUrl, {
+    method: "PUT",
+    headers: {
+      "Content-Type": file.type || "application/octet-stream"
+    },
+    body: file
+  });
+
+  if (!response.ok) {
+    throw new Error(`S3 upload failed with status ${response.status}.`);
+  }
 }
 
 export async function saveProfileToApi(token: string, profile: UserProfile): Promise<AuthEnvelope> {
