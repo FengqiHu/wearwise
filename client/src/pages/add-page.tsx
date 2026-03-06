@@ -22,6 +22,7 @@ export function AddPage() {
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+  const MAX_TOTAL_SIZE_BYTES = 20 * 1024 * 1024;
 
   const addFiles = (fileList: FileList | null): void => {
     if (!fileList) {
@@ -32,7 +33,7 @@ export function AddPage() {
     const oversized = incomingFiles.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
 
     if (oversized.length > 0) {
-      setFeedback(`${oversized.map((f) => f.name).join(", ")} ${oversized.length === 1 ? "exceeds" : "exceed"} the 10 MB limit and was not added.`);
+      setFeedback(`${oversized.map((f) => f.name).join(", ")} ${oversized.length === 1 ? "exceeds" : "exceed"} the 10 MB per-file limit and was not added.`);
     }
 
     const valid = incomingFiles.filter((f) => f.size <= MAX_FILE_SIZE_BYTES);
@@ -44,7 +45,15 @@ export function AddPage() {
         map.set(`${file.name}-${file.size}`, file);
       }
 
-      return Array.from(map.values());
+      const next = Array.from(map.values());
+      const totalSize = next.reduce((sum, f) => sum + f.size, 0);
+
+      if (totalSize > MAX_TOTAL_SIZE_BYTES) {
+        setFeedback(`Total size exceeds the 20 MB limit. Please remove some files.`);
+        return previous;
+      }
+
+      return next;
     });
   };
 
