@@ -21,17 +21,26 @@ export function AddPage() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
+  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+
   const addFiles = (fileList: FileList | null): void => {
     if (!fileList) {
       return;
     }
 
     const incomingFiles = Array.from(fileList);
+    const oversized = incomingFiles.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
+
+    if (oversized.length > 0) {
+      setFeedback(`${oversized.map((f) => f.name).join(", ")} ${oversized.length === 1 ? "exceeds" : "exceed"} the 10 MB limit and was not added.`);
+    }
+
+    const valid = incomingFiles.filter((f) => f.size <= MAX_FILE_SIZE_BYTES);
 
     setSelectedFiles((previous) => {
       const map = new Map(previous.map((file) => [`${file.name}-${file.size}`, file]));
 
-      for (const file of incomingFiles) {
+      for (const file of valid) {
         map.set(`${file.name}-${file.size}`, file);
       }
 
