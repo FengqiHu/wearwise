@@ -7,6 +7,7 @@ interface ClosetItemDocument {
   userId: string;
   imageUrl: string;
   analysisStatus: ClosetItemStatus;
+  analysisError: string | null;
   name: string | null;
   category: string | null;
   tags: string[];
@@ -31,6 +32,7 @@ function toClosetItemRecord(document: ClosetItemDocument): ClosetItemRecord {
     userId: document.userId,
     imageUrl: document.imageUrl,
     analysisStatus: document.analysisStatus,
+    analysisError: document.analysisError ?? null,
     name: document.name,
     category: document.category,
     tags: document.tags,
@@ -73,6 +75,7 @@ export class ClosetRepository {
       userId,
       imageUrl,
       analysisStatus: "pending",
+      analysisError: null,
       name: null,
       category: null,
       tags: [],
@@ -102,6 +105,7 @@ export class ClosetRepository {
     itemId: string,
     update: {
       analysisStatus: ClosetItemStatus;
+      analysisError?: string | null;
       name?: string | null;
       category?: string | null;
       tags?: string[];

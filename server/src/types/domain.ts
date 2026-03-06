@@ -92,6 +92,7 @@ export interface ClosetItemRecord {
   userId: string;
   imageUrl: string;
   analysisStatus: ClosetItemStatus;
+  analysisError: string | null;
   name: string | null;
   category: string | null;
   tags: string[];

@@ -100,6 +100,43 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
   });
 
   /**
+   * GET /api/closet/items/:id
+   *
+   * Returns a single closet item by ID for the authenticated user.
+   * Exposes analysisStatus and analysisError for retry and debugging.
+   *
+   * Response 200: { item: ClosetItemRecord }
+   */
+  router.get("/closet/items/:id", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const itemId = (req.params.id ?? "").trim();
+      if (!itemId) {
+        res.status(400).json({ error: "Item ID is required." });
+        return;
+      }
+
+      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      if (!item) {
+        res.status(404).json({ error: "Closet item not found." });
+        return;
+      }
+
+      res.json({ item });
+    } catch (error) {
+      console.error("Closet item fetch error:", error);
+      res.status(500).json({ error: "Failed to fetch closet item." });
+    }
+  });
+
+  /**
    * POST /api/closet/items/:id/analyze
    *
    * Fetches the closet item image from R2, runs Gemini extraction, and
@@ -152,8 +189,11 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
       res.json({ item: updated });
     } catch (extractionError) {
       console.error("Gemini analyze error:", extractionError);
+      const errorMessage =
+        extractionError instanceof Error ? extractionError.message : "Unknown extraction error.";
       await closetRepository.updateExtraction(authResolution.user.id, itemId, {
-        analysisStatus: "error"
+        analysisStatus: "error",
+        analysisError: errorMessage
       });
       res.status(500).json({ error: "Failed to analyze clothing item." });
     }

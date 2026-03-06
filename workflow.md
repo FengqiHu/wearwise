@@ -22,15 +22,23 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 |-------|--------|-------------|
 | #4    | 🔲 In Progress | Parent issue (composed of #14 + #15) |
 | #14   | ✅ Done | Sub-task of #4, depends on #23 + #24 |
-| #15   | 🔲 Not Started | Sub-task of #4, to be done after #14 |
+| #15   | ✅ Done | Sub-task of #4, to be done after #14 |
 | #23   | ✅ Done | Prerequisite for #24 |
 | #24   | ✅ Done | Next up, prerequisite for #14 |
 
 ## In Progress
 
-### Issue #15 🔲
+### Issue #4 🔲
 
-_(Not yet started — to be done after #14)_
+_(Final verification — #14 + #15 both done, check R4 requirement is fully satisfied)_
+
+## Completed
+
+### Issue #15 ✅
+
+- `domain.ts`: added `analysisError: string | null` to `ClosetItemRecord`
+- `closet-repository.ts`: added `analysisError` to document, `create` defaults it to `null`, `toClosetItemRecord` maps it, `updateExtraction` accepts it
+- `closet-routes.ts`: on extraction failure, captures error message and persists via `analysisError`; added `GET /api/closet/items/:id` detail endpoint exposing full item (including `analysisStatus` + `analysisError`) for retry/debugging
 
 ## Completed
 
