@@ -25,7 +25,8 @@ export interface ClosetItemRecord {
   id: string;
   userId: string;
   imageUrl: string;
-  analysisStatus: "pending" | "ready";
+  analysisStatus: "pending" | "ready" | "error";
+  analysisError: string | null;
   name: string | null;
   category: string | null;
   tags: string[];

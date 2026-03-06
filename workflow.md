@@ -30,7 +30,7 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 
 ### Issue #4 🔲
 
-_(Final verification — #14 + #15 both done, check R4 requirement is fully satisfied)_
+_(AC verification complete — all 4 criteria now satisfied; awaiting manual test run)_
 
 ## Completed
 
@@ -48,7 +48,7 @@ _(Final verification — #14 + #15 both done, check R4 requirement is fully sati
 - `closet-repository.ts`: added `updateExtraction` method (writes name/category/tags/description + analysisStatus to MongoDB via `findOneAndUpdate`)
 - `closet-routes.ts`: analyze endpoint now persists extraction results — sets `analysisStatus: "ready"` on success, `"error"` on Gemini/parse failure; returns `{ item: ClosetItemRecord }`
 
-
+## Completed
 
 ### Issue #23 ✅
 
@@ -57,6 +57,8 @@ _(Final verification — #14 + #15 both done, check R4 requirement is fully sati
 - `app.ts`: instantiates and injects `GeminiExtractionService`
 - `env.ts`: adds `geminiApiKey`
 - `package.json` / `package-lock.json`: adds `@google/genai` dependency
+
+## Completed
 
 ### Issue #24 ✅
 

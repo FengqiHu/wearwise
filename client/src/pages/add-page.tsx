@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
+import { analyzeClosetItem, createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
 import {
   CLOTHING_CATEGORIES,
   type ClothingCategory
@@ -82,13 +82,16 @@ export function AddPage() {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
 
         const contentType = file.type || "image/jpeg";
-        const { uploadUrl } = await createClosetItem(token, contentType);
+        const { item, uploadUrl } = await createClosetItem(token, contentType);
         await uploadFileToPresignedUrl(uploadUrl, file);
+
+        setUploadProgress(`Analyzing ${i + 1} of ${selectedFiles.length}...`);
+        await analyzeClosetItem(token, item.id, contentType);
         successCount++;
       }
 
       setSelectedFiles([]);
-      setFeedback(`${successCount} item(s) uploaded successfully. AI processing will start shortly.`);
+      setFeedback(`${successCount} item(s) uploaded and analyzed successfully.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed.";
       setFeedback(`Upload failed after ${successCount} item(s): ${message}`);
