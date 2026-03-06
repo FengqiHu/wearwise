@@ -26,6 +26,12 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 | #23   | ✅ Done | Prerequisite for #24 |
 | #24   | ✅ Done | Next up, prerequisite for #14 |
 
+## In Progress
+
+### Issue #14 🔲
+
+_(Not yet started — depends on #23 + #24, both now done)_
+
 ## Completed
 
 ### Issue #23 ✅
@@ -35,14 +41,6 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 - `app.ts`: instantiates and injects `GeminiExtractionService`
 - `env.ts`: adds `geminiApiKey`
 - `package.json` / `package-lock.json`: adds `@google/genai` dependency
-
-## In Progress
-
-### Issue #14 🔲
-
-_(Not yet started — depends on #23 + #24, both now done)_
-
-## Completed
 
 ### Issue #24 ✅
 
