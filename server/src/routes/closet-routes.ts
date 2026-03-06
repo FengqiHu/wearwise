@@ -181,6 +181,7 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
       const extraction = await geminiExtractionService.analyzeClothingImage(item.imageUrl, mimeType);
       const updated = await closetRepository.updateExtraction(authResolution.user.id, itemId, {
         analysisStatus: "ready",
+        analysisError: null,
         name: extraction.name,
         category: extraction.category,
         tags: extraction.tags,
