@@ -21,18 +21,26 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 | Issue | Status | Description |
 |-------|--------|-------------|
 | #4    | 🔲 In Progress | Parent issue (composed of #14 + #15) |
-| #14   | 🔲 Not Started | Sub-task of #4, depends on #23 + #24 |
+| #14   | ✅ Done | Sub-task of #4, depends on #23 + #24 |
 | #15   | 🔲 Not Started | Sub-task of #4, to be done after #14 |
 | #23   | ✅ Done | Prerequisite for #24 |
 | #24   | ✅ Done | Next up, prerequisite for #14 |
 
 ## In Progress
 
-### Issue #14 🔲
+### Issue #15 🔲
 
-_(Not yet started — depends on #23 + #24, both now done)_
+_(Not yet started — to be done after #14)_
 
 ## Completed
+
+### Issue #14 ✅
+
+- `domain.ts`: added `"error"` to `ClosetItemStatus` union
+- `closet-repository.ts`: added `updateExtraction` method (writes name/category/tags/description + analysisStatus to MongoDB via `findOneAndUpdate`)
+- `closet-routes.ts`: analyze endpoint now persists extraction results — sets `analysisStatus: "ready"` on success, `"error"` on Gemini/parse failure; returns `{ item: ClosetItemRecord }`
+
+
 
 ### Issue #23 ✅
 

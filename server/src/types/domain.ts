@@ -85,7 +85,7 @@ export interface ConversationSummary {
   messageCount: number;
 }
 
-export type ClosetItemStatus = "pending" | "ready";
+export type ClosetItemStatus = "pending" | "ready" | "error";
 
 export interface ClosetItemRecord {
   id: string;
