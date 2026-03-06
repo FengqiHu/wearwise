@@ -21,7 +21,7 @@ export function AddPage() {
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
 
-  const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024;
+  const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
   const MAX_TOTAL_SIZE_BYTES = 20 * 1024 * 1024;
 
   const addFiles = (fileList: FileList | null): void => {
@@ -33,7 +33,7 @@ export function AddPage() {
     const oversized = incomingFiles.filter((f) => f.size > MAX_FILE_SIZE_BYTES);
 
     if (oversized.length > 0) {
-      setFeedback(`${oversized.map((f) => f.name).join(", ")} ${oversized.length === 1 ? "exceeds" : "exceed"} the 10 MB per-file limit and was not added.`);
+      setFeedback(`${oversized.map((f) => f.name).join(", ")} ${oversized.length === 1 ? "exceeds" : "exceed"} the 20 MB per-file limit and was not added.`);
     }
 
     const valid = incomingFiles.filter((f) => f.size <= MAX_FILE_SIZE_BYTES);
