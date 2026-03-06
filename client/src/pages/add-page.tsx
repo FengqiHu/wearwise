@@ -158,12 +158,25 @@ export function AddPage() {
 
           {selectedFiles.length > 0 ? (
             <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-4">
-              <p className="mb-2 text-sm font-medium text-boutique-800">Selected files ({selectedFiles.length})</p>
-              <ul className="max-h-40 space-y-1 overflow-y-auto text-sm text-boutique-700">
-                {selectedFiles.map((file) => (
-                  <li key={`${file.name}-${file.size}`}>{file.name}</li>
-                ))}
-              </ul>
+              <p className="mb-3 text-sm font-medium text-boutique-800">Selected files ({selectedFiles.length})</p>
+              <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {selectedFiles.map((file) => {
+                  const previewUrl = URL.createObjectURL(file);
+                  return (
+                    <div key={`${file.name}-${file.size}`} className="group relative">
+                      <div className="aspect-square overflow-hidden rounded-xl border border-boutique-200 bg-boutique-100">
+                        <img
+                          src={previewUrl}
+                          alt={file.name}
+                          className="h-full w-full object-cover"
+                          onLoad={() => URL.revokeObjectURL(previewUrl)}
+                        />
+                      </div>
+                      <p className="mt-1 truncate text-xs text-boutique-600">{file.name}</p>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           ) : null}
 

@@ -26,6 +26,7 @@ export function WardrobePage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!token) {
@@ -149,7 +150,16 @@ export function WardrobePage() {
                   )}
                 >
                   <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
-                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                    {brokenImageIds.has(item.id) ? (
+                      <div className="flex h-full w-full items-center justify-center text-boutique-400 text-xs">No image</div>
+                    ) : (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        onError={() => setBrokenImageIds((prev) => new Set(prev).add(item.id))}
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-2 p-3">
