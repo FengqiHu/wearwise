@@ -1,12 +1,27 @@
 import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const EXTRACTION_PROMPT =
-  "You are a fashion assistant. Analyze this clothing item image and describe what you see in detail, " +
-  "including the type of clothing, color, material, style, and the season the clothing is suitable for.";
+  "You are a fashion assistant. Analyze this clothing item image and extract structured metadata. " +
+  "Provide a short name, category (one of: tops, pants, outerwear, shoes), descriptive tags " +
+  "(colour, material, style, season), and a one or two sentence description of the item.";
+
+export const closetItemExtractionSchema = z.object({
+  name: z.string().describe("Short human-readable item name, e.g. 'White Linen Shirt'."),
+  category: z
+    .enum(["tops", "pants", "outerwear", "shoes"])
+    .describe("Clothing category: tops, pants, outerwear, or shoes."),
+  tags: z
+    .array(z.string())
+    .describe("Descriptive keywords covering colour, material, style, and season."),
+  description: z.string().describe("One or two sentence summary of the item."),
+});
+
+export type ClosetItemExtraction = z.infer<typeof closetItemExtractionSchema>;
 
 interface GeminiExtractionServiceOptions {
   apiKey: string;
@@ -23,7 +38,7 @@ export class GeminiExtractionService {
     return this.ai !== null;
   }
 
-  async analyzeClothingImage(imageUrl: string, mimeType: string): Promise<string> {
+  async analyzeClothingImage(imageUrl: string, mimeType: string): Promise<ClosetItemExtraction> {
     if (!this.ai) {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
@@ -51,9 +66,14 @@ export class GeminiExtractionService {
             { text: EXTRACTION_PROMPT }
           ]
         }
-      ]
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: z.toJSONSchema(closetItemExtractionSchema),
+      },
     });
 
-    return response.text ?? "";
+    const raw = response.text ?? "";
+    return closetItemExtractionSchema.parse(JSON.parse(raw));
   }
 }

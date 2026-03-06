@@ -105,7 +105,7 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
    * Fetches the closet item image from R2 and sends it to Gemini for
    * clothing analysis. Returns the raw model description.
    *
-   * Response 200: { description: string }
+   * Response 200: { name: string, category: string, tags: string[], description: string }
    */
   router.post("/closet/items/:id/analyze", async (req, res): Promise<void> => {
     try {
@@ -140,9 +140,9 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
           ? body.mimeType.trim().toLowerCase()
           : "image/jpeg";
 
-      const description = await geminiExtractionService.analyzeClothingImage(item.imageUrl, mimeType);
+      const extraction = await geminiExtractionService.analyzeClothingImage(item.imageUrl, mimeType);
 
-      res.json({ description });
+      res.json(extraction);
     } catch (error) {
       console.error("Gemini analyze error:", error);
       res.status(500).json({ error: "Failed to analyze clothing item." });
