@@ -1,15 +1,17 @@
 import { Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
 
 interface ClosetRoutesDependencies {
   authService: AuthService;
   closetRepository: ClosetRepository;
   r2StorageService: R2StorageService;
+  geminiExtractionService: GeminiExtractionService;
 }
 
-export function createClosetRoutes({ authService, closetRepository, r2StorageService }: ClosetRoutesDependencies): Router {
+export function createClosetRoutes({ authService, closetRepository, r2StorageService, geminiExtractionService }: ClosetRoutesDependencies): Router {
   const router = Router();
 
   /**
@@ -94,6 +96,56 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
     } catch (error) {
       console.error("Closet item upload error:", error);
       res.status(500).json({ error: "Failed to create closet item." });
+    }
+  });
+
+  /**
+   * POST /api/closet/items/:id/analyze
+   *
+   * Fetches the closet item image from R2 and sends it to Gemini for
+   * clothing analysis. Returns the raw model description.
+   *
+   * Response 200: { description: string }
+   */
+  router.post("/closet/items/:id/analyze", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      if (!geminiExtractionService.isConfigured()) {
+        res.status(503).json({ error: "Gemini extraction service is not configured." });
+        return;
+      }
+
+      const itemId = (req.params.id ?? "").trim();
+      if (!itemId) {
+        res.status(400).json({ error: "Item ID is required." });
+        return;
+      }
+
+      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      if (!item) {
+        res.status(404).json({ error: "Closet item not found." });
+        return;
+      }
+
+      const body = (req.body as { mimeType?: unknown } | undefined) ?? {};
+      const mimeType =
+        typeof body.mimeType === "string" && body.mimeType.trim()
+          ? body.mimeType.trim().toLowerCase()
+          : "image/jpeg";
+
+      const description = await geminiExtractionService.analyzeClothingImage(item.imageUrl, mimeType);
+
+      res.json({ description });
+    } catch (error) {
+      console.error("Gemini analyze error:", error);
+      res.status(500).json({ error: "Failed to analyze clothing item." });
     }
   });
 
