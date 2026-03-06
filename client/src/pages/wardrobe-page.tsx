@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
+import { useAuth } from "../context/auth-context";
+import { fetchClosetItems } from "../lib/api";
 import { cn } from "../lib/cn";
-import { getWardrobeItems } from "../lib/storage";
 import {
   CLOTHING_CATEGORIES,
   type ClothingCategory,
@@ -19,22 +20,47 @@ function sortByNewest(items: ClothingItem[]): ClothingItem[] {
 
 export function WardrobePage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState<ClothingItem[]>(() => sortByNewest(getWardrobeItems()));
+  const { token } = useAuth();
+  const [items, setItems] = useState<ClothingItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<WardrobeFilter>("all");
   const [page, setPage] = useState(1);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    const refreshItems = (): void => {
-      setItems(sortByNewest(getWardrobeItems()));
+    if (!token) {
+      return;
+    }
+
+    let active = true;
+
+    const load = async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        const fetched = await fetchClosetItems(token);
+
+        if (active) {
+          setItems(sortByNewest(fetched));
+        }
+      } catch (err) {
+        if (active) {
+          setError(err instanceof Error ? err.message : "Failed to load wardrobe.");
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
     };
 
-    refreshItems();
-    const timerId = window.setInterval(refreshItems, 1500);
+    void load();
 
     return () => {
-      window.clearInterval(timerId);
+      active = false;
     };
-  }, []);
+  }, [token]);
 
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") {
@@ -93,7 +119,15 @@ export function WardrobePage() {
           ))}
         </div>
 
-        {pagedItems.length === 0 ? (
+        {isLoading ? (
+          <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-10 text-center text-boutique-700">
+            Loading your wardrobe...
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-700">
+            {error}
+          </div>
+        ) : pagedItems.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-boutique-300 bg-boutique-50 p-10 text-center text-boutique-700">
             No items found for this filter.
           </div>
@@ -116,7 +150,16 @@ export function WardrobePage() {
                   )}
                 >
                   <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
-                    <img src={item.imageUrl} alt={item.title} className="h-full w-full object-cover" />
+                    {brokenImageIds.has(item.id) ? (
+                      <div className="flex h-full w-full items-center justify-center text-boutique-400 text-xs">No image</div>
+                    ) : (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.title}
+                        className="h-full w-full object-cover"
+                        onError={() => setBrokenImageIds((prev) => new Set(prev).add(item.id))}
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-2 p-3">

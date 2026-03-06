@@ -43,6 +43,7 @@ const mongoUri = getEnv("MONGODB_URI") || "mongodb://127.0.0.1:27017";
 const mongoDatabaseName = getEnv("MONGODB_DB_NAME") || "wearwise";
 const mongoUsersCollection = getEnv("MONGODB_USERS_COLLECTION") || "users";
 const mongoConversationsCollection = getEnv("MONGODB_CONVERSATIONS_COLLECTION") || "conversations";
+const mongoClosetCollection = getEnv("MONGODB_CLOSET_COLLECTION") || "closet_items";
 
 const s3Bucket = getEnv("S3_BUCKET");
 const s3Region = getEnv("S3_REGION") || "auto";
@@ -69,6 +70,7 @@ export const env = {
   mongoDatabaseName,
   mongoUsersCollection,
   mongoConversationsCollection,
+  mongoClosetCollection,
   s3Bucket,
   s3Region,
   s3Endpoint,
