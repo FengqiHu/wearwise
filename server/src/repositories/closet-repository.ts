@@ -7,6 +7,7 @@ interface ClosetItemDocument {
   userId: string;
   imageUrl: string;
   analysisStatus: ClosetItemStatus;
+  analysisError: string | null;
   name: string | null;
   category: string | null;
   tags: string[];
@@ -31,6 +32,7 @@ function toClosetItemRecord(document: ClosetItemDocument): ClosetItemRecord {
     userId: document.userId,
     imageUrl: document.imageUrl,
     analysisStatus: document.analysisStatus,
+    analysisError: document.analysisError ?? null,
     name: document.name,
     category: document.category,
     tags: document.tags,
@@ -73,6 +75,7 @@ export class ClosetRepository {
       userId,
       imageUrl,
       analysisStatus: "pending",
+      analysisError: null,
       name: null,
       category: null,
       tags: [],
@@ -95,5 +98,26 @@ export class ClosetRepository {
     const collection = await this.getCollection();
     const documents = await collection.find({ userId }).sort({ createdAt: -1 }).limit(limit).toArray();
     return documents.map(toClosetItemRecord);
+  }
+
+  async updateExtraction(
+    userId: string,
+    itemId: string,
+    update: {
+      analysisStatus: ClosetItemStatus;
+      analysisError?: string | null;
+      name?: string | null;
+      category?: string | null;
+      tags?: string[];
+      description?: string | null;
+    }
+  ): Promise<ClosetItemRecord | null> {
+    const collection = await this.getCollection();
+    const result = await collection.findOneAndUpdate(
+      { _id: itemId, userId },
+      { $set: { ...update, updatedAt: nowIsoString() } },
+      { returnDocument: "after" }
+    );
+    return result ? toClosetItemRecord(result) : null;
   }
 }

@@ -85,13 +85,14 @@ export interface ConversationSummary {
   messageCount: number;
 }
 
-export type ClosetItemStatus = "pending" | "ready";
+export type ClosetItemStatus = "pending" | "ready" | "error";
 
 export interface ClosetItemRecord {
   id: string;
   userId: string;
   imageUrl: string;
   analysisStatus: ClosetItemStatus;
+  analysisError: string | null;
   name: string | null;
   category: string | null;
   tags: string[];

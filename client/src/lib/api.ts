@@ -256,6 +256,37 @@ export async function createClosetItem(
   return (await response.json()) as CreateClosetItemResponse;
 }
 
+export async function fetchClosetItem(token: string, itemId: string): Promise<ClosetItemRecord> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "GET",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to fetch closet item.");
+    throw new Error(message);
+  }
+
+  const payload = (await response.json()) as { item?: ClosetItemRecord };
+  if (!payload.item) {
+    throw new Error("Item not found.");
+  }
+  return payload.item;
+}
+
+export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/analyze`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ mimeType })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to trigger clothing analysis.");
+    throw new Error(message);
+  }
+}
+
 export async function fetchClosetItems(token: string): Promise<ClothingItem[]> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items`, {
     method: "GET",

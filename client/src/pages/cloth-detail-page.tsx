@@ -1,17 +1,63 @@
-import { useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
-import { getWardrobeItems } from "../lib/storage";
+import { useAuth } from "../context/auth-context";
+import { fetchClosetItem } from "../lib/api";
+import type { ClosetItemRecord } from "../types";
 
 export function ClothDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { token } = useAuth();
+  const [item, setItem] = useState<ClosetItemRecord | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
 
-  const cloth = useMemo(() => getWardrobeItems().find((item) => item.id === id), [id]);
+  useEffect(() => {
+    if (!token || !id) {
+      return;
+    }
 
-  if (!cloth) {
+    let active = true;
+
+    const load = async (): Promise<void> => {
+      try {
+        setIsLoading(true);
+        const fetched = await fetchClosetItem(token, id);
+        if (active) {
+          setItem(fetched);
+        }
+      } catch {
+        if (active) {
+          setNotFound(true);
+        }
+      } finally {
+        if (active) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
+  }, [token, id]);
+
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-2xl">
+        <Card className="space-y-4 p-8 text-center">
+          <p className="text-sm text-boutique-700">Loading...</p>
+        </Card>
+      </div>
+    );
+  }
+
+  if (notFound || !item) {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-4 p-8 text-center">
@@ -25,7 +71,7 @@ export function ClothDetailPage() {
     );
   }
 
-  if (cloth.status === "unfinished") {
+  if (item.analysisStatus !== "ready") {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-4 p-8 text-center">
@@ -52,30 +98,30 @@ export function ClothDetailPage() {
 
       <Card className="grid gap-6 p-5 md:grid-cols-[0.95fr_1.05fr] md:p-7">
         <div className="overflow-hidden rounded-3xl border border-boutique-200 bg-boutique-100">
-          <img src={cloth.imageUrl} alt={cloth.title} className="h-full w-full object-cover" />
+          <img src={item.imageUrl} alt={item.name ?? "Clothing item"} className="h-full w-full object-cover" />
         </div>
 
         <div className="space-y-4">
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Title</p>
-            <h2 className="font-display text-4xl text-boutique-900">{cloth.title}</h2>
+            <h2 className="font-display text-4xl text-boutique-900">{item.name}</h2>
           </div>
 
           <div>
             <p className="mb-2 text-xs uppercase tracking-[0.16em] text-boutique-600">Tags</p>
             <div className="flex flex-wrap gap-2">
-              {cloth.tags.length > 0 ? cloth.tags.map((tag) => <Badge key={tag}>{tag}</Badge>) : <Badge>No tags</Badge>}
+              {item.tags.length > 0 ? item.tags.map((tag) => <Badge key={tag}>{tag}</Badge>) : <Badge>No tags</Badge>}
             </div>
           </div>
 
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Category</p>
-            <p className="mt-1 text-lg font-medium text-boutique-900">{cloth.category}</p>
+            <p className="mt-1 text-lg font-medium text-boutique-900">{item.category}</p>
           </div>
 
           <div>
             <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Description</p>
-            <p className="mt-1 text-sm leading-relaxed text-boutique-800">{cloth.description}</p>
+            <p className="mt-1 text-sm leading-relaxed text-boutique-800">{item.description}</p>
           </div>
         </div>
       </Card>

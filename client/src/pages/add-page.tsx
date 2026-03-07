@@ -4,18 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
-import {
-  CLOTHING_CATEGORIES,
-  type ClothingCategory
-} from "../types";
+import { analyzeClosetItem, createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
 
 export function AddPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [category, setCategory] = useState<ClothingCategory>("tops");
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
@@ -82,13 +77,16 @@ export function AddPage() {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
 
         const contentType = file.type || "image/jpeg";
-        const { uploadUrl } = await createClosetItem(token, contentType);
+        const { item, uploadUrl } = await createClosetItem(token, contentType);
         await uploadFileToPresignedUrl(uploadUrl, file);
+
+        setUploadProgress(`Analyzing ${i + 1} of ${selectedFiles.length}...`);
+        await analyzeClosetItem(token, item.id, contentType);
         successCount++;
       }
 
       setSelectedFiles([]);
-      setFeedback(`${successCount} item(s) uploaded successfully. AI processing will start shortly.`);
+      setFeedback(`${successCount} item(s) uploaded and analyzed successfully.`);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Upload failed.";
       setFeedback(`Upload failed after ${successCount} item(s): ${message}`);
@@ -157,21 +155,6 @@ export function AddPage() {
               className="hidden"
               onChange={(event) => addFiles(event.target.files)}
             />
-          </div>
-
-          <div className="grid gap-2 sm:max-w-xs">
-            <label className="text-sm font-medium text-boutique-700">Category for this upload</label>
-            <select
-              value={category}
-              onChange={(event) => setCategory(event.target.value as ClothingCategory)}
-              className="h-11 rounded-2xl border border-boutique-300 bg-boutique-50 px-3 text-sm text-boutique-900 focus:outline-none focus:ring-2 focus:ring-boutique-400"
-            >
-              {CLOTHING_CATEGORIES.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </select>
           </div>
 
           {selectedFiles.length > 0 ? (
