@@ -4,6 +4,24 @@
 
 Based on latest `iteration1` branch.
 
+## Environment Setup
+
+### GEMINI_API_KEY (required for clothing attribute extraction)
+
+The server reads the Gemini API key from the environment variable `GEMINI_API_KEY` (loaded in `server/src/config/env.ts`).
+Each developer must set this locally — **never commit the key to the repo**.
+
+**How to set it:**
+
+1. Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. Add it to `server/.env` (create the file if it does not exist):
+   ```
+   GEMINI_API_KEY=your_api_key_here
+   ```
+3. `server/.env` is already listed in `.gitignore` — confirm before committing anything.
+
+Without this key, the `POST /api/closet/items/:id/analyze` endpoint will fail with a config error.
+
 ## Overall Plan
 
 The overarching goal is **Issue #4**, which is decomposed into **Issue #14** and **Issue #15**.
@@ -31,6 +49,14 @@ After completing #14 and #15, do a final review to confirm Issue #4 is fully sat
 ### Issue #4 🔲
 
 _(AC verification complete — all 4 criteria now satisfied; awaiting manual test run)_
+
+## Completed
+
+### Frontend fixes (no issue number) ✅
+
+- `client/src/lib/api.ts`: added `fetchClosetItem(token, itemId)` → calls `GET /api/closet/items/:id`, returns `ClosetItemRecord`
+- `client/src/pages/cloth-detail-page.tsx`: replaced localStorage lookup (`getWardrobeItems()`) with API fetch via `fetchClosetItem`; now correctly shows name/category/tags/description from MongoDB; added loading state
+- `client/src/pages/add-page.tsx`: removed category dropdown selector (the `category` state and UI block) — category is determined by Gemini, not the user
 
 ## Completed
 
