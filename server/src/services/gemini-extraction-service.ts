@@ -7,13 +7,13 @@ const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 const EXTRACTION_PROMPT =
   "You are a fashion assistant. Analyze this clothing item image and extract structured metadata. " +
-  "Provide a short name, category (one of: tops, pants, outerwear, shoes,accessories), descriptive tags " +
+  "Provide a short name, category (one of: tops, pants, outerwear, shoes, accessories), descriptive tags " +
   "(colour, material, style, season), and a one or two sentence description of the item.";
 
 export const closetItemExtractionSchema = z.object({
   name: z.string().describe("Short human-readable item name, e.g. 'White Linen Shirt'."),
   category: z
-    .enum(["tops", "pants", "outerwear", "shoes","accessories"])
+    .enum(["tops", "pants", "outerwear", "shoes", "accessories"])
     .describe("Clothing category: tops, pants, outerwear, shoes or accessories."),
   tags: z
     .array(z.string())
