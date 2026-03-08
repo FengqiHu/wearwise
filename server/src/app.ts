@@ -3,10 +3,12 @@ import express from "express";
 import { env } from "./config/env.js";
 import { ClosetRepository } from "./repositories/closet-repository.js";
 import { ConversationRepository } from "./repositories/conversation-repository.js";
+import { GenerationRepository } from "./repositories/generation-repository.js";
 import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
+import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
@@ -14,6 +16,7 @@ import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
+import { ImageGenerationService } from "./services/image-generation-service.js";
 import { R2StorageService } from "./services/r2-storage-service.js";
 import { SessionService } from "./services/session-service.js";
 
@@ -45,6 +48,11 @@ export function createApp() {
     databaseName: env.mongoDatabaseName,
     collectionName: env.mongoClosetCollection
   });
+  const generationRepository = new GenerationRepository({
+    mongoUri: env.mongoUri,
+    databaseName: env.mongoDatabaseName,
+    collectionName: env.mongoGenerationsCollection
+  });
   const r2StorageService = new R2StorageService({
     bucket: env.s3Bucket,
     region: env.s3Region,
@@ -57,6 +65,7 @@ export function createApp() {
   const authService = new AuthService(sessionService, userRepository);
   const chatService = new ChatService(env.openaiApiKey);
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
+  const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
   const googleOAuthService = new GoogleOAuthService({
     clientId: env.googleClientId,
     clientSecret: env.googleClientSecret,
@@ -105,6 +114,18 @@ export function createApp() {
       closetRepository,
       r2StorageService,
       geminiExtractionService
+    })
+  );
+
+  app.use(
+    "/api",
+    createGenerationRoutes({
+      authService,
+      userRepository,
+      closetRepository,
+      generationRepository,
+      imageGenerationService,
+      r2StorageService
     })
   );
 

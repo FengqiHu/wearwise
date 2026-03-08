@@ -100,3 +100,30 @@ export interface ClosetItemRecord {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface GenerateOutfitRequest {
+  clothingItemIds: string[];
+  options?: {
+    scene?: string;
+    style?: string;
+    prompt?: string;
+    aspectRatio?: string;
+  };
+}
+
+export interface GenerateOutfitResponse {
+  success: boolean;
+  result: {
+    imageUrl: string;
+    generatedAt: string;
+  } | null;
+  message?: string;
+}
+
+export interface GenerationRecord {
+  id: string;
+  userId: string;
+  clothingItemIds: string[];
+  generatedImageUrl: string;
+  createdAt: string;
+}

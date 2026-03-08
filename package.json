@@ -17,5 +17,8 @@
   "devDependencies": {
     "concurrently": "^9.2.1"
   },
-  "dev": "ts-node-dev --respawn src/index.ts"
+  "dev": "ts-node-dev --respawn src/index.ts",
+  "dependencies": {
+    "mongodb": "^7.1.0"
+  }
 }
