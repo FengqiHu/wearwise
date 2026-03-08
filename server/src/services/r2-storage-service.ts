@@ -76,4 +76,20 @@ export class R2StorageService {
 
     return { uploadUrl, publicUrl };
   }
+
+  async uploadBuffer(key: string, buffer: Buffer, contentType: string): Promise<string> {
+    const command = new PutObjectCommand({
+      Bucket: this.bucket,
+      Key: key,
+      Body: buffer,
+      ContentType: contentType
+    });
+
+    await this.s3.send(command);
+    return `${this.publicBaseUrl}/${key}`;
+  }
+
+  buildGeneratedImageKey(userId: string, filename: string): string {
+    return `users/${userId}/generated_images/${filename}`;
+  }
 }
