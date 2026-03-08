@@ -64,10 +64,3 @@ The client runs at `http://localhost:5173` and the server at `http://localhost:3
 ```bash
 # Coming soon — Vitest
 ```
-
-## Documentation
-
-- Product Requirements: `docs/product-requirements.md`
-- Project Roadmap: `docs/project-roadmap.md`
-- Iteration Plans: `docs/iteration-x-plan.md`
-- Team Agreement: `docs/team-agreement.md`

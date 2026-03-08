@@ -15,7 +15,7 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 * **Database**: MongoDB
 
-* **Image Storage:&#x20;**&#x43;loudflare R2
+* **Image Storage:Cloudflare R2
 
 * **Auth:** Google OAuth 2.0
 
@@ -23,7 +23,7 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 * **Weather API**:OpenWeather(weather query)
 
-* **AI Services:&#x20;**&#x47;emini (reasoning for recommendation), Nano Banana (image generation)
+* **AI Services:Gemini (reasoning for recommendation), Nano Banana (image generation)
 
 * **Deployment:** Vercel for web app and serverless APIs, Render for long-running workers
 
@@ -65,6 +65,6 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 <!-- TODO: Add patterns your team discovers during development -->
 
-- [ ] Forgetting to reference the issue number in commits
-- [ ] Pushing directly to master instead of creating a PR
+- [ ] Google OAuth configured wrong redirect link making some errors.
+- [ ] Fail to install MongoDB 
 - [ ] Creating issues for future iterations instead of the current one

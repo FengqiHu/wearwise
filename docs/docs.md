@@ -175,8 +175,9 @@ Cloud Vision API — Data Usage FAQ: https://docs.cloud.google.com/vision/docs/d
 - Google OAuth login
 - Users can create personal accounts/profiles with their own images (face and full-body), height and weight.
 - Users can upload images of clothing items.
-- Users can communicate their clothing needs to the system (chatting) and generate try-on image.
-- The system analyzes uploaded clothing images and extracts clothing features, generating cloth's name, category (tops, pants, shoes, etc.), tag (fabric, color, long/short), and description.
+- Users can communicate their clothing needs to the system (chatting).
+- Create try-on image generation api.
+- The system analyzes uploaded clothing images and extracts clothing features, generating cloth's name, category (tops, pants, shoes, etc.), and description.
 
 ## Iteration 2
 
@@ -307,13 +308,14 @@ Cloud Vision API — Data Usage FAQ: https://docs.cloud.google.com/vision/docs/d
   - `POST /api/closet/items`, `GET /api/closet/items`: upload/list clothing items.
   - `POST /api/closet/items/:id/analyze` (internal trigger): run extraction.
   - `POST /api/needs`: submit user clothing-need requests.
-
+  - `POST /api/generate/outfit`: generate try-on images.
+  
 - **Ownership and cross-team coordination**
-  - `@FengqiHu`: auth/session architecture, profile schema & UI, closet list page, chat needs UI (#6, #7, #8, #9, #12, #17).
-  - `@Nanshengbeisheng`: face/body image upload, clothing image upload flow (#10, #13).
-  - `@jiruidai`: clothing image upload flow, Gemini extraction, extraction status handling (#13, #14, #15).
-  - `@z8ri`: closet item upload endpoint (#11). Issues #16 and #18 are currently unassigned.
-
+  - `@FengqiHu`: auth/session architecture, backend guardrails, integration sign-off.
+  - `@hermit-yoshino-xl`: profile UI flow and validation UX.
+  - `@nanshengbeisheng`: closet upload/list UI and API integration.
+  - `@jiruidai`: extraction pipeline integration and analysis status handling.
+  - `@z8ri`: API tests, integration checks, and release readiness checklist.
 - **Dependency order**
   - Complete auth/session first (R1), then profile/closet endpoints (R2/R3).
   - Enable extraction after closet upload path is stable (R4 depends on R3).
