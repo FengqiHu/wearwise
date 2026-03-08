@@ -310,12 +310,15 @@ Cloud Vision API — Data Usage FAQ: https://docs.cloud.google.com/vision/docs/d
   - `POST /api/needs`: submit user clothing-need requests.
   - `POST /api/generate/outfit`: generate try-on images.
   
-- **Ownership and cross-team coordination**
-  - `@FengqiHu`: auth/session architecture, backend guardrails, integration sign-off.
-  - `@hermit-yoshino-xl`: profile UI flow and validation UX.
-  - `@nanshengbeisheng`: closet upload/list UI and API integration.
-  - `@jiruidai`: extraction pipeline integration and analysis status handling.
-  - `@z8ri`: API tests, integration checks, and release readiness checklist.
+- **Ownership**
+  - `@FengqiHu`: auth/session architecture and sign-off, chatting feature including frontend and backend. 
+    Frontend: My Wardrobe, Edit profile, Welcome Page (Log in), Upload Clothes
+  - `@hermit-yoshino-xl`: issue#21, finishing the picture generation function
+      issue#25, finishing linking the database to the cloud MongoDB.
+  - `@nanshengbeisheng`: uploading headshot, fullbody, and avatar image in the profile page and built the pipeline of uploading images to Cloudflare R2.
+  - `@jiruidai`: Implemented the AI-powered clothing analysis pipeline: backend Gemini integration with structured output, MongoDB persistence for extraction results and error handling, and removed the manual category selector in favor of automatic classification.
+  - `@z8ri`: Implemented the end-to-end clothing image upload pipeline: backend presigned URL endpoint with MongoDB persistence, and frontend batch upload with preview and live wardrobe listing.
+
 - **Dependency order**
   - Complete auth/session first (R1), then profile/closet endpoints (R2/R3).
   - Enable extraction after closet upload path is stable (R4 depends on R3).
