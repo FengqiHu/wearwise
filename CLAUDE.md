@@ -2,18 +2,40 @@
 
 ## Project Description
 
-<!-- TODO: Describe your project in 1-2 sentences -->
+The main idea of our project is to create a personal cloud clothing library. Users provide images of their clothing items along with basic body information. After that, our agent can recommend several outfits based on the user’s current needs, such as the weather, occasion, or personal preferences, and generate images showing how each outfit would look. 
+
+Additionally, when users want to buy new clothes, our agent can help them make decisions by showing how the new items would look on their body and suggesting possible combinations with their existing wardrobe.
 
 ## Tech Stack
 
-<!-- TODO: List your technologies (e.g., React + Vite, Python + Flask, etc.) -->
+
+* **Frontend**: TypeScript, React
+
+* **Backend**: TypeScript, Vercel
+
+* **Database**: MongoDB
+
+* **Image Storage:Cloudflare R2
+
+* **Auth:** Google OAuth 2.0
+
+* **Consent Review:** Google Cloud Vision – SafeSearch
+
+* **Weather API**:OpenWeather(weather query)
+
+* **AI Services:Gemini (reasoning for recommendation), Nano Banana (image generation)
+
+* **Deployment:** Vercel for web app and serverless APIs, Render for long-running workers
+
+* **Testing:** Vitest
+
 
 ## Commands
 
 <!-- TODO: Fill in after choosing your tech stack -->
 
-- Install dependencies: `<command>`
-- Run development server: `<command>`
+- Install dependencies: `npm install`
+- Run development server: `npm run dev`
 - Run tests: `<command>`
 - Run linter: `<command>`
 - Build for production: `<command>`
@@ -43,6 +65,6 @@
 
 <!-- TODO: Add patterns your team discovers during development -->
 
-- [ ] Forgetting to reference the issue number in commits
-- [ ] Pushing directly to master instead of creating a PR
+- [ ] Google OAuth configured wrong redirect link making some errors.
+- [ ] Fail to install MongoDB 
 - [ ] Creating issues for future iterations instead of the current one
