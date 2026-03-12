@@ -1,4 +1,12 @@
-import type { AuthenticatedUser, ChatConversationDetail, ChatConversationSummary, ClothingItem, ClosetItemRecord, UserProfile } from "../types";
+import type {
+  AuthenticatedUser,
+  ChatConversationDetail,
+  ChatConversationSummary,
+  ClothingItem,
+  ClosetItemRecord,
+  OutfitRecommendation,
+  UserProfile
+} from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
@@ -301,6 +309,24 @@ export async function fetchClosetItems(token: string): Promise<ClothingItem[]> {
   const payload = (await response.json()) as { items?: ClosetItemRecord[] };
   const records = Array.isArray(payload.items) ? payload.items : [];
   return records.map(closetItemToClothingItem);
+}
+
+export async function recommendOutfit(
+  token: string,
+  selectedItemIds: string[]
+): Promise<OutfitRecommendation> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/recommend`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ selectedItemIds })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to generate outfit recommendation.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as OutfitRecommendation;
 }
 
 export async function streamChatResponse(

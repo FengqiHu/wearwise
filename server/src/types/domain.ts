@@ -114,6 +114,7 @@ export interface OutfitItem {
 
 export interface RecommendOutfitResponse {
   outfit: OutfitItem[];
+  styleNote: string;
 }
 
 export interface GenerateOutfitRequest {
