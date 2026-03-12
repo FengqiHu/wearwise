@@ -137,6 +137,66 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
   });
 
   /**
+   * PATCH /api/closet/items/:id
+   *
+   * Updates editable metadata fields: name, category, tags, description.
+   * All fields are optional; only provided fields are updated.
+   *
+   * Request body (JSON): { name?, category?, tags?, description? }
+   * Response 200: { item: ClosetItemRecord }
+   */
+  router.patch("/closet/items/:id", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const itemId = (req.params.id ?? "").trim();
+      if (!itemId) {
+        res.status(400).json({ error: "Item ID is required." });
+        return;
+      }
+
+      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      if (!item) {
+        res.status(404).json({ error: "Closet item not found." });
+        return;
+      }
+
+      const body = (req.body as {
+        name?: unknown;
+        category?: unknown;
+        tags?: unknown;
+        description?: unknown;
+      } | undefined) ?? {};
+
+      const update: { name?: string; category?: string; tags?: string[]; description?: string } = {};
+
+      if (typeof body.name === "string") update.name = body.name.trim();
+      if (typeof body.category === "string") update.category = body.category.trim();
+      if (typeof body.description === "string") update.description = body.description.trim();
+      if (Array.isArray(body.tags) && body.tags.every((t) => typeof t === "string")) {
+        update.tags = (body.tags as string[]).map((t) => t.trim()).filter(Boolean);
+      }
+
+      if (Object.keys(update).length === 0) {
+        res.status(400).json({ error: "No valid fields provided for update." });
+        return;
+      }
+
+      const updated = await closetRepository.updateMetadata(authResolution.user.id, itemId, update);
+      res.json({ item: updated });
+    } catch (error) {
+      console.error("Closet item metadata update error:", error);
+      res.status(500).json({ error: "Failed to update closet item." });
+    }
+  });
+
+  /**
    * DELETE /api/closet/items/:id
    *
    * Deletes a closet item: removes the MongoDB record and the R2 image.

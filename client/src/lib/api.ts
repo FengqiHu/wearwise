@@ -274,6 +274,33 @@ export async function fetchClosetItem(token: string, itemId: string): Promise<Cl
   return payload.item;
 }
 
+interface UpdateClosetItemMetadataPayload {
+  name?: string;
+  category?: string;
+  tags?: string[];
+  description?: string;
+}
+
+export async function updateClosetItemMetadata(
+  token: string,
+  itemId: string,
+  payload: UpdateClosetItemMetadataPayload
+): Promise<ClosetItemRecord> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to update closet item.");
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { item: ClosetItemRecord };
+  return data.item;
+}
+
 export async function deleteClosetItem(token: string, itemId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
     method: "DELETE",

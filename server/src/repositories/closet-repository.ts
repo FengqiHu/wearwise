@@ -100,6 +100,25 @@ export class ClosetRepository {
     return documents.map(toClosetItemRecord);
   }
 
+  async updateMetadata(
+    userId: string,
+    itemId: string,
+    update: {
+      name?: string;
+      category?: string;
+      tags?: string[];
+      description?: string;
+    }
+  ): Promise<ClosetItemRecord | null> {
+    const collection = await this.getCollection();
+    const result = await collection.findOneAndUpdate(
+      { _id: itemId, userId },
+      { $set: { ...update, updatedAt: nowIsoString() } },
+      { returnDocument: "after" }
+    );
+    return result ? toClosetItemRecord(result) : null;
+  }
+
   async deleteById(userId: string, itemId: string): Promise<boolean> {
     const collection = await this.getCollection();
     const result = await collection.deleteOne({ _id: itemId, userId });
