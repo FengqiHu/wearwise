@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { DeleteObjectCommand, PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 const PRESIGN_EXPIRY_SECONDS = 60 * 5; // 5 minutes
@@ -75,6 +75,13 @@ export class R2StorageService {
     const publicUrl = `${this.publicBaseUrl}/${key}`;
 
     return { uploadUrl, publicUrl };
+  }
+
+  async deleteObject(publicUrl: string): Promise<void> {
+    const prefix = `${this.publicBaseUrl}/`;
+    const key = publicUrl.startsWith(prefix) ? publicUrl.slice(prefix.length) : publicUrl;
+    const command = new DeleteObjectCommand({ Bucket: this.bucket, Key: key });
+    await this.s3.send(command);
   }
 
   async uploadBuffer(key: string, buffer: Buffer, contentType: string): Promise<string> {
