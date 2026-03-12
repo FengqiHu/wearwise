@@ -31,10 +31,18 @@ export function WardrobePage() {
   const [selectedItems, setSelectedItems] = useState<Map<ClothingCategory, ClothingItem>>(
     new Map<ClothingCategory, ClothingItem>()
   );
+  const [replacedCategory, setReplacedCategory] = useState<ClothingCategory | null>(null);
 
   function toggleSelection(item: ClothingItem): void {
     if (item.status === "unfinished") {
       return;
+    }
+
+    const currentInCategory = selectedItems.get(item.category);
+    const isReplacing = Boolean(currentInCategory && currentInCategory.id !== item.id);
+
+    if (isReplacing) {
+      setReplacedCategory(item.category);
     }
 
     setSelectedItems((prev) => {
@@ -53,6 +61,7 @@ export function WardrobePage() {
   function exitSelectionMode(): void {
     setSelectionMode(false);
     setSelectedItems(new Map<ClothingCategory, ClothingItem>());
+    setReplacedCategory(null);
   }
 
   function handleSelectionModeToggle(): void {
@@ -67,6 +76,20 @@ export function WardrobePage() {
   function handleGetRecommendations(): void {
     // TODO(#48): Wire outfit recommendation request using selectedItems.
   }
+
+  useEffect(() => {
+    if (!replacedCategory) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setReplacedCategory(null);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [replacedCategory]);
 
   useEffect(() => {
     if (!token) {
@@ -176,8 +199,15 @@ export function WardrobePage() {
               <p className="text-sm text-boutique-700">
                 {coveredCategories.length === 0
                   ? "No categories selected yet."
-                  : coveredCategories.map((category) => `${category} \u2713`).join(", ")}
+                  : coveredCategories
+                      .map((category) => `${category}: ${selectedItems.get(category)?.title ?? "Unknown item"} \u2713`)
+                      .join(", ")}
               </p>
+              {replacedCategory ? (
+                <p className="inline-flex w-fit rounded-full bg-amber-100 px-2 py-0.5 text-xs italic text-amber-800">
+                  Replaced your {replacedCategory} selection
+                </p>
+              ) : null}
               <p className="text-xs text-boutique-700">{selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
