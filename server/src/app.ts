@@ -15,6 +15,7 @@ import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
+import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
 import { ImageGenerationService } from "./services/image-generation-service.js";
 import { R2StorageService } from "./services/r2-storage-service.js";
@@ -65,6 +66,7 @@ export function createApp() {
   const authService = new AuthService(sessionService, userRepository);
   const chatService = new ChatService(env.openaiApiKey);
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
+  const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
   const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
   const googleOAuthService = new GoogleOAuthService({
     clientId: env.googleClientId,
@@ -113,7 +115,8 @@ export function createApp() {
       authService,
       closetRepository,
       r2StorageService,
-      geminiExtractionService
+      geminiExtractionService,
+      geminiRecommendationService
     })
   );
 
