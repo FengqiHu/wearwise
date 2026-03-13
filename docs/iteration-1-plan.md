@@ -150,7 +150,7 @@ Project-level documents for planning, process, and decision-making. These are li
 
 * **AI Services**: Gemini (reasoning for recommendation), Nano Banana (image generation)
 
-* **Deployment:** Vercel for web app and serverless APIs, Render for long-running workers
+* **Deployment:** Firebase
 
 * **Testing:** Vitest
 
@@ -242,30 +242,30 @@ Cloud Vision API — Data Usage FAQ: https://docs.cloud.google.com/vision/docs/d
 **Description:** Users can sign in with Google and access authenticated app features with a valid session.
 
 - **Acceptance Criteria:**
-  - [ ] Unauthenticated users can start Google OAuth and complete sign-in successfully.
-  - [ ] After successful login, users are redirected to the app and an authenticated session/JWT is established.
-  - [ ] Protected API routes reject unauthenticated requests with `401`.
-  - [ ] Sign-out removes session state and returns the user to a public page.
+  - [x] Unauthenticated users can start Google OAuth and complete sign-in successfully.
+  - [x] After successful login, users are redirected to the app and an authenticated session/JWT is established.
+  - [x] Protected API routes reject unauthenticated requests with `401`.
+  - [x] Sign-out removes session state and returns the user to a public page.
 
 ### R2. Personal Profile Creation (Images + Height/Weight)
 
 **Description:** Users can create and save a personal profile with face image, full-body image, height, and weight.
 
 - **Acceptance Criteria:**
-  - [ ] A logged-in user can submit height and weight with validation (required, numeric, positive values).
-  - [ ] A logged-in user can upload one face image and one full-body image for their profile.
-  - [ ] Profile data is persisted and can be retrieved on page refresh/re-login.
-  - [ ] Profile records are user-scoped; one user cannot read another user's profile.
+  - [x] A logged-in user can submit height and weight with validation (required, numeric, positive values).
+  - [x] A logged-in user can upload one face image and one full-body image for their profile.
+  - [x] Profile data is persisted and can be retrieved on page refresh/re-login.
+  - [x] Profile records are user-scoped; one user cannot read another user's profile.
 
 ### R3. Clothing Item Image Upload
 
 **Description:** Users can upload clothing item images into their private cloud closet.
 
 - **Acceptance Criteria:**
-  - [ ] A logged-in user can upload a clothing image from the UI.
-  - [ ] Uploaded item records are stored per user and visible in that user's closet list.
-  - [ ] Invalid file types or oversized files are rejected with a clear error.
-  - [ ] Users only see their own uploaded clothing items.
+  - [x] A logged-in user can upload a clothing image from the UI.
+  - [x] Uploaded item records are stored per user and visible in that user's closet list.
+  - [x] Invalid file types or oversized files are rejected with a clear error.
+  - [x] Users only see their own uploaded clothing items.
 
 ### R4. Clothing Attribute Extraction Pipeline
 
