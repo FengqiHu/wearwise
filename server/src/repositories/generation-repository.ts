@@ -25,7 +25,9 @@ function toGenerationRecord(document: GenerationDocument): GenerationRecord {
     createdAt: document.createdAt
   };
 }
-
+/**
+ * create repository for each user, store the generated image url and the clothing items
+ */
 export class GenerationRepository {
   private readonly client: MongoClient;
   private collectionPromise: Promise<Collection<GenerationDocument>> | null = null;
