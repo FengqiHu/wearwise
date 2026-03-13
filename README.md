@@ -59,6 +59,15 @@ npm run client
 
 The client runs at `http://localhost:5173` and the server at `http://localhost:3000` by default.
 
+## Server Environment
+
+Add your keys in `server/.env` before starting the backend:
+
+```bash
+OPENAI_API_KEY=...
+OPENWEATHER_API_KEY=...
+```
+
 ## Running Tests
 
 ```bash
