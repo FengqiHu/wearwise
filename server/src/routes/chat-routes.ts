@@ -13,6 +13,7 @@ interface ChatRoutesDependencies {
 export function createChatRoutes({ authService, chatService, conversationRepository }: ChatRoutesDependencies): Router {
   const router = Router();
 
+  // get all conversations
   router.get("/chat/conversations", async (req, res): Promise<void> => {
     try {
       const authResolution = await authService.resolveAuthenticatedUser(req);
@@ -32,6 +33,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     }
   });
 
+  // get chat histroy of a conversation
   router.get("/chat/conversations/:conversationId", async (req, res): Promise<void> => {
     try {
       const authResolution = await authService.resolveAuthenticatedUser(req);
@@ -73,6 +75,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     }
   });
 
+  // delete a conversation
   router.delete("/chat/conversations/:conversationId", async (req, res): Promise<void> => {
     try {
       const authResolution = await authService.resolveAuthenticatedUser(req);
@@ -105,12 +108,14 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     }
   });
 
+  // handle chat message, stream the response from the chat service, and save the conversation history in database
   router.post("/chat", async (req, res): Promise<void> => {
     let shouldCloseResponse = true;
 
     try {
       const authResolution = await authService.resolveAuthenticatedUser(req);
 
+      // check user status
       if (!authResolution.user || authResolution.error) {
         res.status(authResolution.error?.status ?? 401).json({
           error: authResolution.error?.message ?? "Unauthorized."
@@ -118,6 +123,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
+      // check chat service configuration
       if (!chatService.isConfigured()) {
         res.status(500).json({ error: "OPENAI_API_KEY is not configured on server." });
         return;
@@ -133,6 +139,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       }
 
       const userId = authResolution.user.id;
+      // check if it is a new conversation or an existing conversation
       let conversation = trimmedConversationId
         ? await conversationRepository.appendMessage(userId, trimmedConversationId, "user", trimmedMessage)
         : await conversationRepository.createWithFirstUserMessage(userId, trimmedMessage);
@@ -144,6 +151,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
+      // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -159,18 +167,24 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       let assistantSaved = false;
 
       try {
+        // stream the chat response from the chat service
+        // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
         await chatService.streamChat({
+          // entry: StoredChatMessage
           messages: conversation.messages.map((entry) => ({
+            // role: user or assistant
             role: entry.role,
             content: entry.content
-          })),
+          })), 
           signal: abortController.signal,
+          // stream callback
           onChunk: (chunk) => {
             assistantText += chunk;
             res.write(chunk);
           }
         });
 
+        // save the msg to databse
         if (assistantText.trim().length > 0) {
           const updatedConversation = await conversationRepository.appendMessage(
             userId,
@@ -186,6 +200,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           res.write("\n\nUnable to reach the AI service right now. Please try again.");
         }
       } finally {
+        // cleanup the event listener to prevent memory leak
         req.off("close", handleClose);
 
         if (!assistantSaved && assistantText.trim().length > 0) {
