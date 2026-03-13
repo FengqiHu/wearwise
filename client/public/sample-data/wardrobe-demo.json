@@ -1,0 +1,40 @@
+[
+    {
+        "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c4dde632-4ee3-45e3-95c6-a53818c63615.jpg",
+        "analysisStatus": "ready",
+        "analysisError": null,
+        "name": "ASICS MetaSpeed Sky Paris Running Shoes",
+        "category": "shoes",
+        "tags": [
+            "black",
+            "blue",
+            "athletic",
+            "running",
+            "performance",
+            "mesh",
+            "synthetic",
+            "lightweight"
+        ],
+        "description": "High-performance ASICS running shoes featuring advanced FF Turbo cushioning technology for maximum energy return. Designed with a lightweight mesh upper for breathability and a sleek, modern aesthetic suitable for race day.",
+        "createdAt": "2026-03-13T02:43:39.981Z",
+        "updatedAt": "2026-03-13T02:43:42.440Z"
+    },
+    {
+        "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/ef922b6a-5f53-4475-aff4-255dca8cc669.jpg",
+        "analysisStatus": "ready",
+        "analysisError": null,
+        "name": "Classic Black Oxford Shoes",
+        "category": "shoes",
+        "tags": [
+            "black",
+            "leather",
+            "formal",
+            "cap-toe",
+            "business",
+            "all-season"
+        ],
+        "description": "A pair of sleek black leather cap-toe Oxford shoes, perfect for formal occasions and professional settings. These timeless dress shoes feature a lace-up design for a polished and secure fit.",
+        "createdAt": "2026-03-13T02:46:02.900Z",
+        "updatedAt": "2026-03-13T02:46:04.965Z"
+    }
+]
