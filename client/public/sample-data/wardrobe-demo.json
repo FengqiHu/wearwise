@@ -1,40 +1,409 @@
 [
-    {
-        "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c4dde632-4ee3-45e3-95c6-a53818c63615.jpg",
-        "analysisStatus": "ready",
-        "analysisError": null,
-        "name": "ASICS MetaSpeed Sky Paris Running Shoes",
-        "category": "shoes",
-        "tags": [
-            "black",
-            "blue",
-            "athletic",
-            "running",
-            "performance",
-            "mesh",
-            "synthetic",
-            "lightweight"
-        ],
-        "description": "High-performance ASICS running shoes featuring advanced FF Turbo cushioning technology for maximum energy return. Designed with a lightweight mesh upper for breathability and a sleek, modern aesthetic suitable for race day.",
-        "createdAt": "2026-03-13T02:43:39.981Z",
-        "updatedAt": "2026-03-13T02:43:42.440Z"
-    },
-    {
-        "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/ef922b6a-5f53-4475-aff4-255dca8cc669.jpg",
-        "analysisStatus": "ready",
-        "analysisError": null,
-        "name": "Classic Black Oxford Shoes",
-        "category": "shoes",
-        "tags": [
-            "black",
-            "leather",
-            "formal",
-            "cap-toe",
-            "business",
-            "all-season"
-        ],
-        "description": "A pair of sleek black leather cap-toe Oxford shoes, perfect for formal occasions and professional settings. These timeless dress shoes feature a lace-up design for a polished and secure fit.",
-        "createdAt": "2026-03-13T02:46:02.900Z",
-        "updatedAt": "2026-03-13T02:46:04.965Z"
-    }
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c4dde632-4ee3-45e3-95c6-a53818c63615.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "ASICS MetaSpeed Sky Paris Running Shoes",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "blue",
+      "athletic",
+      "running",
+      "performance",
+      "mesh",
+      "synthetic",
+      "lightweight"
+    ],
+    "description": "High-performance ASICS running shoes featuring advanced FF Turbo cushioning technology for maximum energy return. Designed with a lightweight mesh upper for breathability and a sleek, modern aesthetic suitable for race day.",
+    "createdAt": "2026-03-13T02:43:39.981Z",
+    "updatedAt": "2026-03-13T02:43:42.440Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/ef922b6a-5f53-4475-aff4-255dca8cc669.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Classic Black Oxford Shoes",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "formal",
+      "cap-toe",
+      "business",
+      "all-season"
+    ],
+    "description": "A pair of sleek black leather cap-toe Oxford shoes, perfect for formal occasions and professional settings. These timeless dress shoes feature a lace-up design for a polished and secure fit.",
+    "createdAt": "2026-03-13T02:46:02.900Z",
+    "updatedAt": "2026-03-13T02:46:04.965Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/1fd74b15-37f1-4bc0-ab79-8798fbc7ea91.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Palladium Organic Canvas Boots",
+    "category": "shoes",
+    "tags": [
+      "beige",
+      "cream",
+      "canvas",
+      "boots",
+      "eco-friendly",
+      "casual",
+      "spring",
+      "summer"
+    ],
+    "description": "These eco-friendly Palladium boots feature a durable canvas upper and a robust rubber sole, finished in a clean, neutral cream tone. They are designed for both style and sustainability, incorporating organic materials into a classic high-top silhouette.",
+    "createdAt": "2026-03-13T02:53:45.822Z",
+    "updatedAt": "2026-03-13T02:53:47.924Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/d14e6afe-ac12-433c-bd04-97530561d12c.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Crocodile-Embossed Stiletto Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "faux-leather",
+      "crocodile-embossed",
+      "stiletto",
+      "knee-high",
+      "formal",
+      "autumn",
+      "winter"
+    ],
+    "description": "These elegant knee-high boots feature a sharp stiletto heel and a sophisticated crocodile-embossed finish. Their sleek, pointed-toe silhouette makes them a perfect statement piece for elevated autumn and winter looks.",
+    "createdAt": "2026-03-13T02:53:43.909Z",
+    "updatedAt": "2026-03-13T02:53:45.784Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c1ea6e85-4a38-4c1e-aaa8-297cddecbf23.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Braided Buckle Knee-High Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "knee-high",
+      "braided",
+      "buckle",
+      "boho",
+      "autumn",
+      "winter"
+    ],
+    "description": "These black knee-high boots feature a stylish braided side detail and decorative buckles for a rugged, bohemian aesthetic. They are crafted from a leather-like material, perfect for transitional and cooler seasons.",
+    "createdAt": "2026-03-13T02:53:41.813Z",
+    "updatedAt": "2026-03-13T02:53:43.881Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/30acf605-ce01-4901-9cc7-505866a48ebf.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Star-Print High-Top Sneakers",
+    "category": "shoes",
+    "tags": [
+      "blue",
+      "white",
+      "canvas",
+      "star-print",
+      "high-top",
+      "casual",
+      "unisex"
+    ],
+    "description": "Classic high-top canvas sneakers featuring an all-over star pattern and white rubber soles. These shoes offer a timeless, laid-back style perfect for everyday casual wear.",
+    "createdAt": "2026-03-13T02:53:22.024Z",
+    "updatedAt": "2026-03-13T02:53:24.090Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/e4deda5f-3d91-47a7-8c80-833a76e6d97f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dr. Martens 8053 Leather Shoes",
+    "category": "shoes",
+    "tags": [
+      "brown",
+      "leather",
+      "oxford",
+      "workwear",
+      "casual",
+      "unisex"
+    ],
+    "description": "These are classic Dr. Martens 8053 shoes crafted from durable leather, featuring the iconic yellow welt stitching and a cushioned collar. Their sturdy design offers a timeless, rugged aesthetic suitable for everyday wear.",
+    "createdAt": "2026-03-13T02:53:19.839Z",
+    "updatedAt": "2026-03-13T02:53:21.983Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/f5e65572-00c9-4e68-a157-259036dcb015.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Brown Leather Cap-Toe Oxfords",
+    "category": "shoes",
+    "tags": [
+      "brown",
+      "leather",
+      "formal",
+      "business",
+      "oxford",
+      "cap-toe"
+    ],
+    "description": "A pair of polished brown leather oxford dress shoes featuring a classic cap-toe design. These elegant shoes are perfect for professional settings and formal occasions.",
+    "createdAt": "2026-03-13T02:53:16.400Z",
+    "updatedAt": "2026-03-13T02:53:19.778Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/f78d4b15-7f2e-4e1b-ba01-29064a08bc63.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Nike Air Zoom Running Shoes",
+    "category": "shoes",
+    "tags": [
+      "white",
+      "orange",
+      "blue",
+      "athletic",
+      "sneakers",
+      "sportswear",
+      "mesh",
+      "synthetic"
+    ],
+    "description": "Lightweight performance running shoes featuring a breathable mesh upper with vibrant blue and orange accents. These sneakers provide cushioning and support for active workouts.",
+    "createdAt": "2026-03-13T02:53:14.293Z",
+    "updatedAt": "2026-03-13T02:53:16.369Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/8a5d2da4-1cf4-4942-8599-3a662fa1ed27.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Turquoise Running Sneakers",
+    "category": "shoes",
+    "tags": [
+      "turquoise",
+      "athletic",
+      "mesh",
+      "running",
+      "casual",
+      "summer"
+    ],
+    "description": "Bright turquoise athletic running shoes with breathable mesh uppers and cushioned white soles. These lightweight sneakers are ideal for sport and casual everyday wear.",
+    "createdAt": "2026-03-13T02:53:12.425Z",
+    "updatedAt": "2026-03-13T02:53:14.248Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/0d74e65c-a4f2-4f31-945c-30994f6f36eb.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Minimalist Black Flip Flops",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "rubber",
+      "minimalist",
+      "summer",
+      "beachwear",
+      "casual"
+    ],
+    "description": "These simple, black rubber flip flops feature a classic thong design and a subtle stripe detail on the sole. They are perfect for casual summer outings and beach days.",
+    "createdAt": "2026-03-13T02:53:10.362Z",
+    "updatedAt": "2026-03-13T02:53:12.393Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/76a6f923-3020-4b83-8934-ad5117e971d9.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Timberland 6-Inch Premium Waterproof Boots",
+    "category": "shoes",
+    "tags": [
+      "yellow",
+      "tan",
+      "nubuck",
+      "leather",
+      "waterproof",
+      "boots",
+      "rugged",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "These iconic Timberland boots are crafted from premium waterproof nubuck leather for durable, all-weather comfort. They feature a classic lace-up design with a padded collar, making them a staple for rugged and casual wear.",
+    "createdAt": "2026-03-13T02:53:07.943Z",
+    "updatedAt": "2026-03-13T02:53:10.291Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/eb2da5b8-7775-479f-a1de-50f2e0fd156f.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Lace-Up Knee-High Combat Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "combat",
+      "knee-high",
+      "lace-up",
+      "edgy",
+      "autumn",
+      "winter"
+    ],
+    "description": "Edgy knee-high combat boots in black leather with a lace-up front and a rugged lug sole. They feature a side zipper for easy wear and a classic grunge-inspired silhouette.",
+    "createdAt": "2026-03-13T02:51:49.091Z",
+    "updatedAt": "2026-03-13T02:51:51.034Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/1f146619-1684-4592-a1a2-fb9277b29206.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Platform Ankle Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "faux-leather",
+      "chunky",
+      "platform",
+      "minimalist",
+      "fall",
+      "winter"
+    ],
+    "description": "These stylish black ankle boots feature a chunky platform sole and a sleek, minimalist design. The smooth material makes them a versatile choice for a modern, edgy fall or winter outfit.",
+    "createdAt": "2026-03-13T02:51:47.135Z",
+    "updatedAt": "2026-03-13T02:51:49.047Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/95344cb7-e2ea-4f9c-9157-e3e8e37a3897.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Brown Leather Cap-Toe Boots",
+    "category": "shoes",
+    "tags": [
+      "brown",
+      "leather",
+      "boots",
+      "cap-toe",
+      "rugged",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "These rugged cap-toe boots are crafted from high-quality brown leather with durable lace-up detailing. Their classic style makes them a perfect versatile addition to any cold-weather wardrobe.",
+    "createdAt": "2026-03-13T02:51:44.978Z",
+    "updatedAt": "2026-03-13T02:51:47.073Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/8ad1ba6a-d58b-49e9-b97a-0a796b1bc52a.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Satin Lace-Up Platform Heels",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "satin",
+      "platform",
+      "lace-up",
+      "high heels",
+      "party",
+      "evening"
+    ],
+    "description": "These elegant black satin platform heels feature a striking lace-up design that wraps around the lower leg. They are perfect for adding height and a touch of dramatic flair to your formal or evening attire.",
+    "createdAt": "2026-03-13T02:51:42.846Z",
+    "updatedAt": "2026-03-13T02:51:44.862Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/3cccb439-6f5a-48cf-b321-2ddae63c65d5.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Saint Laurent Opyum Sandals",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "heels",
+      "luxury",
+      "stiletto",
+      "formal"
+    ],
+    "description": "Elegant black leather high-heeled sandals featuring the iconic YSL monogram logo as the heel. These statement shoes offer a sophisticated, minimalist design perfect for formal occasions.",
+    "createdAt": "2026-03-13T02:51:28.250Z",
+    "updatedAt": "2026-03-13T02:51:30.898Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/37848835-0237-4848-978d-be97cc0104df.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Prada Slingback Pumps",
+    "category": "shoes",
+    "tags": [
+      "beige",
+      "nude",
+      "mesh",
+      "fabric",
+      "slingback",
+      "bow",
+      "pointed-toe",
+      "stiletto",
+      "elegant",
+      "spring",
+      "summer"
+    ],
+    "description": "These elegant Prada slingback pumps feature a pointed-toe silhouette crafted from a refined mesh fabric. The design is finished with a delicate bow detail and a sophisticated stiletto heel.",
+    "createdAt": "2026-03-13T02:51:26.167Z",
+    "updatedAt": "2026-03-13T02:51:28.206Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c860557e-1bd2-4eb1-9aac-9bf57889e3d2.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Air Jordan 1 Mid Banned",
+    "category": "shoes",
+    "tags": [
+      "red",
+      "black",
+      "leather",
+      "sneakers",
+      "athletic",
+      "streetwear"
+    ],
+    "description": "These high-top Air Jordan 1 Mid sneakers feature a classic red and black colorway. They are crafted from leather and offer a iconic basketball-inspired style.",
+    "createdAt": "2026-03-13T02:51:24.010Z",
+    "updatedAt": "2026-03-13T02:51:26.128Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/5ff08e36-c163-48cb-8b42-88ab531e6a53.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Nike Air Max Pulse Sneakers",
+    "category": "shoes",
+    "tags": [
+      "white",
+      "silver",
+      "athletic",
+      "sneakers",
+      "modern",
+      "sporty",
+      "year-round"
+    ],
+    "description": "These modern Nike sneakers feature a sleek white and metallic silver colorway with a sporty, layered design. They combine a breathable build with supportive cushioning for a stylish, high-performance look.",
+    "createdAt": "2026-03-13T02:51:22.156Z",
+    "updatedAt": "2026-03-13T02:51:23.975Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/6d639b1c-8b56-4247-ac73-5f67deb456f2.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Custom Comic-Style Nike Air Force 1 Mid",
+    "category": "shoes",
+    "tags": [
+      "white",
+      "blue",
+      "black",
+      "custom",
+      "sneakers",
+      "leather",
+      "streetwear",
+      "cartoon-style"
+    ],
+    "description": "These custom Nike Air Force 1 Mid sneakers feature a unique cartoon-inspired design with bold black outlines and a dripping swoosh effect. The vibrant blue and white colorway gives them a playful, comic-book aesthetic perfect for streetwear enthusiasts.",
+    "createdAt": "2026-03-13T02:51:19.289Z",
+    "updatedAt": "2026-03-13T02:51:22.110Z"
+  }
 ]
