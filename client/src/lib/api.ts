@@ -238,6 +238,20 @@ interface CreateClosetItemResponse {
   uploadUrl: string;
 }
 
+interface ImportTestClosetItemsPayload {
+  items: Array<{
+    imageUrl: string;
+    analysisStatus: "pending" | "ready" | "error";
+    analysisError: string | null;
+    name: string | null;
+    category: string | null;
+    tags: string[];
+    description: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
+}
+
 export async function createClosetItem(
   token: string,
   contentType: string
@@ -272,6 +286,22 @@ export async function fetchClosetItem(token: string, itemId: string): Promise<Cl
     throw new Error("Item not found.");
   }
   return payload.item;
+}
+
+export async function importTestClosetItems(
+  token: string,
+  payload: ImportTestClosetItemsPayload
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to import test closet items.");
+    throw new Error(message);
+  }
 }
 
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
