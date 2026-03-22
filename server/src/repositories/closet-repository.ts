@@ -16,6 +16,18 @@ interface ClosetItemDocument {
   updatedAt: string;
 }
 
+interface ImportedClosetItemInput {
+  imageUrl: string;
+  analysisStatus: ClosetItemStatus;
+  analysisError: string | null;
+  name: string | null;
+  category: string | null;
+  tags: string[];
+  description: string | null;
+  createdAt?: string | null | undefined;
+  updatedAt?: string | null | undefined;
+}
+
 interface ClosetRepositoryOptions {
   mongoUri: string;
   databaseName: string;
@@ -88,13 +100,42 @@ export class ClosetRepository {
     return toClosetItemRecord(document);
   }
 
+  async importMany(userId: string, items: ImportedClosetItemInput[]): Promise<ClosetItemRecord[]> {
+    if (items.length === 0) {
+      return [];
+    }
+
+    const collection = await this.getCollection();
+    const documents: ClosetItemDocument[] = items.map((item) => {
+      const createdAt = item.createdAt?.trim() ? item.createdAt : nowIsoString();
+      const updatedAt = item.updatedAt?.trim() ? item.updatedAt : createdAt;
+
+      return {
+        _id: crypto.randomUUID(),
+        userId,
+        imageUrl: item.imageUrl,
+        analysisStatus: item.analysisStatus,
+        analysisError: item.analysisError ?? null,
+        name: item.name ?? null,
+        category: item.category ?? null,
+        tags: item.tags,
+        description: item.description ?? null,
+        createdAt,
+        updatedAt
+      };
+    });
+
+    await collection.insertMany(documents);
+    return documents.map(toClosetItemRecord);
+  }
+
   async findById(userId: string, itemId: string): Promise<ClosetItemRecord | null> {
     const collection = await this.getCollection();
     const document = await collection.findOne({ _id: itemId, userId });
     return document ? toClosetItemRecord(document) : null;
   }
 
-  async listByUser(userId: string, limit = 40): Promise<ClosetItemRecord[]> {
+  async listByUser(userId: string, limit = 150): Promise<ClosetItemRecord[]> {
     const collection = await this.getCollection();
     const documents = await collection.find({ userId }).sort({ createdAt: -1 }).limit(limit).toArray();
     return documents.map(toClosetItemRecord);
