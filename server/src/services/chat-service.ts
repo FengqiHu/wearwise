@@ -4,7 +4,7 @@ import { OpenWeatherService } from "./openweather-service.js";
 import { log } from "node:console";
 
 interface ModelInputMessage {
-  role: ChatRole;
+  role: ChatRole | "system";
   content: string;
 }
 

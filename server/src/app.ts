@@ -103,7 +103,9 @@ export function createApp() {
     createChatRoutes({
       authService,
       conversationRepository,
-      chatService
+      chatService,
+      closetRepository,
+      userRepository
     })
   );
 
