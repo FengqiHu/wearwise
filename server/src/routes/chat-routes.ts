@@ -42,7 +42,7 @@ ${profileSection}
 
 ${wardrobeSection}
 
-When recommending outfits, only use items from the wardrobe list above, referenced by their exact IDs.`;
+When recommending outfits, only use items from the wardrobe list above. In your responses, refer to clothing items by their name only — never mention or display item IDs to the user.`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
