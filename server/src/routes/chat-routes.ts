@@ -42,7 +42,32 @@ ${profileSection}
 
 ${wardrobeSection}
 
-When recommending outfits, only use items from the wardrobe list above. In your responses, refer to clothing items by their name only — never mention or display item IDs to the user.`;
+## Response rules
+
+For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
+
+For outfit recommendation requests: you MUST respond with ONLY a JSON code block in this exact format, no other text before or after:
+
+\`\`\`json
+{
+  "outfits": [
+    {
+      "outfitName": "Outfit name here",
+      "reason": "Why this outfit suits the occasion and user",
+      "items": [
+        { "id": "<exact item ID>", "name": "<item name>" }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+Rules for the JSON:
+- Always include exactly 3 outfits in the "outfits" array
+- Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
+- Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
+- Only use items from the wardrobe list above, with their exact IDs
+- The "name" field in each item is for display only — it must match the item's name from the wardrobe`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
