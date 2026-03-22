@@ -1,16 +1,51 @@
 import { Router } from "express";
+import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
+import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { ChatRequest } from "../types/domain.js";
+import type { ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
   chatService: ChatService;
   conversationRepository: ConversationRepository;
+  closetRepository: ClosetRepository;
+  userRepository: UserRepository;
 }
 
-export function createChatRoutes({ authService, chatService, conversationRepository }: ChatRoutesDependencies): Router {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[]): string {
+  const profileSection = profile
+    ? `User profile:
+- Name: ${profile.name}
+- Height: ${profile.heightCm} cm
+- Weight: ${profile.weightKg} kg
+- Style preferences: ${profile.styleNote || "not specified"}`
+    : "User profile: not set up yet.";
+
+  const readyItems = items.filter((item) => item.analysisStatus === "ready");
+
+  const wardrobeSection =
+    readyItems.length === 0
+      ? "Wardrobe: no clothing items available yet."
+      : `Wardrobe (${readyItems.length} items):
+${readyItems
+  .map(
+    (item) =>
+      `- ID: ${item.id} | Name: ${item.name ?? "Unnamed"} | Category: ${item.category ?? "Unknown"} | Tags: ${item.tags.join(", ") || "none"} | Description: ${item.description ?? "none"}`
+  )
+  .join("\n")}`;
+
+  return `You are a personal stylist assistant with access to the user's wardrobe and profile.
+
+${profileSection}
+
+${wardrobeSection}
+
+When recommending outfits, only use items from the wardrobe list above, referenced by their exact IDs.`;
+}
+
+export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
   const router = Router();
 
   router.get("/chat/conversations", async (req, res): Promise<void> => {
@@ -144,6 +179,12 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
+      const [closetItems, userRecord] = await Promise.all([
+        closetRepository.listByUser(userId),
+        userRepository.findById(userId)
+      ]);
+      const systemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems);
+
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
@@ -160,10 +201,13 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       try {
         await chatService.streamChat({
-          messages: conversation.messages.map((entry) => ({
-            role: entry.role,
-            content: entry.content
-          })),
+          messages: [
+            { role: "system", content: systemMessage },
+            ...conversation.messages.map((entry) => ({
+              role: entry.role,
+              content: entry.content
+            }))
+          ],
           signal: abortController.signal,
           onChunk: (chunk) => {
             assistantText += chunk;

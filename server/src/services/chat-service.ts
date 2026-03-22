@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import type { ChatRole } from "../types/domain.js";
 
 interface ModelInputMessage {
-  role: ChatRole;
+  role: ChatRole | "system";
   content: string;
 }
 
