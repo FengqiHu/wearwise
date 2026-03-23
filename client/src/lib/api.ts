@@ -315,6 +315,7 @@ export async function updateClosetItemMetadata(
   return data.item;
 }
 
+
 export async function deleteClosetItem(token: string, itemId: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
     method: "DELETE",
