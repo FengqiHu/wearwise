@@ -62,6 +62,7 @@ export const env = {
         .filter(Boolean)
     : true,
   openaiApiKey: getEnv("OPENAI_API_KEY"),
+  openWeatherApiKey: getEnv("OPENWEATHER_API_KEY"),
   geminiApiKey: getEnv("GEMINI_API_KEY"),
   googleClientId: googleClientIdFromEnv || getEnv("VITE_GOOGLE_CLIENT_ID"),
   googleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
