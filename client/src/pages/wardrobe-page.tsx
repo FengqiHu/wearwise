@@ -27,6 +27,69 @@ export function WardrobePage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedItems, setSelectedItems] = useState<Map<ClothingCategory, ClothingItem>>(
+    new Map<ClothingCategory, ClothingItem>()
+  );
+  const [replacedCategory, setReplacedCategory] = useState<ClothingCategory | null>(null);
+
+  function toggleSelection(item: ClothingItem): void {
+    if (item.status === "unfinished") {
+      return;
+    }
+
+    const currentInCategory = selectedItems.get(item.category);
+    const isReplacing = Boolean(currentInCategory && currentInCategory.id !== item.id);
+
+    if (isReplacing) {
+      setReplacedCategory(item.category);
+    }
+
+    setSelectedItems((prev) => {
+      const next = new Map(prev);
+
+      if (next.get(item.category)?.id === item.id) {
+        next.delete(item.category);
+      } else {
+        next.set(item.category, item);
+      }
+
+      return next;
+    });
+  }
+
+  function exitSelectionMode(): void {
+    setSelectionMode(false);
+    setSelectedItems(new Map<ClothingCategory, ClothingItem>());
+    setReplacedCategory(null);
+  }
+
+  function handleSelectionModeToggle(): void {
+    if (selectionMode) {
+      exitSelectionMode();
+      return;
+    }
+
+    setSelectionMode(true);
+  }
+
+  function handleGetRecommendations(): void {
+    // TODO(#48): Wire outfit recommendation request using selectedItems.
+  }
+
+  useEffect(() => {
+    if (!replacedCategory) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setReplacedCategory(null);
+    }, 2000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [replacedCategory]);
 
   useEffect(() => {
     if (!token) {
@@ -85,6 +148,11 @@ export function WardrobePage() {
 
   const pagedItems = filteredItems.slice((page - 1) * pageSize, page * pageSize);
 
+  const coveredCategories = useMemo(
+    () => CLOTHING_CATEGORIES.filter((category) => selectedItems.has(category)),
+    [selectedItems]
+  );
+
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -93,9 +161,14 @@ export function WardrobePage() {
           <p className="mt-1 text-sm text-boutique-700">Browse, filter, and inspect your uploaded clothing items.</p>
         </div>
 
-        <Button variant="outline" onClick={() => navigate("/add")}>
-          Add more clothes
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" onClick={() => navigate("/add")}>
+            Add more clothes
+          </Button>
+          <Button variant={selectionMode ? "primary" : "outline"} onClick={handleSelectionModeToggle}>
+            {selectionMode ? "Cancel selection" : "Select Clothes"}
+          </Button>
+        </div>
       </header>
 
       <Card className="space-y-5 p-5 md:p-6">
@@ -119,6 +192,35 @@ export function WardrobePage() {
           ))}
         </div>
 
+        {selectionMode ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-boutique-300 bg-boutique-100/95 p-4">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-boutique-900">Selection mode active</p>
+              <p className="text-sm text-boutique-700">
+                {coveredCategories.length === 0
+                  ? "No categories selected yet."
+                  : coveredCategories
+                      .map((category) => `${category}: ${selectedItems.get(category)?.title ?? "Unknown item"} \u2713`)
+                      .join(", ")}
+              </p>
+              {replacedCategory ? (
+                <p className="inline-flex w-fit rounded-full bg-amber-100 px-2 py-0.5 text-xs italic text-amber-800">
+                  Replaced your {replacedCategory} selection
+                </p>
+              ) : null}
+              <p className="text-xs text-boutique-700">{selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Button size="sm" disabled={selectedItems.size === 0} onClick={handleGetRecommendations}>
+                Get Recommendations
+              </Button>
+              <Button size="sm" variant="outline" onClick={exitSelectionMode}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        ) : null}
+
         {isLoading ? (
           <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-10 text-center text-boutique-700">
             Loading your wardrobe...
@@ -135,18 +237,28 @@ export function WardrobePage() {
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {pagedItems.map((item) => {
               const isProcessing = item.status === "unfinished";
+              const isSelected = selectedItems.get(item.category)?.id === item.id;
 
               return (
                 <button
                   key={item.id}
                   type="button"
                   disabled={isProcessing}
-                  onClick={() => navigate(`/cloth/${item.id}`)}
+                  onClick={() => {
+                    if (selectionMode) {
+                      toggleSelection(item);
+                      return;
+                    }
+
+                    navigate(`/cloth/${item.id}`);
+                  }}
+                  aria-pressed={selectionMode ? isSelected : undefined}
                   className={cn(
                     "group relative overflow-hidden rounded-2xl border border-boutique-200 bg-boutique-50 text-left shadow-sm transition",
                     isProcessing
                       ? "cursor-not-allowed grayscale opacity-60"
-                      : "hover:-translate-y-0.5 hover:border-boutique-400 hover:shadow-soft"
+                      : "hover:-translate-y-0.5 hover:border-boutique-400 hover:shadow-soft",
+                    selectionMode && isSelected ? "ring-2 ring-boutique-700 ring-offset-2 ring-offset-boutique-50" : null
                   )}
                 >
                   <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
@@ -169,6 +281,12 @@ export function WardrobePage() {
                       {isProcessing ? <Badge className="bg-boutique-200 text-boutique-700">Processing</Badge> : null}
                     </div>
                   </div>
+
+                  {selectionMode && isSelected ? (
+                    <div className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-boutique-900 text-xs font-semibold text-boutique-50 shadow-soft">
+                      {"\u2713"}
+                    </div>
+                  ) : null}
 
                   {isProcessing ? (
                     <div className="absolute inset-0 grid place-items-center bg-boutique-900/20">
