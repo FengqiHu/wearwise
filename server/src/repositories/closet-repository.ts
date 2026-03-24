@@ -141,6 +141,33 @@ export class ClosetRepository {
     return documents.map(toClosetItemRecord);
   }
 
+  async deleteById(userId: string, itemId: string): Promise<boolean> {
+    const collection = await this.getCollection();
+    const result = await collection.deleteOne({ _id: itemId, userId });
+    return result.deletedCount === 1;
+  }
+
+  async updateImage(userId: string, itemId: string, newImageUrl: string): Promise<ClosetItemRecord | null> {
+    const collection = await this.getCollection();
+    const result = await collection.findOneAndUpdate(
+      { _id: itemId, userId },
+      {
+        $set: {
+          imageUrl: newImageUrl,
+          analysisStatus: "pending",
+          analysisError: null,
+          name: null,
+          category: null,
+          tags: [],
+          description: null,
+          updatedAt: nowIsoString()
+        }
+      },
+      { returnDocument: "after" }
+    );
+    return result ? toClosetItemRecord(result) : null;
+  }
+
   async updateExtraction(
     userId: string,
     itemId: string,

@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { fetchClosetItem } from "../lib/api";
+import { analyzeClosetItem, deleteClosetItem, fetchClosetItem, replaceClosetItemImage, uploadFileToPresignedUrl } from "../lib/api";
 import type { ClosetItemRecord } from "../types";
 
 export function ClothDetailPage() {
@@ -14,6 +14,10 @@ export function ClothDetailPage() {
   const [item, setItem] = useState<ClosetItemRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isReplacing, setIsReplacing] = useState(false);
+  const [replaceStatus, setReplaceStatus] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     if (!token || !id) {
@@ -47,6 +51,45 @@ export function ClothDetailPage() {
     };
   }, [token, id]);
 
+  const handleDelete = async (): Promise<void> => {
+    if (!token || !item) return;
+    if (!window.confirm(`Delete "${item.name ?? "this item"}"? This cannot be undone.`)) return;
+
+    setIsDeleting(true);
+    try {
+      await deleteClosetItem(token, item.id);
+      navigate("/wardrobe");
+    } catch {
+      alert("Failed to delete item. Please try again.");
+      setIsDeleting(false);
+    }
+  };
+
+  const handleReplaceFile = async (file: File): Promise<void> => {
+    if (!token || !item) return;
+
+    setIsReplacing(true);
+    setReplaceStatus("Uploading new image...");
+
+    try {
+      const contentType = file.type || "image/jpeg";
+      const { item: updated, uploadUrl } = await replaceClosetItemImage(token, item.id, contentType);
+      await uploadFileToPresignedUrl(uploadUrl, file);
+
+      setReplaceStatus("Analyzing new image...");
+      await analyzeClosetItem(token, updated.id, contentType);
+
+      const refreshed = await fetchClosetItem(token, updated.id);
+      setItem(refreshed);
+      setReplaceStatus(null);
+    } catch {
+      alert("Failed to replace image. Please try again.");
+      setReplaceStatus(null);
+    } finally {
+      setIsReplacing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="mx-auto max-w-2xl">
@@ -79,8 +122,15 @@ export function ClothDetailPage() {
           <p className="text-sm text-boutique-700">
             AI analysis for this clothing item is still running. Please check again in a moment.
           </p>
-          <div>
-            <Button onClick={() => navigate("/wardrobe")}>Back to wardrobe</Button>
+          <div className="flex justify-center gap-2">
+            <Button variant="outline" onClick={() => navigate("/wardrobe")}>Back to wardrobe</Button>
+            <Button
+              variant="outline"
+              disabled={isDeleting}
+              onClick={() => void handleDelete()}
+            >
+              {isDeleting ? "Deleting..." : "Delete item"}
+            </Button>
           </div>
         </Card>
       </div>
@@ -91,10 +141,39 @@ export function ClothDetailPage() {
     <section className="mx-auto max-w-5xl space-y-5">
       <header className="flex items-center justify-between gap-3">
         <h1 className="font-display text-5xl text-boutique-900">Cloth Detail</h1>
-        <Button variant="outline" onClick={() => navigate("/wardrobe")}>
-          Back
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => navigate("/wardrobe")}>
+            Back
+          </Button>
+          <Button
+            variant="outline"
+            disabled={isReplacing || isDeleting}
+            onClick={() => fileInputRef.current?.click()}
+          >
+            {isReplacing ? (replaceStatus ?? "Replacing...") : "Replace Image"}
+          </Button>
+          <Button
+            variant="outline"
+            disabled={isDeleting || isReplacing}
+            onClick={() => void handleDelete()}
+            className="text-red-600 hover:border-red-300 hover:bg-red-50"
+          >
+            {isDeleting ? "Deleting..." : "Delete"}
+          </Button>
+        </div>
       </header>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void handleReplaceFile(file);
+          e.target.value = "";
+        }}
+      />
 
       <Card className="grid gap-6 p-5 md:grid-cols-[0.95fr_1.05fr] md:p-7">
         <div className="overflow-hidden rounded-3xl border border-boutique-200 bg-boutique-100">
