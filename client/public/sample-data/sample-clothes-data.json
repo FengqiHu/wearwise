@@ -780,5 +780,1319 @@
     "description": "These elegant earrings feature a textured, detailed gold leaf design that drapes beautifully. They add a sophisticated botanical touch to any outfit.",
     "createdAt": "2026-03-13T20:57:00.751Z",
     "updatedAt": "2026-03-13T20:57:03.822Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/9b7752ed-8212-43b5-aa21-41cb3361a869.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Utility Overshirt",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "blue",
+      "utility",
+      "overshirt",
+      "button-up",
+      "casual",
+      "cotton",
+      "spring",
+      "autumn"
+    ],
+    "description": "A classic navy blue utility-style overshirt featuring a button-down front and four patch pockets. This versatile piece serves as an excellent layering garment for transitional weather.",
+    "createdAt": "2026-03-16T01:08:40.793Z",
+    "updatedAt": "2026-03-16T01:08:43.308Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/1c825352-df96-4810-9f60-04c767d9dd07.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Asics Running Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "pink",
+      "sportswear",
+      "windbreaker",
+      "hooded",
+      "lightweight",
+      "athletic",
+      "spring",
+      "summer"
+    ],
+    "description": "A lightweight pink hooded windbreaker by Asics designed for running and athletic activities. Features a full zip closure and breathable mesh side panels.",
+    "createdAt": "2026-03-16T01:08:38.527Z",
+    "updatedAt": "2026-03-16T01:08:40.769Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/902c40df-a21a-4600-972e-6cb99102683a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Only & Sons Beige Chino Shorts",
+    "category": "pants",
+    "tags": [
+      "beige",
+      "neutral",
+      "chino",
+      "shorts",
+      "summer",
+      "casual",
+      "minimalist"
+    ],
+    "description": "These beige chino shorts from Only & Sons feature a classic tailored look with a subtle textured fabric. Perfect for smart-casual summer outfits.",
+    "createdAt": "2026-03-16T01:08:36.060Z",
+    "updatedAt": "2026-03-16T01:08:38.506Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/a58f0621-7251-4a70-a89c-6620b9734ac2.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Tommy Jeans Stripe Rugby Shirt",
+    "category": "tops",
+    "tags": [
+      "navy",
+      "white",
+      "striped",
+      "long-sleeve",
+      "cotton",
+      "rugby",
+      "casual",
+      "preppy",
+      "autumn",
+      "winter"
+    ],
+    "description": "A classic long-sleeve rugby shirt featuring thick navy and white stripes with embroidered graphic details on the chest. It offers a sporty, preppy aesthetic perfect for casual everyday wear.",
+    "createdAt": "2026-03-16T01:08:33.834Z",
+    "updatedAt": "2026-03-16T01:08:36.039Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/5c7c9afa-ae9a-40f6-930f-0638ae2cdd3f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Green Waffle Henley",
+    "category": "tops",
+    "tags": [
+      "olive green",
+      "waffle knit",
+      "henley",
+      "long sleeve",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "A classic long-sleeve henley shirt featuring a textured waffle knit fabric and a three-button placket. This versatile olive green piece is perfect for casual layering during the cooler seasons.",
+    "createdAt": "2026-03-16T01:08:31.261Z",
+    "updatedAt": "2026-03-16T01:08:33.811Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/c9f9e5dd-2d5f-4814-869a-390cf9dfa3b2.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Longline Blouse",
+    "category": "tops",
+    "tags": [
+      "black",
+      "minimalist",
+      "long-sleeve",
+      "v-neck",
+      "elegant",
+      "versatile"
+    ],
+    "description": "A sleek, black longline blouse featuring a crisp v-neck collar and minimalist design. Its clean silhouette makes it a versatile piece suitable for both professional and casual styling.",
+    "createdAt": "2026-03-16T01:08:29.137Z",
+    "updatedAt": "2026-03-16T01:08:31.239Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/a1fbe70e-b2f7-4736-9263-f731725f321f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Ralph Lauren Striped Button-Down Shirt",
+    "category": "tops",
+    "tags": [
+      "blue",
+      "white",
+      "striped",
+      "button-down",
+      "collared",
+      "long-sleeve",
+      "cotton",
+      "preppy",
+      "casual",
+      "spring",
+      "autumn"
+    ],
+    "description": "A classic blue and white striped button-down shirt featuring a buttoned collar and the iconic Polo Ralph Lauren embroidered logo. This versatile long-sleeve piece offers a timeless, polished look suitable for any season.",
+    "createdAt": "2026-03-16T01:08:26.432Z",
+    "updatedAt": "2026-03-16T01:08:29.115Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/262b5e09-fadc-4d0f-9047-2297f704f720.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Denim Shorts",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "denim",
+      "casual",
+      "summer",
+      "shorts",
+      "cuffed"
+    ],
+    "description": "These casual grey denim shorts feature a classic five-pocket design and cuffed hems for a relaxed summer look.",
+    "createdAt": "2026-03-16T01:08:24.193Z",
+    "updatedAt": "2026-03-16T01:08:26.410Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/3b2f70bb-068c-40f8-b62d-27df9bb48790.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Gap Logo Crewneck Sweatshirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "white",
+      "red",
+      "cotton blend",
+      "crewneck",
+      "sweatshirt",
+      "casual",
+      "long sleeve",
+      "logo",
+      "winter",
+      "autumn"
+    ],
+    "description": "A classic black long-sleeve crewneck sweatshirt featuring a large white Gap logo with 'Original' embroidered in red. It is a versatile piece perfect for casual, everyday wear.",
+    "createdAt": "2026-03-16T01:08:22.104Z",
+    "updatedAt": "2026-03-16T01:08:24.169Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/d98c0821-8a4a-4788-9acd-057a6d2ac166.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Track Pants",
+    "category": "pants",
+    "tags": [
+      "black",
+      "white",
+      "athletic",
+      "sportswear",
+      "casual",
+      "nylon",
+      "unisex"
+    ],
+    "description": "Black athletic track pants featuring white side stripes, a drawstring waist, and zip details at the hem. Perfect for casual wear or sporty outfits.",
+    "createdAt": "2026-03-16T01:08:19.712Z",
+    "updatedAt": "2026-03-16T01:08:22.081Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/9ecc3a11-add7-46fb-a408-9197e6fe6af1.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Wide-Leg Trousers",
+    "category": "pants",
+    "tags": [
+      "black",
+      "wide-leg",
+      "minimalist",
+      "tailored",
+      "year-round"
+    ],
+    "description": "These elegant, wide-leg trousers feature a clean-cut silhouette with a subtle waistband and belt loops. Perfect for creating a polished and sophisticated look for any occasion.",
+    "createdAt": "2026-03-16T01:08:11.468Z",
+    "updatedAt": "2026-03-16T01:08:19.688Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/a9ff15eb-eb9f-477d-81e8-0bb8731cac32.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dark Green Corduroy Button-Front Mini Skirt",
+    "category": "pants",
+    "tags": [
+      "dark green",
+      "corduroy",
+      "mini skirt",
+      "button-front",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "A stylish dark green corduroy mini skirt featuring a button-front design and practical front pockets. This textured piece is perfect for layering during the cooler autumn and winter seasons.",
+    "createdAt": "2026-03-16T01:08:08.625Z",
+    "updatedAt": "2026-03-16T01:08:11.444Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/8658476f-8f0c-4759-b8d5-63d13bff0bdc.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Blue Belted Outdoor Shorts",
+    "category": "pants",
+    "tags": [
+      "blue",
+      "shorts",
+      "outdoor",
+      "sporty",
+      "summer",
+      "belted"
+    ],
+    "description": "Functional outdoor shorts in a vibrant blue shade featuring an integrated adjustable belt. These durable bottoms are designed for hiking and active summer activities.",
+    "createdAt": "2026-03-16T01:08:05.375Z",
+    "updatedAt": "2026-03-16T01:08:08.603Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/c802a37c-b319-48da-8724-38e954b7b59a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Metallic Faux Leather Shorts",
+    "category": "pants",
+    "tags": [
+      "silver",
+      "metallic",
+      "faux leather",
+      "shorts",
+      "y2k",
+      "party",
+      "modern"
+    ],
+    "description": "These striking metallic shorts are crafted from a smooth faux leather material. Featuring a high-waisted cut and belt loops, they offer a bold, modern look perfect for a night out.",
+    "createdAt": "2026-03-16T01:08:01.969Z",
+    "updatedAt": "2026-03-16T01:08:05.344Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/4f952907-4556-41c4-ba63-031c05113c25.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Spaghetti Strap Tank Top",
+    "category": "tops",
+    "tags": [
+      "black",
+      "cotton",
+      "casual",
+      "sleeveless",
+      "summer",
+      "basics",
+      "minimalist"
+    ],
+    "description": "A classic, fitted black tank top with delicate spaghetti straps. It is a versatile wardrobe staple perfect for layering or wearing on its own during warmer weather.",
+    "createdAt": "2026-03-16T01:07:59.509Z",
+    "updatedAt": "2026-03-16T01:08:01.945Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/3fffea08-fa1a-4561-8474-70c581c9a628.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Camel Duffle Coat",
+    "category": "outerwear",
+    "tags": [
+      "camel",
+      "tan",
+      "wool blend",
+      "duffle",
+      "winter",
+      "autumn",
+      "hooded",
+      "toggles",
+      "plaid lining",
+      "classic"
+    ],
+    "description": "A classic camel-colored duffle coat featuring traditional wooden toggles, a cozy hood, and a distinctive plaid lining. This warm, durable piece is ideal for layering during the autumn and winter seasons.",
+    "createdAt": "2026-03-16T01:07:57.411Z",
+    "updatedAt": "2026-03-16T01:07:59.486Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/8c7d3b39-a738-4ec7-80bb-487e063e3447.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Ribbed Wide-Leg Trousers",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "ribbed",
+      "wide-leg",
+      "casual",
+      "minimalist",
+      "all-season"
+    ],
+    "description": "These elegant wide-leg trousers feature a subtle vertical ribbed texture and a clean, minimalist design. They are a versatile staple piece perfect for both smart-casual and professional settings.",
+    "createdAt": "2026-03-16T01:07:54.594Z",
+    "updatedAt": "2026-03-16T01:07:57.387Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/5823753a-9dc2-45cd-84ff-57d4ccbe988d.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Jack & Jones Graphic Tee",
+    "category": "tops",
+    "tags": [
+      "black",
+      "white",
+      "cotton",
+      "casual",
+      "logo",
+      "t-shirt",
+      "summer"
+    ],
+    "description": "A classic black crew-neck t-shirt featuring the bold white Jack & Jones logo printed on the chest. This comfortable cotton top is perfect for everyday casual wear.",
+    "createdAt": "2026-03-16T01:07:52.469Z",
+    "updatedAt": "2026-03-16T01:07:54.571Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/d1304508-9357-47d4-9d78-a7717ebe62d6.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Sherpa-Lined Parka",
+    "category": "outerwear",
+    "tags": [
+      "olive green",
+      "sherpa-lined",
+      "winter",
+      "hooded",
+      "casual",
+      "heavyweight"
+    ],
+    "description": "A durable olive green parka featuring a warm, cream-colored sherpa lining and a protective hood. This winter-ready jacket is designed for comfort and warmth in cold weather.",
+    "createdAt": "2026-03-16T01:07:50.285Z",
+    "updatedAt": "2026-03-16T01:07:52.449Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/df2ca740-0c29-4f9c-969e-5b3ad33932df.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Pier One Black Sleeveless T-Shirt Pack",
+    "category": "tops",
+    "tags": [
+      "black",
+      "sleeveless",
+      "tank top",
+      "casual",
+      "summer",
+      "basic",
+      "men's fashion"
+    ],
+    "description": "A versatile pack of black sleeveless t-shirts featuring a classic crew neck design. Perfect for casual summer layering or athletic wear.",
+    "createdAt": "2026-03-16T01:07:48.224Z",
+    "updatedAt": "2026-03-16T01:07:50.263Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/650dfc61-99ba-4d8c-9d89-2ad38daf0c61.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Floral Tiered Midi Dress",
+    "category": "tops",
+    "tags": [
+      "black",
+      "floral",
+      "tiered",
+      "midi",
+      "spring",
+      "summer",
+      "casual",
+      "boho"
+    ],
+    "description": "A black midi dress featuring an all-over colourful floral print and a tiered skirt design. It includes a cinched waist with a tie detail and short puff sleeves for a feminine silhouette.",
+    "createdAt": "2026-03-16T01:07:45.236Z",
+    "updatedAt": "2026-03-16T01:07:48.197Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/24e4f56f-982b-4562-9800-3501a8c6e8c9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Padded Longline Gilet",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "blue",
+      "puffer",
+      "quilted",
+      "sleeveless",
+      "hooded",
+      "longline",
+      "winter",
+      "casual"
+    ],
+    "description": "A stylish, longline puffer gilet in navy blue featuring a cozy hood and a full-length front zip. Perfect for layering during colder months while keeping your core warm.",
+    "createdAt": "2026-03-16T01:07:42.872Z",
+    "updatedAt": "2026-03-16T01:07:45.210Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/1d6bb931-1789-462e-93f1-f0637666a9f9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Cargo Shorts",
+    "category": "pants",
+    "tags": [
+      "black",
+      "cargo",
+      "shorts",
+      "cotton",
+      "casual",
+      "summer"
+    ],
+    "description": "Functional and comfortable black cargo shorts featuring side pockets and a classic button closure. Perfect for a versatile, casual summer outfit.",
+    "createdAt": "2026-03-16T01:07:39.854Z",
+    "updatedAt": "2026-03-16T01:07:42.847Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/fb410613-d392-47cb-98e9-fcf2ac877f45.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Even&Odd Black Leggings",
+    "category": "pants",
+    "tags": [
+      "black",
+      "stretchy",
+      "minimalist",
+      "casual",
+      "all-season"
+    ],
+    "description": "These simple, solid black leggings offer a comfortable and versatile fit for everyday wear. They are an essential basic piece that pairs easily with any top.",
+    "createdAt": "2026-03-16T01:07:37.849Z",
+    "updatedAt": "2026-03-16T01:07:39.813Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/012bd1f4-8ed9-4cd2-845f-5d17e2889d34.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Linen Drawstring Trousers",
+    "category": "pants",
+    "tags": [
+      "navy",
+      "dark blue",
+      "linen",
+      "drawstring",
+      "casual",
+      "summer",
+      "relaxed fit"
+    ],
+    "description": "These casual navy blue trousers are crafted from a breathable linen blend, featuring a comfortable elasticized drawstring waist. Perfect for warm weather, they offer a relaxed fit that transitions easily from the beach to a casual brunch.",
+    "createdAt": "2026-03-16T01:07:35.475Z",
+    "updatedAt": "2026-03-16T01:07:37.825Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/bec85148-7816-4e2d-87b3-89b64d452628.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black and White Plaid Button-Down Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "white",
+      "plaid",
+      "flannel",
+      "casual",
+      "button-down",
+      "autumn",
+      "winter"
+    ],
+    "description": "A classic long-sleeved button-down shirt featuring a timeless black and white plaid pattern. This versatile piece is perfect for casual layering during the cooler seasons.",
+    "createdAt": "2026-03-16T01:07:32.543Z",
+    "updatedAt": "2026-03-16T01:07:35.451Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/c1cfe0c1-9eb5-4036-aec4-1bf7d08d346c.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Pink Striped Cropped Shirt",
+    "category": "tops",
+    "tags": [
+      "pink",
+      "striped",
+      "cropped",
+      "button-down",
+      "long-sleeve",
+      "cotton",
+      "casual",
+      "spring"
+    ],
+    "description": "A stylish cropped button-down shirt featuring a classic pink and burgundy pinstripe pattern. It has a relaxed collar and a functional chest pocket for a chic, everyday look.",
+    "createdAt": "2026-03-16T01:07:30.214Z",
+    "updatedAt": "2026-03-16T01:07:32.521Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/87d7e099-cd43-4541-8c96-b5d219569fee.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Sage Green Open Blazer",
+    "category": "outerwear",
+    "tags": [
+      "sage green",
+      "blazer",
+      "minimalist",
+      "casual",
+      "professional",
+      "long-sleeve",
+      "spring",
+      "autumn"
+    ],
+    "description": "A sleek, open-front blazer in a muted sage green tone, featuring a tailored lapel and a minimalist design. This versatile piece is perfect for layering over smart-casual outfits.",
+    "createdAt": "2026-03-16T01:07:27.846Z",
+    "updatedAt": "2026-03-16T01:07:30.188Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/82b4bc6e-ea66-45bd-bb48-95c58cb6f922.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Charcoal Zip-Up Coat",
+    "category": "outerwear",
+    "tags": [
+      "charcoal",
+      "grey",
+      "wool-blend",
+      "minimalist",
+      "winter",
+      "fall",
+      "smart-casual"
+    ],
+    "description": "A sophisticated charcoal grey coat featuring a high collar, full-length silver zipper, and clean, minimalist lines. This structured piece is perfect for layering during colder months.",
+    "createdAt": "2026-03-16T01:07:25.193Z",
+    "updatedAt": "2026-03-16T01:07:27.820Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/c91ed008-f51f-42ad-acb4-8fe90313c811.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Hooded Puffer Coat",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "dark blue",
+      "puffer",
+      "winter",
+      "hooded",
+      "quilted",
+      "casual",
+      "long"
+    ],
+    "description": "A stylish, long-length navy blue hooded puffer coat perfect for cold weather. It features a snap-button front closure and a cinched waist detail for a flattering fit.",
+    "createdAt": "2026-03-16T01:07:22.639Z",
+    "updatedAt": "2026-03-16T01:07:25.171Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/8759f2d3-ee26-4703-a81a-861232bb3db4.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Columbia Colorblock Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "blue",
+      "light blue",
+      "colorblock",
+      "water-resistant",
+      "sporty",
+      "hooded",
+      "spring",
+      "autumn",
+      "windbreaker"
+    ],
+    "description": "A lightweight Columbia hooded windbreaker featuring a dual-tone blue colorblock design with a full zip closure. Perfect for outdoor activities and layering during transitional weather.",
+    "createdAt": "2026-03-16T01:07:20.343Z",
+    "updatedAt": "2026-03-16T01:07:22.617Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/73e288ba-7a83-4e40-b470-c82259c8a9a0.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lyle & Scott V-Neck T-Shirt",
+    "category": "tops",
+    "tags": [
+      "blue",
+      "cotton",
+      "v-neck",
+      "casual",
+      "summer",
+      "spring",
+      "t-shirt"
+    ],
+    "description": "A classic navy blue v-neck t-shirt featuring the signature golden eagle logo on the chest. This comfortable cotton top is a versatile wardrobe staple for casual everyday wear.",
+    "createdAt": "2026-03-16T01:07:17.995Z",
+    "updatedAt": "2026-03-16T01:07:20.323Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/d566ccfc-6a68-40d3-8634-385338b6863a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burnt Orange Pleated Midi Skirt",
+    "category": "pants",
+    "tags": [
+      "orange",
+      "pleated",
+      "midi",
+      "skirt",
+      "casual",
+      "autumn",
+      "elegant"
+    ],
+    "description": "A vibrant burnt orange midi skirt featuring sharp accordion pleats and a comfortable elastic waistband. This versatile piece offers a sophisticated, flowing silhouette perfect for seasonal styling.",
+    "createdAt": "2026-03-16T01:07:15.146Z",
+    "updatedAt": "2026-03-16T01:07:17.972Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/07c25072-97c2-4dab-8d40-865c44660aec.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Levi's Black Polo Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "cotton",
+      "polo",
+      "casual",
+      "short-sleeve",
+      "spring",
+      "summer"
+    ],
+    "description": "A classic black short-sleeve polo shirt featuring a traditional collar, button placket, and the signature Levi's red tab logo on the chest.",
+    "createdAt": "2026-03-16T01:07:12.398Z",
+    "updatedAt": "2026-03-16T01:07:15.121Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/ef3dbd1d-d480-444e-9628-e5081b747055.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Only & Sons Long Sleeve T-Shirt",
+    "category": "tops",
+    "tags": [
+      "white",
+      "cotton",
+      "long sleeve",
+      "basic",
+      "casual",
+      "minimalist",
+      "all-season"
+    ],
+    "description": "A clean and simple white long-sleeve t-shirt from Only & Sons. This versatile basic piece is perfect for layering or wearing on its own for a minimalist casual look.",
+    "createdAt": "2026-03-16T01:07:09.494Z",
+    "updatedAt": "2026-03-16T01:07:12.375Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/73520764-eaa0-47d9-99e6-daf0104e834e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Hooded Parka",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "parka",
+      "hooded",
+      "water-resistant",
+      "winter",
+      "minimalist",
+      "casual"
+    ],
+    "description": "A versatile black hooded parka featuring a clean, minimalist design with snap-button closures. This functional outer layer is ideal for layering during the colder seasons.",
+    "createdAt": "2026-03-16T01:07:07.025Z",
+    "updatedAt": "2026-03-16T01:07:09.470Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/4a8473d9-3c27-49ef-93fb-d18d184af22e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dark Grey Jogger Chinos",
+    "category": "pants",
+    "tags": [
+      "dark grey",
+      "chinos",
+      "joggers",
+      "casual",
+      "cotton",
+      "elasticated cuffs",
+      "everyday"
+    ],
+    "description": "These stylish dark grey chinos feature a jogger-style silhouette with elasticated cuffs for a relaxed yet polished look. Perfect for versatile everyday wear, they combine the comfort of sweatpants with the refined aesthetic of tailored trousers.",
+    "createdAt": "2026-03-16T01:07:04.855Z",
+    "updatedAt": "2026-03-16T01:07:07.000Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/ea53f7a2-6270-43ae-867f-ac5a8719de05.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Leather Trench Coat",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "leather",
+      "trench coat",
+      "double-breasted",
+      "winter",
+      "fall",
+      "edgy",
+      "classic"
+    ],
+    "description": "A sophisticated black double-breasted trench coat crafted from high-quality leather. It features a belted waist, structured shoulders, and a long silhouette perfect for cold-weather layering.",
+    "createdAt": "2026-03-16T01:07:00.415Z",
+    "updatedAt": "2026-03-16T01:07:04.833Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/eda30d95-74c1-420f-bc6f-46d42c873a3f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lemon Print Button-Down Shirt",
+    "category": "tops",
+    "tags": [
+      "white",
+      "yellow",
+      "lemon",
+      "cotton",
+      "casual",
+      "summer",
+      "long sleeve",
+      "button-down",
+      "printed"
+    ],
+    "description": "A crisp white button-down shirt featuring an all-over small lemon print. Perfect for a fresh and cheerful summer look.",
+    "createdAt": "2026-03-16T01:06:58.063Z",
+    "updatedAt": "2026-03-16T01:07:00.391Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/3157cc4c-1dbc-4133-ad55-464fd30969e5.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Striped Ribbed Midi Skirt",
+    "category": "pants",
+    "tags": [
+      "striped",
+      "black and white",
+      "ribbed",
+      "knit",
+      "casual",
+      "mid-length"
+    ],
+    "description": "A classic black and white horizontally striped midi skirt crafted from a comfortable ribbed knit fabric. This versatile piece offers a sleek, fitted silhouette perfect for transitional seasonal wear.",
+    "createdAt": "2026-03-16T01:06:55.924Z",
+    "updatedAt": "2026-03-16T01:06:58.036Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/d7ca4408-8ead-4503-b858-94ab35f0cd8a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Ribbed Tank Top",
+    "category": "tops",
+    "tags": [
+      "black",
+      "ribbed",
+      "casual",
+      "minimalist",
+      "summer",
+      "cotton"
+    ],
+    "description": "A classic black tank top featuring a clean ribbed texture and a minimalist design. It is a versatile wardrobe essential perfect for warm weather layering.",
+    "createdAt": "2026-03-16T01:06:53.450Z",
+    "updatedAt": "2026-03-16T01:06:55.899Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/bf334a4f-cc1a-4f5b-9c1d-57f2f7df90c5.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Pier One Lightweight Bomber Jacket",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "nylon",
+      "lightweight",
+      "bomber jacket",
+      "spring",
+      "autumn",
+      "casual",
+      "zipper"
+    ],
+    "description": "A sleek, black lightweight bomber jacket featuring a ribbed collar and cuffs, ideal for transitional weather. This minimalist piece offers a versatile, casual look with a zip-front closure.",
+    "createdAt": "2026-03-16T01:06:51.347Z",
+    "updatedAt": "2026-03-16T01:06:53.426Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/5b5cc87a-2adb-4bed-98e4-861e8fb6cd5e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Blue Hooded Technical Jacket",
+    "category": "outerwear",
+    "tags": [
+      "blue",
+      "hooded",
+      "water-resistant",
+      "technical",
+      "spring",
+      "autumn",
+      "sporty",
+      "casual"
+    ],
+    "description": "A versatile, lightweight blue hooded jacket featuring a zip front, adjustable drawstrings at the hem, and practical side pockets. Perfect for transitional weather, this technical piece combines comfort with a functional, minimalist design.",
+    "createdAt": "2026-03-16T01:06:49.257Z",
+    "updatedAt": "2026-03-16T01:06:51.322Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/3bf31b77-b6e8-4c1a-baac-6e4ff088d027.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Off-Shoulder Long Sleeve Top",
+    "category": "tops",
+    "tags": [
+      "black",
+      "long sleeve",
+      "off-shoulder",
+      "minimalist",
+      "versatile",
+      "fitted",
+      "all-season"
+    ],
+    "description": "A sleek, black long-sleeve top featuring a flattering off-the-shoulder neckline. Its fitted design and simple aesthetic make it a versatile staple for any wardrobe.",
+    "createdAt": "2026-03-16T01:06:47.005Z",
+    "updatedAt": "2026-03-16T01:06:49.231Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/00500803-eaf8-4d3b-890c-322a15256764.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dark Grey Knit Sweater",
+    "category": "tops",
+    "tags": [
+      "dark grey",
+      "knit",
+      "long sleeve",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "A comfortable, dark grey long-sleeve knit sweater featuring raglan sleeves and a casual round neckline. The minimalist design is finished with a small brand tag near the bottom hem.",
+    "createdAt": "2026-03-16T01:06:44.545Z",
+    "updatedAt": "2026-03-16T01:06:46.980Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/8c8cac16-162d-472f-8ba4-26ed61c1292b.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burgundy Puffer Jacket",
+    "category": "outerwear",
+    "tags": [
+      "burgundy",
+      "puffer",
+      "winter",
+      "hooded",
+      "quilted",
+      "casual"
+    ],
+    "description": "A stylish burgundy hooded puffer jacket designed for warmth and comfort. Features a quilted construction with a front zipper closure, perfect for chilly weather.",
+    "createdAt": "2026-03-16T01:06:42.340Z",
+    "updatedAt": "2026-03-16T01:06:44.521Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/29ca5d53-62f4-41a4-b996-5b3a6ec44a0e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Leather Trousers",
+    "category": "pants",
+    "tags": [
+      "black",
+      "leather",
+      "trousers",
+      "classic",
+      "sleek",
+      "minimalist",
+      "autumn",
+      "winter"
+    ],
+    "description": "These elegant black trousers are crafted from smooth leather, offering a clean and sophisticated silhouette. They feature a structured waist and straight-leg fit, perfect for elevated seasonal styling.",
+    "createdAt": "2026-03-16T01:06:39.908Z",
+    "updatedAt": "2026-03-16T01:06:42.315Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/a84f5b8b-107e-43d4-a3ae-1c892fd86386.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burgundy Pleated Midi Skirt",
+    "category": "pants",
+    "tags": [
+      "burgundy",
+      "pleated",
+      "midi",
+      "skirt",
+      "elegant",
+      "autumn"
+    ],
+    "description": "An elegant midi-length skirt featuring crisp vertical pleats in a deep burgundy hue. Perfect for creating sophisticated, timeless outfits throughout the transitional seasons.",
+    "createdAt": "2026-03-16T01:06:37.821Z",
+    "updatedAt": "2026-03-16T01:06:39.887Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/2ccc3b75-1015-4dfd-a146-85cf12ed524c.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Guess Denim Western Shirt",
+    "category": "tops",
+    "tags": [
+      "light blue",
+      "denim",
+      "button-down",
+      "western",
+      "long sleeve",
+      "casual",
+      "all-season"
+    ],
+    "description": "A classic light-wash denim western shirt featuring a button-up front, two chest pockets, and long sleeves. It offers a timeless, versatile look perfect for casual everyday wear.",
+    "createdAt": "2026-03-16T01:06:35.350Z",
+    "updatedAt": "2026-03-16T01:06:37.799Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/5ccf245c-aaaf-4cda-958e-14099c60bd7b.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Tan Faux Leather Jacket",
+    "category": "outerwear",
+    "tags": [
+      "tan",
+      "brown",
+      "leather",
+      "faux-leather",
+      "biker",
+      "casual",
+      "autumn",
+      "spring",
+      "minimalist"
+    ],
+    "description": "A classic tan faux leather jacket featuring a stand collar, front zip closure, and a sleek, minimalist design. It is a versatile layer perfect for transitional weather.",
+    "createdAt": "2026-03-16T01:06:32.539Z",
+    "updatedAt": "2026-03-16T01:06:35.326Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/5472fad7-573b-4bfd-892e-529aeeb833c7.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Light Blue Denim Floral Shirt",
+    "category": "tops",
+    "tags": [
+      "light blue",
+      "denim",
+      "cotton",
+      "button-down",
+      "floral",
+      "short-sleeve",
+      "casual",
+      "summer",
+      "spring"
+    ],
+    "description": "A light-wash denim shirt featuring delicate white floral embroidery and a classic button-down front. It has short sleeves and a structured collar, making it a perfect casual piece for warm-weather styling.",
+    "createdAt": "2026-03-16T01:06:29.921Z",
+    "updatedAt": "2026-03-16T01:06:32.516Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/aaa796a8-c08f-4152-a5e2-049d54767683.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lyle & Scott Black Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "windbreaker",
+      "hooded",
+      "lightweight",
+      "sporty",
+      "casual",
+      "spring",
+      "autumn"
+    ],
+    "description": "A classic lightweight hooded windbreaker in solid black featuring a zip-up front and the iconic Lyle & Scott yellow eagle logo on the chest.",
+    "createdAt": "2026-03-16T01:06:27.868Z",
+    "updatedAt": "2026-03-16T01:06:29.898Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/21d472ec-d70f-46c0-a798-738ecca143b5.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Drawstring Sweatpants",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "cotton",
+      "casual",
+      "loungewear",
+      "drawstring",
+      "sweatpants",
+      "unisex"
+    ],
+    "description": "These comfortable, heather grey sweatpants feature an adjustable drawstring waist for a relaxed fit. They are perfect for casual loungewear or athletic activities.",
+    "createdAt": "2026-03-16T01:06:25.484Z",
+    "updatedAt": "2026-03-16T01:06:27.845Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/2ad1dfa3-c806-482b-b8c0-59f0bc18af66.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Slim-Fit Chino Pants",
+    "category": "pants",
+    "tags": [
+      "black",
+      "chino",
+      "slim-fit",
+      "smart-casual",
+      "all-season",
+      "cotton"
+    ],
+    "description": "A pair of classic black chinos in a slim-fit cut, suitable for both casual and smart-casual outfits. These versatile trousers feature a clean finish with a simple button and zipper closure.",
+    "createdAt": "2026-03-16T01:06:23.260Z",
+    "updatedAt": "2026-03-16T01:06:25.459Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/dd141161-f24b-4846-91e9-f325a511b171.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Beige and Black Puffer Vest",
+    "category": "outerwear",
+    "tags": [
+      "beige",
+      "black",
+      "puffer",
+      "vest",
+      "sleeveless",
+      "winter",
+      "autumn",
+      "casual",
+      "quilted"
+    ],
+    "description": "A stylish, sleeveless puffer vest featuring a two-tone beige and black color-block design. It includes a high neck and a full-length zipper closure, perfect for layering during cooler seasons.",
+    "createdAt": "2026-03-16T01:06:20.141Z",
+    "updatedAt": "2026-03-16T01:06:23.229Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/28c3549e-9aff-48da-9520-9bf1f5cdbfa9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Wide Leg Jeans",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "denim",
+      "wide-leg",
+      "casual",
+      "all-season",
+      "high-rise"
+    ],
+    "description": "Stylish grey denim jeans featuring a comfortable wide-leg silhouette. These versatile pants offer a classic high-rise fit, perfect for everyday casual wear.",
+    "createdAt": "2026-03-16T01:06:17.744Z",
+    "updatedAt": "2026-03-16T01:06:20.114Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/2d2fed7f-1ce6-4291-bd91-c18ea6ae6088.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Light Wash Denim Mini Skirt",
+    "category": "pants",
+    "tags": [
+      "light wash",
+      "denim",
+      "mini",
+      "casual",
+      "classic",
+      "summer"
+    ],
+    "description": "A classic light blue denim mini skirt featuring a traditional five-pocket design and a button-fly closure. Its versatile cut makes it a staple piece for casual summer outfits.",
+    "createdAt": "2026-03-16T01:06:14.853Z",
+    "updatedAt": "2026-03-16T01:06:17.720Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/cac7754c-9b54-409e-95c2-3e64a76d7f62.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "HUF Essential Hooded Jacket",
+    "category": "outerwear",
+    "tags": [
+      "beige",
+      "neutral",
+      "hooded",
+      "windbreaker",
+      "casual",
+      "sportswear",
+      "spring",
+      "autumn"
+    ],
+    "description": "A lightweight, minimalist hooded windbreaker featuring the HUF logo on the chest. This practical outerwear piece is perfect for layering during transitional seasons.",
+    "createdAt": "2026-03-16T01:06:12.686Z",
+    "updatedAt": "2026-03-16T01:06:14.826Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/01fd68a0-248d-465c-a2d5-32f6560d0712.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Oxmo Fleece Zip-Up Hoodie",
+    "category": "outerwear",
+    "tags": [
+      "grey",
+      "fleece",
+      "hoodie",
+      "zip-up",
+      "casual",
+      "winter",
+      "autumn",
+      "sporty"
+    ],
+    "description": "A cozy grey fleece zip-up hoodie featuring a practical hood and zippered side pockets. This lightweight layer is perfect for casual wear or outdoor activities during cooler seasons.",
+    "createdAt": "2026-03-16T01:06:09.958Z",
+    "updatedAt": "2026-03-16T01:06:12.662Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/0cf40f3c-e421-4b78-8fe6-539f6330bda1.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Hooded Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "olive",
+      "green",
+      "nylon",
+      "windbreaker",
+      "hooded",
+      "casual",
+      "lightweight",
+      "spring",
+      "autumn"
+    ],
+    "description": "A versatile, lightweight olive green windbreaker featuring a hooded design and a full zip closure. Perfect for transitional weather and outdoor casual wear.",
+    "createdAt": "2026-03-16T01:06:07.067Z",
+    "updatedAt": "2026-03-16T01:06:09.927Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/140f95cf-1ecd-4ce7-aa19-3c3bb3ea8b16.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Short-Sleeve Button-Down Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "cotton",
+      "casual",
+      "smart-casual",
+      "summer",
+      "short-sleeve"
+    ],
+    "description": "A classic black short-sleeve shirt featuring a crisp collar and front button closure. Its minimalist design makes it a versatile piece for both professional and casual settings.",
+    "createdAt": "2026-03-13T21:24:52.275Z",
+    "updatedAt": "2026-03-13T21:24:54.825Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/ff83d425-e0d8-429b-b657-149cd969430b/closet/cef194ca-5cff-44dc-9834-c82e695363ad.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Graphic Logo T-Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "yellow",
+      "cotton",
+      "casual",
+      "summer",
+      "graphic tee",
+      "short sleeve"
+    ],
+    "description": "A simple black short-sleeved t-shirt featuring a small yellow logo graphic on the chest. Perfect for a casual, everyday look.",
+    "createdAt": "2026-03-12T21:55:25.300Z",
+    "updatedAt": "2026-03-12T21:55:27.886Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/e4903a30-61d4-4955-9686-9aa49b0f4487.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Classic Black Short Sleeve Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "minimalist",
+      "casual",
+      "collared",
+      "summer",
+      "spring"
+    ],
+    "description": "A clean, black short-sleeved collared shirt perfect for a minimalist and professional look. It features a simple button-down design and a chest pocket.",
+    "createdAt": "2026-03-10T01:40:30.478Z",
+    "updatedAt": "2026-03-10T01:40:33.342Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/922ae150-e975-49e5-afd7-55b851381344.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Relaxed Fleece Sweatpants",
+    "category": "pants",
+    "tags": [
+      "black",
+      "sweatpants",
+      "fleece",
+      "relaxed-fit",
+      "casual",
+      "autumn",
+      "winter"
+    ],
+    "description": "These comfortable black sweatpants feature a relaxed, wide-leg fit and a contrasting drawstring waistband. Made from a soft fleece material, they are perfect for casual everyday wear.",
+    "createdAt": "2026-03-08T21:19:16.614Z",
+    "updatedAt": "2026-03-08T21:19:19.446Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/61412d30-4664-4c85-879e-cc06f9c91734.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Drawstring Sweatpants",
+    "category": "pants",
+    "tags": [
+      "black",
+      "fleece",
+      "casual",
+      "loungewear",
+      "drawstring",
+      "autumn",
+      "winter"
+    ],
+    "description": "These comfortable black sweatpants feature a relaxed fit with a practical drawstring waist, perfect for casual everyday wear.",
+    "createdAt": "2026-03-08T19:27:54.282Z",
+    "updatedAt": "2026-03-08T19:27:56.588Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/ea0b2f56-f4b9-42c0-a2e5-770aaa355622.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Arc'teryx Softshell Jacket",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "technical",
+      "outdoor",
+      "minimalist",
+      "water-resistant",
+      "spring",
+      "fall"
+    ],
+    "description": "A high-performance navy blue softshell jacket featuring a minimalist design with the signature Arc'teryx logo. Perfect for active outdoor use in mild weather conditions.",
+    "createdAt": "2026-03-08T19:27:51.025Z",
+    "updatedAt": "2026-03-08T19:27:54.254Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/985af19a-5f48-43fe-adcf-97e49504f542/closet/09607b34-1c08-4cb8-a8bb-dcedcee7f5a6.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Pink Long-Sleeve Cotton Tee",
+    "category": "tops",
+    "tags": [
+      "pink",
+      "long-sleeve",
+      "cotton",
+      "casual",
+      "basic",
+      "solid",
+      "all-season"
+    ],
+    "description": "A simple and comfortable pink long-sleeve t-shirt with ribbed cuffs, perfect for casual everyday wear.",
+    "createdAt": "2026-03-08T02:41:11.028Z",
+    "updatedAt": "2026-03-08T02:41:12.953Z"
+  },
+  {
+    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/985af19a-5f48-43fe-adcf-97e49504f542/closet/d08398b5-dd40-484c-91f1-5b8e50986ddf.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Distressed Denim Shorts",
+    "category": "pants",
+    "tags": [
+      "blue",
+      "denim",
+      "distressed",
+      "casual",
+      "summer",
+      "ripped"
+    ],
+    "description": "Classic high-waisted denim shorts featuring ripped details and a frayed raw hem. These casual shorts are perfect for a relaxed summer look.",
+    "createdAt": "2026-03-08T02:41:08.094Z",
+    "updatedAt": "2026-03-08T02:41:11.005Z"
   }
 ]
