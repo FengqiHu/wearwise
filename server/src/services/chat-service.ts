@@ -5,7 +5,7 @@ import type { ChatRole } from "../types/domain.js";
 import { OpenWeatherService } from "./openweather-service.js";
 
 interface ModelInputMessage {
-  role: ChatRole;
+  role: ChatRole | "system";
   content: string;
 }
 
