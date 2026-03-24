@@ -30,6 +30,7 @@ jobs:
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
           channelId: live
           projectId: wearwise-cs423
+          entryPoint: client
 
   deploy-backend:
     name: Deploy Backend to Render
