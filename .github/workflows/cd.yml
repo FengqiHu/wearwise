@@ -3,6 +3,7 @@ name: CD
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   deploy-frontend:
@@ -23,7 +24,7 @@ jobs:
       - name: Build client
         run: cd client && npm run build
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
           VITE_GOOGLE_CLIENT_ID: ${{ secrets.VITE_GOOGLE_CLIENT_ID }}
           VITE_GOOGLE_REDIRECT_URI: ${{ secrets.VITE_GOOGLE_REDIRECT_URI }}
 
