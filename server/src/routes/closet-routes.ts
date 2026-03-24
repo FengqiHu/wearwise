@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { z } from "zod";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
@@ -10,6 +11,22 @@ interface ClosetRoutesDependencies {
   r2StorageService: R2StorageService;
   geminiExtractionService: GeminiExtractionService;
 }
+
+const importClosetItemSchema = z.object({
+  imageUrl: z.string().url(),
+  analysisStatus: z.enum(["pending", "ready", "error"]),
+  analysisError: z.string().nullable(),
+  name: z.string().nullable(),
+  category: z.string().nullable(),
+  tags: z.array(z.string()),
+  description: z.string().nullable(),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional()
+});
+
+const importClosetItemsRequestSchema = z.object({
+  items: z.array(importClosetItemSchema).min(1).max(200)
+});
 
 export function createClosetRoutes({ authService, closetRepository, r2StorageService, geminiExtractionService }: ClosetRoutesDependencies): Router {
   const router = Router();
@@ -96,6 +113,36 @@ export function createClosetRoutes({ authService, closetRepository, r2StorageSer
     } catch (error) {
       console.error("Closet item upload error:", error);
       res.status(500).json({ error: "Failed to create closet item." });
+    }
+  });
+
+  /**
+   * POST /api/closet/items/import-test-data
+   *
+   * Imports pre-analyzed closet items for the authenticated user.
+   * Intended for local/demo sample data seeding from the client.
+   */
+  router.post("/closet/items/import-test-data", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const parsed = importClosetItemsRequestSchema.safeParse(req.body);
+      if (!parsed.success) {
+        res.status(400).json({ error: "Invalid import payload." });
+        return;
+      }
+
+      const imported = await closetRepository.importMany(authResolution.user.id, parsed.data.items);
+      res.status(201).json({ items: imported });
+    } catch (error) {
+      console.error("Closet test data import error:", error);
+      res.status(500).json({ error: "Failed to import test closet items." });
     }
   });
 
