@@ -1,7 +1,9 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import type { ChatRole } from "../types/domain.js";
+import { CurrentTimeService } from "./current-time-service.js";
 import { OpenWeatherService } from "./openweather-service.js";
+import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
 
 interface ModelInputMessage {
   role: ChatRole;
@@ -12,6 +14,7 @@ interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
   signal?: AbortSignal;
+  userLocation?: BrowserLocation;
 }
 
 const CHAT_MODEL = "gpt-5-mini";
@@ -82,23 +85,27 @@ function toIsoLocalDate(date: Date): string {
 function buildDeveloperInstructions(todayIsoDate: string): string {
   return [
     "You are the WearWise assistant.",
-    `Today is ${todayIsoDate}.`,
     "When the user asks for live weather, current conditions, rain, snow, temperature, or any forecast, use the get_weather tool instead of answering from memory.",
     "If the user uses a relative date such as today or tomorrow, convert it to an exact YYYY-MM-DD date before calling the tool.",
     "Use mode=current for current conditions and mode=forecast for future dates.",
+    "When the user asks for a forecast, use the get_current_time and get_user_location tool to get user's local time and location if the user doesn't specify a location for the forecast. This will help you provide a more accurate forecast.",
     "If the user provides a location name without a country code and the location is ambiguous, just use the location you think is most likely based on the conversation history. Do not ask the user to clarify.",
     "If the tool returns ok=false, explain the tool error plainly. If candidates are included, ask the user to pick one of them.",
-    "Never say that you do not have live internet access when the weather tool can answer the request."
+    "Never say that you do not have live internet access when the weather tool can answer the request.",
   ].join(" ");
 }
 
 export class ChatService {
   private readonly client: OpenAI | null;
   private readonly openWeatherService: OpenWeatherService;
+  private readonly currentTimeService: CurrentTimeService;
+  private readonly userLocationService: UserLocationService;
 
   constructor(apiKey: string, openWeatherService: OpenWeatherService) {
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
     this.openWeatherService = openWeatherService;
+    this.currentTimeService = new CurrentTimeService();
+    this.userLocationService = new UserLocationService(openWeatherService);
   }
 
   isConfigured(): boolean {
@@ -121,6 +128,8 @@ export class ChatService {
     if (nonEmptyMessages.length === 0) {
       throw new Error("At least one message is required for chat completion.");
     }
+
+    const userLocation = input.userLocation;
 
     let assistantText = "";
     const runner = this.client.chat.completions.runTools(
@@ -150,6 +159,54 @@ export class ChatService {
                   return {
                     ok: false,
                     error: error instanceof Error ? error.message : "Weather lookup failed."
+                  };
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "get_current_time",
+              description:
+                "Returns the current date and time. Optionally accepts an IANA timezone name to get the local time for a specific location.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  timezone: {
+                    type: "string",
+                    description: "IANA timezone name, for example America/New_York or Europe/London. Defaults to UTC if omitted."
+                  }
+                },
+                required: []
+              },
+              parse: (rawArguments: string) => JSON.parse(rawArguments) as { timezone?: string },
+              function: (args: { timezone?: string }) => {
+                return this.currentTimeService.executeTool(JSON.stringify(args));
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "get_user_location",
+              description:
+                "Returns the approximate location of the user based on their IP address, including city, region, country, and timezone.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {},
+                required: []
+              },
+              parse: (_rawArguments: string) => ({}),
+              function: async (_args: Record<string, never>) => {
+                try {
+                  return await this.userLocationService.executeTool(userLocation, input.signal);
+                } catch (error) {
+                  return {
+                    ok: false,
+                    error: error instanceof Error ? error.message : "Location lookup failed."
                   };
                 }
               }

@@ -518,6 +518,37 @@ export class OpenWeatherService {
     };
   }
 
+  async reverseGeocode(
+    lat: number,
+    lon: number,
+    signal?: AbortSignal
+  ): Promise<{ name: string; state?: string; country: string } | null> {
+    const endpoint = new URL("https://api.openweathermap.org/geo/1.0/reverse");
+    endpoint.searchParams.set("lat", String(lat));
+    endpoint.searchParams.set("lon", String(lon));
+    endpoint.searchParams.set("limit", "1");
+    endpoint.searchParams.set("appid", this.apiKey);
+
+    try {
+      const response = await fetchWithTimeout(endpoint.toString(), createFetchOptions(signal));
+
+      if (!response.ok) {
+        return null;
+      }
+
+      const matches = (await response.json()) as GeocodeLocation[];
+      const first = matches[0];
+
+      if (!first) {
+        return null;
+      }
+
+      return { name: first.name, ...(first.state ? { state: first.state } : {}), country: first.country };
+    } catch {
+      return null;
+    }
+  }
+
   private toMinutes(time: string): number {
     const [hoursPart = "0", minutesPart = "0"] = time.split(":");
     const hours = Number.parseInt(hoursPart, 10);
