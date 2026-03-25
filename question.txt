@@ -1,0 +1,6 @@
+这些问题是基于针对一位特定同学，只在Iteration1里的表现回答的。每个问题的回答都应该比较简短。根据你在github上能获取到的信息回答，不要额外创造。每个回答还需要你额外给出评分满，满分为5分，我最低给3分（前提是这个人确实有各种问题，很少情况下），一般是4-5分。
+1.Evaluate the individual’s effort and effectiveness in contributing to the team’s overall objectives (e.g., completing assigned tasks, meeting deadlines, advancing the project).
+2.Rate the individual’s ability to apply technical knowledge, write quality code, troubleshoot issues, or handle project-specific challenges.
+3.Assess how well the individual works with others, shares ideas, listens to feedback, and communicates progress or blockers.
+4.Consider the individual’s consistency in meeting commitments, being punctual, and taking responsibility for their work.
+5.This optional section allows you to share additional observations, insights, or feedback about the individual under review. You can provide specific details about their performance, attitude, interpersonal skills, or other relevant characteristics that would be helpful for your instructor to know. Feel free to include examples that support your ratings. All comments will be kept in the strictest confidentiality.

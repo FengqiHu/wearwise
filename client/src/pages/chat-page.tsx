@@ -11,7 +11,7 @@ import {
 } from "../components/ui/prompt-input";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
-import { deleteChatConversation, fetchChatConversation, fetchChatConversations, streamChatResponse } from "../lib/api";
+import { deleteChatConversation, fetchChatConversation, fetchChatConversations, streamChatResponse, type UserLocation } from "../lib/api";
 import { cn } from "../lib/cn";
 import type { ChatConversationSummary, ChatMessage } from "../types";
 
@@ -71,12 +71,33 @@ export function ChatPage() {
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setUserLocation({
+          lat: position.coords.latitude,
+          lon: position.coords.longitude,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
+        });
+      },
+      () => {
+        // Permission denied or unavailable — location stays null
+      },
+      { timeout: 10000 }
+    );
+  }, []);
 
   useEffect(() => {
     if (!token) {
@@ -281,7 +302,8 @@ export function ChatPage() {
         token,
         {
           message: nextInput,
-          conversationId: activeConversationId ?? undefined
+          conversationId: activeConversationId ?? undefined,
+          userLocation: userLocation ?? undefined
         },
         controller.signal,
         (chunk) => {
