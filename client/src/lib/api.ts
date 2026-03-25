@@ -32,7 +32,14 @@ interface PresignedUploadResponse {
   key: string;
 }
 
-export type ImageUploadFolder = "avatar" | "headshot" | "full-body";
+export type ImageUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
+const PRESIGNED_UPLOAD_MAX_ATTEMPTS = 4;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function getErrorMessage(status: number, fallbackText: string): string {
   if (status === 401) {
@@ -147,17 +154,33 @@ export async function createPresignedImageUpload(
 }
 
 export async function uploadFileToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type || "application/octet-stream"
-    },
-    body: file
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`S3 upload failed with status ${response.status}.`);
+  for (let attempt = 1; attempt <= PRESIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error(`S3 upload failed with status ${response.status}.`);
+      }
+
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown upload error.");
+
+      if (attempt < PRESIGNED_UPLOAD_MAX_ATTEMPTS) {
+        await sleep(1000 * attempt);
+      }
+    }
   }
+
+  throw new Error(`Upload failed after 3 retries: ${lastError?.message ?? "Unknown upload error."}`);
 }
 
 export async function saveProfileToApi(token: string, profile: UserProfile): Promise<AuthEnvelope> {

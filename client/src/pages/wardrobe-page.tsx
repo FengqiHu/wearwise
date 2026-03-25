@@ -4,7 +4,13 @@ import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { deleteClosetItem, fetchClosetItems, importTestClosetItems } from "../lib/api";
+import {
+  createPresignedImageUpload,
+  deleteClosetItem,
+  fetchClosetItems,
+  importTestClosetItems,
+  uploadFileToPresignedUrl
+} from "../lib/api";
 import { cn } from "../lib/cn";
 import {
   CLOTHING_CATEGORIES,
@@ -19,7 +25,8 @@ function sortByNewest(items: ClothingItem[]): ClothingItem[] {
 }
 
 interface SampleClosetItem {
-  imageUrl: string;
+  path?: string;
+  imageUrl?: string;
   analysisStatus: "pending" | "ready" | "error";
   analysisError: string | null;
   name: string | null;
@@ -28,6 +35,20 @@ interface SampleClosetItem {
   description: string | null;
   createdAt?: string;
   updatedAt?: string;
+}
+
+function getMimeTypeFromPath(filePath: string): string {
+  const normalized = filePath.toLowerCase();
+
+  if (normalized.endsWith(".png")) {
+    return "image/png";
+  }
+
+  if (normalized.endsWith(".webp")) {
+    return "image/webp";
+  }
+
+  return "image/jpeg";
 }
 
 export function WardrobePage() {
@@ -129,9 +150,80 @@ export function WardrobePage() {
         throw new Error("Failed to read sample clothes data.");
       }
 
-      const items = (await response.json()) as SampleClosetItem[];
-      if (!Array.isArray(items) || items.length === 0) {
+      const sampleItems = (await response.json()) as SampleClosetItem[];
+      if (!Array.isArray(sampleItems) || sampleItems.length === 0) {
         throw new Error("Sample clothes data is empty.");
+      }
+
+      const items: Array<{
+        imageUrl: string;
+        analysisStatus: "pending" | "ready" | "error";
+        analysisError: string | null;
+        name: string | null;
+        category: string | null;
+        tags: string[];
+        description: string | null;
+        createdAt?: string;
+        updatedAt?: string;
+      }> = [];
+
+      for (const sampleItem of sampleItems) {
+        if (sampleItem.path) {
+          const normalizedPath = sampleItem.path.startsWith("/") ? sampleItem.path : `/${sampleItem.path}`;
+          const imageResponse = await fetch(normalizedPath);
+
+          if (!imageResponse.ok) {
+            throw new Error(`Failed to read sample image: ${sampleItem.path}`);
+          }
+
+          const imageBlob = await imageResponse.blob();
+          const fileName = normalizedPath.split("/").pop() ?? "sample-image";
+          const contentType = imageBlob.type || getMimeTypeFromPath(normalizedPath);
+          const presigned = await createPresignedImageUpload(token, {
+            contentType,
+            folder: "closet",
+            fileName
+          });
+
+          const uploadFile = new File([imageBlob], fileName, { type: contentType });
+
+          try {
+            await uploadFileToPresignedUrl(presigned.uploadUrl, uploadFile);
+          } catch (uploadError) {
+            const message = uploadError instanceof Error ? uploadError.message : "Unknown upload error.";
+            throw new Error(`Failed to upload sample image ${fileName}: ${message}`);
+          }
+
+          items.push({
+            imageUrl: presigned.publicUrl,
+            analysisStatus: sampleItem.analysisStatus,
+            analysisError: sampleItem.analysisError,
+            name: sampleItem.name,
+            category: sampleItem.category,
+            tags: sampleItem.tags,
+            description: sampleItem.description,
+            createdAt: sampleItem.createdAt,
+            updatedAt: sampleItem.updatedAt
+          });
+          continue;
+        }
+
+        if (sampleItem.imageUrl) {
+          items.push({
+            imageUrl: sampleItem.imageUrl,
+            analysisStatus: sampleItem.analysisStatus,
+            analysisError: sampleItem.analysisError,
+            name: sampleItem.name,
+            category: sampleItem.category,
+            tags: sampleItem.tags,
+            description: sampleItem.description,
+            createdAt: sampleItem.createdAt,
+            updatedAt: sampleItem.updatedAt
+          });
+          continue;
+        }
+
+        throw new Error("Each sample item must include either path or imageUrl.");
       }
 
       await importTestClosetItems(token, { items });

@@ -1,197 +1,241 @@
 [
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c4dde632-4ee3-45e3-95c6-a53818c63615.jpg",
+    "path": "sample-data/images/0334f06c827b45058d1da38e53e118cb.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "ASICS MetaSpeed Sky Paris Running Shoes",
-    "category": "shoes",
+    "name": "Levi's Black Polo Shirt",
+    "category": "tops",
     "tags": [
       "black",
-      "blue",
-      "athletic",
-      "running",
-      "performance",
-      "mesh",
-      "synthetic",
-      "lightweight"
+      "cotton",
+      "polo",
+      "casual",
+      "short-sleeved",
+      "summer",
+      "sporty"
     ],
-    "description": "High-performance ASICS running shoes featuring advanced FF Turbo cushioning technology for maximum energy return. Designed with a lightweight mesh upper for breathability and a sleek, modern aesthetic suitable for race day.",
-    "createdAt": "2026-03-13T02:43:39.981Z",
-    "updatedAt": "2026-03-13T02:43:42.440Z"
+    "description": "A classic black short-sleeved polo shirt featuring a traditional collar, button placket, and the iconic Levi's red tab logo on the chest.",
+    "createdAt": "2026-03-25T20:11:34.521Z",
+    "updatedAt": "2026-03-25T20:11:37.532Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/ef922b6a-5f53-4475-aff4-255dca8cc669.jpg",
+    "path": "sample-data/images/08f197be27b44269b7cc401273b0215e.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Classic Black Oxford Shoes",
-    "category": "shoes",
+    "name": "Striped Ribbed Tube Skirt",
+    "category": "pants",
     "tags": [
-      "black",
-      "leather",
-      "formal",
-      "cap-toe",
-      "business",
-      "all-season"
-    ],
-    "description": "A pair of sleek black leather cap-toe Oxford shoes, perfect for formal occasions and professional settings. These timeless dress shoes feature a lace-up design for a polished and secure fit.",
-    "createdAt": "2026-03-13T02:46:02.900Z",
-    "updatedAt": "2026-03-13T02:46:04.965Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/1fd74b15-37f1-4bc0-ab79-8798fbc7ea91.webp",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Palladium Organic Canvas Boots",
-    "category": "shoes",
-    "tags": [
-      "beige",
-      "cream",
-      "canvas",
-      "boots",
-      "eco-friendly",
+      "black and white",
+      "striped",
+      "ribbed",
+      "knit",
       "casual",
       "spring",
       "summer"
     ],
-    "description": "These eco-friendly Palladium boots feature a durable canvas upper and a robust rubber sole, finished in a clean, neutral cream tone. They are designed for both style and sustainability, incorporating organic materials into a classic high-top silhouette.",
-    "createdAt": "2026-03-13T02:53:45.822Z",
-    "updatedAt": "2026-03-13T02:53:47.924Z"
+    "description": "A stylish, form-fitting midi skirt featuring a timeless black and white striped pattern. Made from a comfortable ribbed knit material, it's perfect for casual everyday wear.",
+    "createdAt": "2026-03-25T20:11:37.588Z",
+    "updatedAt": "2026-03-25T20:11:40.294Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/d14e6afe-ac12-433c-bd04-97530561d12c.jpg",
+    "path": "sample-data/images/0a532d7a-3bc7-41ba-9852-dc910a006c50.png",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Black Crocodile-Embossed Stiletto Boots",
-    "category": "shoes",
+    "name": "Gold Leaf Drop Earrings",
+    "category": "accessories",
     "tags": [
-      "black",
-      "faux-leather",
-      "crocodile-embossed",
-      "stiletto",
-      "knee-high",
-      "formal",
+      "gold",
+      "leaf",
+      "nature-inspired",
+      "elegant",
+      "statement",
+      "metallic"
+    ],
+    "description": "A pair of intricate, textured gold-toned earrings shaped like botanical leaves. These elegant drop earrings add a natural, sophisticated touch to any outfit.",
+    "createdAt": "2026-03-25T20:11:40.346Z",
+    "updatedAt": "2026-03-25T20:11:45.040Z"
+  },
+  {
+    "path": "sample-data/images/0c0b29f2feed46e5b836814026e93284.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Green Hooded Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "olive",
+      "green",
+      "windbreaker",
+      "nylon",
+      "casual",
+      "hooded",
+      "sporty",
+      "spring",
+      "autumn"
+    ],
+    "description": "A lightweight, olive green hooded windbreaker jacket featuring a full-zip front and a clean, minimalist design. It is perfect for transitional weather and outdoor casual wear.",
+    "createdAt": "2026-03-25T20:11:45.091Z",
+    "updatedAt": "2026-03-25T20:11:49.009Z"
+  },
+  {
+    "path": "sample-data/images/0c4b6a97078c4e25b4fcbe8f68e871e7.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Fleece Zip-Up Hoodie",
+    "category": "outerwear",
+    "tags": [
+      "grey",
+      "fleece",
+      "hoodie",
+      "casual",
+      "zipper",
       "autumn",
       "winter"
     ],
-    "description": "These elegant knee-high boots feature a sharp stiletto heel and a sophisticated crocodile-embossed finish. Their sleek, pointed-toe silhouette makes them a perfect statement piece for elevated autumn and winter looks.",
-    "createdAt": "2026-03-13T02:53:43.909Z",
-    "updatedAt": "2026-03-13T02:53:45.784Z"
+    "description": "A comfortable grey fleece zip-up jacket featuring a hood and zippered side pockets. This functional piece is perfect for casual layering during cooler weather.",
+    "createdAt": "2026-03-25T20:11:49.060Z",
+    "updatedAt": "2026-03-25T20:11:52.273Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c1ea6e85-4a38-4c1e-aaa8-297cddecbf23.jpg",
+    "path": "sample-data/images/0d6336fba1284170bec1419fe7e3000c.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Braided Buckle Knee-High Boots",
+    "name": "HUF Beige Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "beige",
+      "neutral",
+      "windbreaker",
+      "hooded",
+      "streetwear",
+      "lightweight",
+      "spring",
+      "fall",
+      "casual"
+    ],
+    "description": "A sleek, lightweight beige hooded windbreaker featuring a minimal HUF logo on the chest. This functional jacket is perfect for layering during transitional weather.",
+    "createdAt": "2026-03-25T20:11:52.331Z",
+    "updatedAt": "2026-03-25T20:11:54.644Z"
+  },
+  {
+    "path": "sample-data/images/0e09594d-4b50-4806-9e7d-1327de7510cb.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Diamond Pave Hoop Earrings",
+    "category": "accessories",
+    "tags": [
+      "gold",
+      "diamond",
+      "jewelry",
+      "luxurious",
+      "hoop",
+      "sparkly"
+    ],
+    "description": "Exquisite gold hoop earrings encrusted with sparkling pave diamonds. These elegant earrings are perfect for adding a touch of glamour to any formal outfit.",
+    "createdAt": "2026-03-25T20:11:54.708Z",
+    "updatedAt": "2026-03-25T20:11:57.618Z"
+  },
+  {
+    "path": "sample-data/images/0f2aab1b8385486093e2ed87a1a6c34e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Light Wash Denim Mini Skirt",
+    "category": "pants",
+    "tags": [
+      "light wash",
+      "denim",
+      "mini",
+      "casual",
+      "summer",
+      "cotton"
+    ],
+    "description": "A classic light-wash denim mini skirt featuring a traditional five-pocket design and a button-zip closure. This versatile piece is perfect for casual summer outfits.",
+    "createdAt": "2026-03-25T20:11:57.675Z",
+    "updatedAt": "2026-03-25T20:12:00.935Z"
+  },
+  {
+    "path": "sample-data/images/1.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "ASICS Metaspeed Sky+ Running Shoes",
     "category": "shoes",
     "tags": [
       "black",
-      "leather",
-      "knee-high",
-      "braided",
-      "buckle",
-      "boho",
-      "autumn",
-      "winter"
-    ],
-    "description": "These black knee-high boots feature a stylish braided side detail and decorative buckles for a rugged, bohemian aesthetic. They are crafted from a leather-like material, perfect for transitional and cooler seasons.",
-    "createdAt": "2026-03-13T02:53:41.813Z",
-    "updatedAt": "2026-03-13T02:53:43.881Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/30acf605-ce01-4901-9cc7-505866a48ebf.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Star-Print High-Top Sneakers",
-    "category": "shoes",
-    "tags": [
-      "blue",
-      "white",
-      "canvas",
-      "star-print",
-      "high-top",
-      "casual",
-      "unisex"
-    ],
-    "description": "Classic high-top canvas sneakers featuring an all-over star pattern and white rubber soles. These shoes offer a timeless, laid-back style perfect for everyday casual wear.",
-    "createdAt": "2026-03-13T02:53:22.024Z",
-    "updatedAt": "2026-03-13T02:53:24.090Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/e4deda5f-3d91-47a7-8c80-833a76e6d97f.webp",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Dr. Martens 8053 Leather Shoes",
-    "category": "shoes",
-    "tags": [
-      "brown",
-      "leather",
-      "oxford",
-      "workwear",
-      "casual",
-      "unisex"
-    ],
-    "description": "These are classic Dr. Martens 8053 shoes crafted from durable leather, featuring the iconic yellow welt stitching and a cushioned collar. Their sturdy design offers a timeless, rugged aesthetic suitable for everyday wear.",
-    "createdAt": "2026-03-13T02:53:19.839Z",
-    "updatedAt": "2026-03-13T02:53:21.983Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/f5e65572-00c9-4e68-a157-259036dcb015.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Brown Leather Cap-Toe Oxfords",
-    "category": "shoes",
-    "tags": [
-      "brown",
-      "leather",
-      "formal",
-      "business",
-      "oxford",
-      "cap-toe"
-    ],
-    "description": "A pair of polished brown leather oxford dress shoes featuring a classic cap-toe design. These elegant shoes are perfect for professional settings and formal occasions.",
-    "createdAt": "2026-03-13T02:53:16.400Z",
-    "updatedAt": "2026-03-13T02:53:19.778Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/f78d4b15-7f2e-4e1b-ba01-29064a08bc63.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Nike Air Zoom Running Shoes",
-    "category": "shoes",
-    "tags": [
-      "white",
-      "orange",
-      "blue",
+      "dark blue",
+      "synthetic",
       "athletic",
-      "sneakers",
-      "sportswear",
-      "mesh",
-      "synthetic"
-    ],
-    "description": "Lightweight performance running shoes featuring a breathable mesh upper with vibrant blue and orange accents. These sneakers provide cushioning and support for active workouts.",
-    "createdAt": "2026-03-13T02:53:14.293Z",
-    "updatedAt": "2026-03-13T02:53:16.369Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/8a5d2da4-1cf4-4942-8599-3a662fa1ed27.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Turquoise Running Sneakers",
-    "category": "shoes",
-    "tags": [
-      "turquoise",
-      "athletic",
-      "mesh",
+      "performance",
       "running",
-      "casual",
-      "summer"
+      "unisex"
     ],
-    "description": "Bright turquoise athletic running shoes with breathable mesh uppers and cushioned white soles. These lightweight sneakers are ideal for sport and casual everyday wear.",
-    "createdAt": "2026-03-13T02:53:12.425Z",
-    "updatedAt": "2026-03-13T02:53:14.248Z"
+    "description": "These high-performance running shoes feature advanced cushioning technology designed for race day efficiency. The sleek black and dark blue design offers a lightweight, breathable mesh upper for optimal speed.",
+    "createdAt": "2026-03-25T20:12:00.986Z",
+    "updatedAt": "2026-03-25T20:12:03.498Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/0d74e65c-a4f2-4f31-945c-30994f6f36eb.webp",
+    "path": "sample-data/images/10.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Platform Ankle Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "platform",
+      "chunky",
+      "autumn",
+      "winter",
+      "edgy",
+      "ankle boots"
+    ],
+    "description": "Stylish black ankle boots featuring a chunky platform sole and a sleek, minimalist design. These versatile boots are perfect for elevating casual or formal autumn and winter outfits.",
+    "createdAt": "2026-03-25T20:12:03.541Z",
+    "updatedAt": "2026-03-25T20:12:05.382Z"
+  },
+  {
+    "path": "sample-data/images/11.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lace-Up Knee-High Combat Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "combat boots",
+      "knee-high",
+      "lace-up",
+      "punk",
+      "grunge",
+      "autumn",
+      "winter"
+    ],
+    "description": "These edgy, knee-high combat boots feature a full lace-up front with a sturdy lug sole and side zipper closure. They are perfect for adding a bold, grunge-inspired touch to any autumn or winter outfit.",
+    "createdAt": "2026-03-25T20:12:05.438Z",
+    "updatedAt": "2026-03-25T20:12:09.764Z"
+  },
+  {
+    "path": "sample-data/images/12.jpeg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Timberland Premium 6-Inch Waterproof Boots",
+    "category": "shoes",
+    "tags": [
+      "tan",
+      "wheat",
+      "nubuck",
+      "leather",
+      "waterproof",
+      "boots",
+      "winter",
+      "autumn",
+      "classic",
+      "rugged"
+    ],
+    "description": "These iconic Timberland 6-inch boots are crafted from premium waterproof nubuck leather for durability and protection. They feature a rugged lug outsole and a padded collar for comfort, making them a staple for autumn and winter wear.",
+    "createdAt": "2026-03-25T20:12:09.814Z",
+    "updatedAt": "2026-03-25T20:12:12.623Z"
+  },
+  {
+    "path": "sample-data/images/13.webp",
     "analysisStatus": "ready",
     "analysisError": null,
     "name": "Minimalist Black Flip Flops",
@@ -199,235 +243,76 @@
     "tags": [
       "black",
       "rubber",
-      "minimalist",
+      "casual",
       "summer",
-      "beachwear",
-      "casual"
-    ],
-    "description": "These simple, black rubber flip flops feature a classic thong design and a subtle stripe detail on the sole. They are perfect for casual summer outings and beach days.",
-    "createdAt": "2026-03-13T02:53:10.362Z",
-    "updatedAt": "2026-03-13T02:53:12.393Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/76a6f923-3020-4b83-8934-ad5117e971d9.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Timberland 6-Inch Premium Waterproof Boots",
-    "category": "shoes",
-    "tags": [
-      "yellow",
-      "tan",
-      "nubuck",
-      "leather",
-      "waterproof",
-      "boots",
-      "rugged",
-      "casual",
-      "autumn",
-      "winter"
-    ],
-    "description": "These iconic Timberland boots are crafted from premium waterproof nubuck leather for durable, all-weather comfort. They feature a classic lace-up design with a padded collar, making them a staple for rugged and casual wear.",
-    "createdAt": "2026-03-13T02:53:07.943Z",
-    "updatedAt": "2026-03-13T02:53:10.291Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/eb2da5b8-7775-479f-a1de-50f2e0fd156f.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Black Lace-Up Knee-High Combat Boots",
-    "category": "shoes",
-    "tags": [
-      "black",
-      "leather",
-      "combat",
-      "knee-high",
-      "lace-up",
-      "edgy",
-      "autumn",
-      "winter"
-    ],
-    "description": "Edgy knee-high combat boots in black leather with a lace-up front and a rugged lug sole. They feature a side zipper for easy wear and a classic grunge-inspired silhouette.",
-    "createdAt": "2026-03-13T02:51:49.091Z",
-    "updatedAt": "2026-03-13T02:51:51.034Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/1f146619-1684-4592-a1a2-fb9277b29206.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Black Platform Ankle Boots",
-    "category": "shoes",
-    "tags": [
-      "black",
-      "faux-leather",
-      "chunky",
-      "platform",
       "minimalist",
-      "fall",
-      "winter"
+      "thong-style"
     ],
-    "description": "These stylish black ankle boots feature a chunky platform sole and a sleek, minimalist design. The smooth material makes them a versatile choice for a modern, edgy fall or winter outfit.",
-    "createdAt": "2026-03-13T02:51:47.135Z",
-    "updatedAt": "2026-03-13T02:51:49.047Z"
+    "description": "These simple black flip flops feature a classic thong strap design with a subtle white trim detail along the sole. Perfect for casual summer wear or trips to the beach.",
+    "createdAt": "2026-03-25T20:12:12.672Z",
+    "updatedAt": "2026-03-25T20:12:14.863Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/95344cb7-e2ea-4f9c-9157-e3e8e37a3897.webp",
+    "path": "sample-data/images/14.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Brown Leather Cap-Toe Boots",
+    "name": "Turquoise Running Shoes",
     "category": "shoes",
     "tags": [
-      "brown",
-      "leather",
-      "boots",
-      "cap-toe",
-      "rugged",
-      "casual",
-      "autumn",
-      "winter"
-    ],
-    "description": "These rugged cap-toe boots are crafted from high-quality brown leather with durable lace-up detailing. Their classic style makes them a perfect versatile addition to any cold-weather wardrobe.",
-    "createdAt": "2026-03-13T02:51:44.978Z",
-    "updatedAt": "2026-03-13T02:51:47.073Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/8ad1ba6a-d58b-49e9-b97a-0a796b1bc52a.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Satin Lace-Up Platform Heels",
-    "category": "shoes",
-    "tags": [
-      "black",
-      "satin",
-      "platform",
-      "lace-up",
-      "high heels",
-      "party",
-      "evening"
-    ],
-    "description": "These elegant black satin platform heels feature a striking lace-up design that wraps around the lower leg. They are perfect for adding height and a touch of dramatic flair to your formal or evening attire.",
-    "createdAt": "2026-03-13T02:51:42.846Z",
-    "updatedAt": "2026-03-13T02:51:44.862Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/3cccb439-6f5a-48cf-b321-2ddae63c65d5.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Saint Laurent Opyum Sandals",
-    "category": "shoes",
-    "tags": [
-      "black",
-      "leather",
-      "heels",
-      "luxury",
-      "stiletto",
-      "formal"
-    ],
-    "description": "Elegant black leather high-heeled sandals featuring the iconic YSL monogram logo as the heel. These statement shoes offer a sophisticated, minimalist design perfect for formal occasions.",
-    "createdAt": "2026-03-13T02:51:28.250Z",
-    "updatedAt": "2026-03-13T02:51:30.898Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/37848835-0237-4848-978d-be97cc0104df.webp",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Prada Slingback Pumps",
-    "category": "shoes",
-    "tags": [
-      "beige",
-      "nude",
+      "turquoise",
+      "teal",
+      "athletic",
+      "running",
+      "sneakers",
       "mesh",
-      "fabric",
-      "slingback",
-      "bow",
-      "pointed-toe",
-      "stiletto",
-      "elegant",
-      "spring",
+      "sports",
       "summer"
     ],
-    "description": "These elegant Prada slingback pumps feature a pointed-toe silhouette crafted from a refined mesh fabric. The design is finished with a delicate bow detail and a sophisticated stiletto heel.",
-    "createdAt": "2026-03-13T02:51:26.167Z",
-    "updatedAt": "2026-03-13T02:51:28.206Z"
+    "description": "Bright turquoise athletic running shoes featuring a breathable mesh upper and a cushioned white sole for optimal comfort. These vibrant trainers are designed for performance and active wear.",
+    "createdAt": "2026-03-25T20:12:14.928Z",
+    "updatedAt": "2026-03-25T20:12:17.427Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/c860557e-1bd2-4eb1-9aac-9bf57889e3d2.jpg",
+    "path": "sample-data/images/15.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Air Jordan 1 Mid Banned",
-    "category": "shoes",
-    "tags": [
-      "red",
-      "black",
-      "leather",
-      "sneakers",
-      "athletic",
-      "streetwear"
-    ],
-    "description": "These high-top Air Jordan 1 Mid sneakers feature a classic red and black colorway. They are crafted from leather and offer a iconic basketball-inspired style.",
-    "createdAt": "2026-03-13T02:51:24.010Z",
-    "updatedAt": "2026-03-13T02:51:26.128Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/5ff08e36-c163-48cb-8b42-88ab531e6a53.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Nike Air Max Pulse Sneakers",
-    "category": "shoes",
-    "tags": [
-      "white",
-      "silver",
-      "athletic",
-      "sneakers",
-      "modern",
-      "sporty",
-      "year-round"
-    ],
-    "description": "These modern Nike sneakers feature a sleek white and metallic silver colorway with a sporty, layered design. They combine a breathable build with supportive cushioning for a stylish, high-performance look.",
-    "createdAt": "2026-03-13T02:51:22.156Z",
-    "updatedAt": "2026-03-13T02:51:23.975Z"
-  },
-  {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/d9b59d97-6e59-400a-8d9e-e88d1aba6f71/closet/6d639b1c-8b56-4247-ac73-5f67deb456f2.jpg",
-    "analysisStatus": "ready",
-    "analysisError": null,
-    "name": "Custom Comic-Style Nike Air Force 1 Mid",
+    "name": "Nike Air Zoom Pegasus Running Shoes",
     "category": "shoes",
     "tags": [
       "white",
       "blue",
-      "black",
-      "custom",
+      "orange",
       "sneakers",
-      "leather",
-      "streetwear",
-      "cartoon-style"
+      "sportswear",
+      "athletic",
+      "mesh",
+      "running"
     ],
-    "description": "These custom Nike Air Force 1 Mid sneakers feature a unique cartoon-inspired design with bold black outlines and a dripping swoosh effect. The vibrant blue and white colorway gives them a playful, comic-book aesthetic perfect for streetwear enthusiasts.",
-    "createdAt": "2026-03-13T02:51:19.289Z",
-    "updatedAt": "2026-03-13T02:51:22.110Z"
+    "description": "These white Nike athletic sneakers feature a distinctive orange midsole and a blue swoosh detail. They are designed for performance running with a lightweight mesh upper and cushioned sole.",
+    "createdAt": "2026-03-25T20:12:17.481Z",
+    "updatedAt": "2026-03-25T20:12:23.261Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/d54fcf67-3f53-4684-aec0-cf9ad9e351b2.png",
+    "path": "sample-data/images/16.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Nature-Inspired Crystal Pendant Necklace",
-    "category": "accessories",
+    "name": "Brown Leather Cap-Toe Oxford Shoes",
+    "category": "shoes",
     "tags": [
-      "green",
-      "unisex",
-      "boho",
-      "beaded",
-      "crystal",
-      "handmade",
-      "spring",
-      "summer"
+      "brown",
+      "leather",
+      "formal",
+      "oxford",
+      "cap-toe",
+      "business",
+      "professional"
     ],
-    "description": "This layered beaded necklace features natural unakite and quartz stones accented by green leaf charms and a central green crystal point pendant. The whimsical, earth-toned design evokes a magical fairy-core or bohemian aesthetic.",
-    "createdAt": "2026-03-13T21:10:10.858Z",
-    "updatedAt": "2026-03-13T21:10:13.990Z"
+    "description": "These sophisticated brown leather Oxford shoes feature a classic cap-toe design and a polished finish. They are perfect for formal business attire or special occasions.",
+    "createdAt": "2026-03-25T20:12:23.312Z",
+    "updatedAt": "2026-03-25T20:12:25.457Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/ac0c1778-4aac-4b91-a6b2-710ddb9e894c.png",
+    "path": "sample-data/images/16596da6-1a1d-48d6-8119-ce53da4d505c.png",
     "analysisStatus": "ready",
     "analysisError": null,
     "name": "Sapphire and Diamond Floral Necklace",
@@ -437,36 +322,72 @@
       "silver",
       "diamond",
       "sapphire",
+      "jewelry",
+      "formal",
       "floral",
-      "elegant",
-      "luxury",
-      "formal"
+      "luxury"
     ],
-    "description": "An exquisite necklace featuring alternating blue cushion-cut sapphires and floral-inspired diamond clusters. This luxurious piece is designed for formal occasions and high-end events.",
-    "createdAt": "2026-03-13T21:10:04.323Z",
-    "updatedAt": "2026-03-13T21:10:06.899Z"
+    "description": "An exquisite necklace featuring alternating blue sapphire gemstones and intricate diamond-encrusted floral motifs. It creates a elegant, statement piece perfect for high-end formal occasions.",
+    "createdAt": "2026-03-25T20:12:25.511Z",
+    "updatedAt": "2026-03-25T20:12:28.881Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/7068c6e7-68d2-44a5-aaca-0076cf135527.png",
+    "path": "sample-data/images/1677ccbbec5b496393bf186a96122f61.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Diamond and Emerald Statement Necklace",
-    "category": "accessories",
+    "name": "Sage Green Open Blazer",
+    "category": "outerwear",
     "tags": [
-      "silver",
-      "emerald",
-      "diamond",
-      "luxurious",
-      "statement",
-      "formal",
-      "elegant"
+      "sage green",
+      "blazer",
+      "minimalist",
+      "business casual",
+      "open front",
+      "spring",
+      "autumn"
     ],
-    "description": "An opulent statement necklace featuring teardrop-shaped emeralds set in intricate diamond-encrusted frames. This elegant piece is designed for formal occasions and high-end evening wear.",
-    "createdAt": "2026-03-13T21:09:57.516Z",
-    "updatedAt": "2026-03-13T21:10:00.109Z"
+    "description": "A versatile, open-front blazer in a muted sage green hue. This piece features a classic notched collar and a clean, modern silhouette perfect for layering.",
+    "createdAt": "2026-03-25T20:12:28.932Z",
+    "updatedAt": "2026-03-25T20:12:31.642Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/4f17f340-d38e-4716-8fa9-62a7fa0d36ce.png",
+    "path": "sample-data/images/17.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dr. Martens 8053 Leather Shoes",
+    "category": "shoes",
+    "tags": [
+      "brown",
+      "leather",
+      "oxford",
+      "casual",
+      "autumn",
+      "unisex"
+    ],
+    "description": "A pair of rugged brown leather shoes featuring a padded collar and the classic Dr. Martens yellow welt stitching. These durable lace-up shoes offer a comfortable fit with a vintage aesthetic.",
+    "createdAt": "2026-03-25T20:12:31.690Z",
+    "updatedAt": "2026-03-25T20:12:34.111Z"
+  },
+  {
+    "path": "sample-data/images/173488f1ece74b4d8fdfe1c9b286c1d6.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Cargo Shorts",
+    "category": "pants",
+    "tags": [
+      "black",
+      "cotton",
+      "cargo",
+      "casual",
+      "summer",
+      "utility"
+    ],
+    "description": "These black cargo shorts feature a versatile design with side utility pockets, ideal for a casual summer look.",
+    "createdAt": "2026-03-25T20:12:34.178Z",
+    "updatedAt": "2026-03-25T20:12:36.509Z"
+  },
+  {
+    "path": "sample-data/images/177de518-f9a4-45da-8504-d160543ba7e3.png",
     "analysisStatus": "ready",
     "analysisError": null,
     "name": "Deer Head Turquoise Pendant Necklace",
@@ -477,73 +398,480 @@
       "metal",
       "boho",
       "animal-motif",
-      "necklace"
+      "unisex"
     ],
-    "description": "A stylish silver-tone necklace featuring an intricate deer head pendant adorned with a circular turquoise stone. It offers a unique rustic and bohemian aesthetic suitable for casual wear.",
-    "createdAt": "2026-03-13T21:09:50.915Z",
-    "updatedAt": "2026-03-13T21:09:53.717Z"
+    "description": "A silver-toned deer head pendant necklace accented with a single round turquoise stone. This stylish piece features an intricate wildlife design, perfect for adding a rustic or bohemian touch to any outfit.",
+    "createdAt": "2026-03-25T20:12:36.559Z",
+    "updatedAt": "2026-03-25T20:12:39.542Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/75663914-279a-4e8a-9a4f-4f10db5fa83d.png",
+    "path": "sample-data/images/18.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Diamond Drop Fringe Necklace",
+    "name": "Star-Print High-Top Sneakers",
+    "category": "shoes",
+    "tags": [
+      "blue",
+      "white",
+      "canvas",
+      "high-top",
+      "casual",
+      "star-pattern",
+      "unisex"
+    ],
+    "description": "These classic high-top sneakers feature a whimsical star print on a blue canvas upper. They are completed with white laces and a durable rubber sole for a timeless, casual look.",
+    "createdAt": "2026-03-25T20:12:39.599Z",
+    "updatedAt": "2026-03-25T20:12:41.730Z"
+  },
+  {
+    "path": "sample-data/images/1a6550aecba74ad288bb3b488f49f20d.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Wide-Leg Jeans",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "denim",
+      "cotton",
+      "wide-leg",
+      "casual",
+      "all-season"
+    ],
+    "description": "These casual grey jeans feature a comfortable wide-leg silhouette and a classic button fly closure. Their versatile wash makes them an essential piece for any relaxed everyday outfit.",
+    "createdAt": "2026-03-25T20:12:41.783Z",
+    "updatedAt": "2026-03-25T20:12:44.805Z"
+  },
+  {
+    "path": "sample-data/images/1b47e460cded43c5b35b183deeed2508.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Slim Fit Chinos",
+    "category": "pants",
+    "tags": [
+      "black",
+      "slim fit",
+      "casual",
+      "versatile",
+      "chinos",
+      "cotton"
+    ],
+    "description": "A pair of classic black slim-fit chinos featuring a button and zip closure. These versatile trousers are perfect for both smart-casual and professional settings.",
+    "createdAt": "2026-03-25T20:12:44.855Z",
+    "updatedAt": "2026-03-25T20:12:47.368Z"
+  },
+  {
+    "path": "sample-data/images/1b4cb5bfa08c420090ca22973e2e6fc3.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Two-Tone Puffer Vest",
+    "category": "outerwear",
+    "tags": [
+      "beige",
+      "black",
+      "puffer",
+      "sleeveless",
+      "winter",
+      "autumn",
+      "casual",
+      "nylon"
+    ],
+    "description": "A stylish, two-tone sleeveless puffer vest featuring a black upper panel and beige body with a full-zip front. Ideal for layering during the cooler autumn and winter months.",
+    "createdAt": "2026-03-25T20:12:47.415Z",
+    "updatedAt": "2026-03-25T20:12:50.202Z"
+  },
+  {
+    "path": "sample-data/images/1c9e3080937b424d99785d99a8a8caf8.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Heather Sweatpants",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "cotton",
+      "jersey",
+      "casual",
+      "loungewear",
+      "drawstring"
+    ],
+    "description": "Comfortable grey sweatpants featuring an elasticated drawstring waistband and a relaxed fit, perfect for lounging or casual activities.",
+    "createdAt": "2026-03-25T20:12:50.243Z",
+    "updatedAt": "2026-03-25T20:12:52.230Z"
+  },
+  {
+    "path": "sample-data/images/1cfe2c3f1be8443586bc4ee1c4bbdc3e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lyle & Scott Zip-Up Hooded Jacket",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "windbreaker",
+      "lightweight",
+      "hooded",
+      "casual",
+      "spring",
+      "autumn",
+      "synthetic"
+    ],
+    "description": "A classic, lightweight black windbreaker jacket featuring a full zip closure, an adjustable hood, and the iconic Lyle & Scott eagle logo on the chest. It is a versatile piece perfect for transitional weather and casual daily wear.",
+    "createdAt": "2026-03-25T20:12:52.282Z",
+    "updatedAt": "2026-03-25T20:12:54.277Z"
+  },
+  {
+    "path": "sample-data/images/2.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Leather Oxford Shoes",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "leather",
+      "formal",
+      "oxford",
+      "classic",
+      "business",
+      "year-round"
+    ],
+    "description": "A pair of sleek, classic black leather oxford shoes featuring a cap-toe design. These versatile dress shoes are perfect for formal events or professional business attire.",
+    "createdAt": "2026-03-25T20:12:54.329Z",
+    "updatedAt": "2026-03-25T20:12:56.722Z"
+  },
+  {
+    "path": "sample-data/images/21.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Croc-Embossed Stiletto Boots",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "croc-embossed",
+      "stiletto",
+      "high-heel",
+      "knee-high",
+      "leather",
+      "formal",
+      "winter"
+    ],
+    "description": "These elegant knee-high boots feature a luxurious crocodile-embossed finish and a slender stiletto heel. Perfect for adding a sophisticated touch to your evening or formal winter outfits.",
+    "createdAt": "2026-03-25T20:12:59.177Z",
+    "updatedAt": "2026-03-25T20:13:02.295Z"
+  },
+  {
+    "path": "sample-data/images/2180454daf974969ab78d6a282827892.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Sherpa-Lined Parka",
+    "category": "outerwear",
+    "tags": [
+      "olive green",
+      "sherpa-lined",
+      "winter",
+      "casual",
+      "hooded",
+      "parka",
+      "water-resistant"
+    ],
+    "description": "A durable olive green winter parka featuring a cozy sherpa-lined hood and a quilted interior for maximum warmth. This utility-inspired jacket includes practical pockets and a drawstring hem to help protect against the elements.",
+    "createdAt": "2026-03-25T20:13:02.341Z",
+    "updatedAt": "2026-03-25T20:13:05.291Z"
+  },
+  {
+    "path": "sample-data/images/22.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Palladium Organic Capsule Boots",
+    "category": "shoes",
+    "tags": [
+      "beige",
+      "cream",
+      "canvas",
+      "organic cotton",
+      "recycled rubber",
+      "high-top",
+      "eco-friendly",
+      "casual",
+      "unisex"
+    ],
+    "description": "These eco-conscious high-top boots are crafted from organic cotton canvas and recycled rubber. They feature a minimalist cream colorway and a durable lugged sole for a versatile, utilitarian aesthetic.",
+    "createdAt": "2026-03-25T20:13:05.366Z",
+    "updatedAt": "2026-03-25T20:13:08.453Z"
+  },
+  {
+    "path": "sample-data/images/2ae97555-e08c-459a-bce2-d13965eb2b4f.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Gold Chain Red Bead Pendant Necklace",
     "category": "accessories",
     "tags": [
-      "silver",
-      "diamond",
-      "precious stone",
-      "luxury",
-      "statement",
-      "formal",
+      "gold",
+      "red",
+      "bead",
+      "necklace",
+      "elegant",
       "jewelry"
     ],
-    "description": "An exquisite, high-luxury necklace featuring a circular arrangement of large brilliant-cut diamonds with ornate dangling teardrop-shaped diamond fringe accents. This piece is designed for formal occasions and exudes timeless elegance.",
-    "createdAt": "2026-03-13T21:09:44.833Z",
-    "updatedAt": "2026-03-13T21:09:47.413Z"
+    "description": "A delicate gold chain necklace featuring a single round red bead pendant. This elegant piece is a versatile accessory suitable for both casual and formal outfits.",
+    "createdAt": "2026-03-25T20:13:08.505Z",
+    "updatedAt": "2026-03-25T20:13:11.509Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/c13afda3-5018-4777-827e-01e6ba213183.png",
+    "path": "sample-data/images/3.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Lotus Blossom Pendant Necklace",
+    "name": "Custom Nike Air Force 1 Mid Comic Sneakers",
+    "category": "shoes",
+    "tags": [
+      "blue",
+      "white",
+      "black",
+      "leather",
+      "sneakers",
+      "custom",
+      "cartoon",
+      "pop art",
+      "streetwear"
+    ],
+    "description": "These custom Nike Air Force 1 Mid sneakers feature a unique cartoon-inspired paint design with bold black outlines and a paint-drip effect. The vibrant blue and white colorway creates a striking pop art aesthetic perfect for a standout casual look.",
+    "createdAt": "2026-03-25T20:13:11.564Z",
+    "updatedAt": "2026-03-25T20:13:14.307Z"
+  },
+  {
+    "path": "sample-data/images/318bbe7c-78bd-4e07-9d39-5536f9c29ec7.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Emerald and Diamond Statement Necklace",
+    "category": "accessories",
+    "tags": [
+      "emerald",
+      "diamond",
+      "silver",
+      "luxury",
+      "formal",
+      "statement",
+      "vintage-inspired",
+      "elegant"
+    ],
+    "description": "This exquisite statement necklace features a series of teardrop and oval-cut emeralds surrounded by pave-set diamonds set in a silver-toned metal. It is designed as a sophisticated, high-jewelry piece perfect for formal occasions.",
+    "createdAt": "2026-03-25T20:13:14.355Z",
+    "updatedAt": "2026-03-25T20:13:19.989Z"
+  },
+  {
+    "path": "sample-data/images/31da0deb-4004-43e3-8e16-40816c0700be.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lotus Blossom Gemstone Pendant Necklace",
     "category": "accessories",
     "tags": [
       "gold",
       "pink",
+      "lavender",
       "floral",
-      "gemstone",
-      "elegant",
+      "jewelry",
+      "luxury",
       "fine jewelry"
     ],
-    "description": "A stunning lotus-shaped pendant crafted from gold and pink enamelled petals, featuring a central faceted lavender gemstone. This exquisite piece is adorned with subtle pavé accents and hangs from a delicate gold chain.",
-    "createdAt": "2026-03-13T21:09:38.656Z",
-    "updatedAt": "2026-03-13T21:09:41.123Z"
+    "description": "An exquisite necklace featuring a lotus-shaped pendant crafted with pink enamel petals, a central lavender gemstone, and shimmering pave diamond-like accents. This sophisticated piece is finished with a refined gold chain, perfect for elevating any formal ensemble.",
+    "createdAt": "2026-03-25T20:13:20.037Z",
+    "updatedAt": "2026-03-25T20:13:24.040Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/bff8869f-ebdc-4e39-b087-39c3e935223b.png",
+    "path": "sample-data/images/352632cec2024ecbb984de4092209315.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Gold and Jade Pendant Necklace",
-    "category": "accessories",
+    "name": "Longline Puffer Gilet",
+    "category": "outerwear",
     "tags": [
-      "gold",
-      "jade",
-      "necklace",
-      "elegant",
-      "traditional",
-      "jewelry",
-      "white"
+      "navy blue",
+      "quilted",
+      "puffer",
+      "sleeveless",
+      "hooded",
+      "winter",
+      "longline"
     ],
-    "description": "An elegant necklace featuring a gold chain, an intricate gold decorative element, and a circular white jade pendant with a small heart-shaped accent. This piece combines traditional materials with a refined, graceful design.",
-    "createdAt": "2026-03-13T21:09:32.531Z",
-    "updatedAt": "2026-03-13T21:09:35.175Z"
+    "description": "A cozy, longline puffer gilet in navy blue featuring a quilted design, full-zip closure, and an adjustable hood. Perfect for layering during colder months while keeping your core warm.",
+    "createdAt": "2026-03-25T20:13:24.103Z",
+    "updatedAt": "2026-03-25T20:13:27.138Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/effef964-1ed0-4cc5-beb7-016941d73ded.png",
+    "path": "sample-data/images/3f9f275ad5cc4af083aecabf115bd2bd.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Blue Teardrop Crystal Necklace",
+    "name": "Light Wash Embroidered Denim Shirt",
+    "category": "tops",
+    "tags": [
+      "light wash",
+      "denim",
+      "short sleeve",
+      "floral embroidery",
+      "button-down",
+      "casual",
+      "spring",
+      "summer"
+    ],
+    "description": "This light blue denim shirt features short sleeves, a classic collar, and delicate white floral embroidery throughout. It is finished with a metal button-down closure for a versatile casual look.",
+    "createdAt": "2026-03-25T20:13:27.197Z",
+    "updatedAt": "2026-03-25T20:13:30.183Z"
+  },
+  {
+    "path": "sample-data/images/4.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Nike Air Monarch Sneakers",
+    "category": "shoes",
+    "tags": [
+      "white",
+      "silver",
+      "sneakers",
+      "athletic",
+      "casual",
+      "leather",
+      "unisex"
+    ],
+    "description": "A pair of white and silver Nike sneakers featuring a classic chunky athletic silhouette. Designed for everyday comfort and support with signature brand detailing.",
+    "createdAt": "2026-03-25T20:13:30.239Z",
+    "updatedAt": "2026-03-25T20:13:32.535Z"
+  },
+  {
+    "path": "sample-data/images/425e575583ac40649e769956884800fa.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burnt Orange Pleated Midi Skirt",
+    "category": "pants",
+    "tags": [
+      "orange",
+      "pleated",
+      "midi",
+      "skirt",
+      "autumn",
+      "chic",
+      "elegant"
+    ],
+    "description": "A vibrant burnt orange pleated midi skirt featuring a comfortable elastic waistband. This versatile piece adds a pop of color to any seasonal wardrobe.",
+    "createdAt": "2026-03-25T20:13:32.584Z",
+    "updatedAt": "2026-03-25T20:13:35.353Z"
+  },
+  {
+    "path": "sample-data/images/475378ef6ace48f599223ba84c8e01d4.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Floral Tiered Midi Dress",
+    "category": "tops",
+    "tags": [
+      "black",
+      "floral",
+      "midi",
+      "tiered",
+      "summer",
+      "casual",
+      "puff sleeves"
+    ],
+    "description": "A charming black midi dress featuring a delicate multi-colored floral print and a tiered skirt design. It includes puff sleeves and a tie waist, perfect for a breezy summer look.",
+    "createdAt": "2026-03-25T20:13:35.435Z",
+    "updatedAt": "2026-03-25T20:13:37.881Z"
+  },
+  {
+    "path": "sample-data/images/4a348fb31b3c413e830f265701119fd3.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Tan Faux Leather Biker Jacket",
+    "category": "outerwear",
+    "tags": [
+      "tan",
+      "faux leather",
+      "biker",
+      "minimalist",
+      "autumn",
+      "spring",
+      "classic",
+      "zipper"
+    ],
+    "description": "A classic tan faux leather jacket featuring a sleek mandarin collar, full zip closure, and clean lines. This versatile piece provides a stylish, structured look perfect for layering in transition seasons.",
+    "createdAt": "2026-03-25T20:13:37.935Z",
+    "updatedAt": "2026-03-25T20:13:41.085Z"
+  },
+  {
+    "path": "sample-data/images/4f64a3091ebd472eac39c9ba7a1d5ba9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Guess Denim Western Shirt",
+    "category": "tops",
+    "tags": [
+      "light blue",
+      "denim",
+      "long sleeve",
+      "western",
+      "casual",
+      "spring",
+      "summer"
+    ],
+    "description": "A classic light-wash denim shirt featuring a western-style yoke, button-down front, and two chest pockets. This versatile piece offers a timeless, relaxed aesthetic perfect for everyday wear.",
+    "createdAt": "2026-03-25T20:13:41.137Z",
+    "updatedAt": "2026-03-25T20:13:44.252Z"
+  },
+  {
+    "path": "sample-data/images/5.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Air Jordan 1 Mid Banned",
+    "category": "shoes",
+    "tags": [
+      "red",
+      "black",
+      "white",
+      "leather",
+      "sneakers",
+      "sportswear",
+      "high-top",
+      "casual"
+    ],
+    "description": "A classic pair of Air Jordan 1 Mid sneakers featuring the iconic red and black 'Banned' color scheme with a white midsole. These high-top basketball-inspired shoes offer a timeless athletic style suitable for everyday casual wear.",
+    "createdAt": "2026-03-25T20:13:44.312Z",
+    "updatedAt": "2026-03-25T20:13:47.213Z"
+  },
+  {
+    "path": "sample-data/images/5097e52147c24e3db59fe9e2e49ee54c.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Pink Striped Cropped Shirt",
+    "category": "tops",
+    "tags": [
+      "pink",
+      "striped",
+      "cropped",
+      "button-down",
+      "long-sleeve",
+      "casual",
+      "spring"
+    ],
+    "description": "A stylish cropped button-down shirt featuring vertical pink stripes and a classic collar. The design includes long sleeves and a chest pocket, making it a versatile piece for casual layering.",
+    "createdAt": "2026-03-25T20:13:47.256Z",
+    "updatedAt": "2026-03-25T20:13:49.812Z"
+  },
+  {
+    "path": "sample-data/images/5a16fdb77efa4ad29c7d2fcfb07e502a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burgundy Pleated Midi Skirt",
+    "category": "pants",
+    "tags": [
+      "burgundy",
+      "pleated",
+      "skirt",
+      "midi",
+      "elegant",
+      "autumn",
+      "formal"
+    ],
+    "description": "A sophisticated burgundy midi skirt featuring sharp, structured pleats that create graceful movement. This elegant piece is perfect for both professional and evening wear.",
+    "createdAt": "2026-03-25T20:13:49.858Z",
+    "updatedAt": "2026-03-25T20:13:52.000Z"
+  },
+  {
+    "path": "sample-data/images/5a902a06-a126-4922-ad05-09bca55e4c68.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Blue Crystal Teardrop Pendant Necklace",
     "category": "accessories",
     "tags": [
       "blue",
@@ -551,36 +879,134 @@
       "crystal",
       "teardrop",
       "elegant",
-      "jewelry",
-      "necklace"
+      "jewelry"
     ],
-    "description": "An elegant silver necklace featuring a sparkling blue teardrop crystal pendant accented with two small stones. This sophisticated piece is perfect for adding a touch of glamour to any outfit.",
-    "createdAt": "2026-03-13T21:08:10.949Z",
-    "updatedAt": "2026-03-13T21:08:13.489Z"
+    "description": "A refined silver-toned necklace featuring a sparkling blue teardrop-shaped crystal pendant accented by small clear stones. This elegant piece is perfect for adding a touch of sophisticated color to any outfit.",
+    "createdAt": "2026-03-25T20:13:52.292Z",
+    "updatedAt": "2026-03-25T20:13:55.217Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/3f1fb4a0-532b-472a-8ac1-c403b8285f32.png",
+    "path": "sample-data/images/5b32058e6e924284be6251f7baf807db.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Red Gemstone Pendant Gold Necklace",
+    "name": "Black Leather Trousers",
+    "category": "pants",
+    "tags": [
+      "black",
+      "leather",
+      "straight-leg",
+      "minimalist",
+      "autumn",
+      "winter"
+    ],
+    "description": "Sophisticated high-waisted black trousers crafted from smooth leather. These trousers feature a clean, straight-leg silhouette that is perfect for creating elevated, modern outfits.",
+    "createdAt": "2026-03-25T20:13:55.269Z",
+    "updatedAt": "2026-03-25T20:13:57.496Z"
+  },
+  {
+    "path": "sample-data/images/5c87f61639d64abeaf688cd48fa9bb2c.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Burgundy Puffer Jacket",
+    "category": "outerwear",
+    "tags": [
+      "burgundy",
+      "plum",
+      "puffer",
+      "winter",
+      "quilted",
+      "hooded",
+      "casual"
+    ],
+    "description": "A stylish burgundy puffer jacket featuring a warm quilted design and a cozy hood. Perfect for keeping warm during the cold winter months while maintaining a casual look.",
+    "createdAt": "2026-03-25T20:13:57.550Z",
+    "updatedAt": "2026-03-25T20:13:59.938Z"
+  },
+  {
+    "path": "sample-data/images/5cfd398f-0338-4dd1-a65d-e3e5037b5325.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Camellia Pearl Stud Earrings",
     "category": "accessories",
     "tags": [
+      "white",
       "gold",
-      "red",
-      "gemstone",
-      "minimalist",
+      "floral",
+      "pearl",
       "elegant",
       "jewelry"
     ],
-    "description": "A delicate gold chain necklace featuring a simple red gemstone pendant. This elegant piece adds a touch of color and sophistication to any outfit.",
-    "createdAt": "2026-03-13T21:08:02.297Z",
-    "updatedAt": "2026-03-13T21:08:05.231Z"
+    "description": "These elegant stud earrings feature a delicate white camellia flower design accented with a central lustrous pearl and sparkling rhinestone details. The gold-tone finish adds a sophisticated touch, making them perfect for formal occasions or adding a chic element to any outfit.",
+    "createdAt": "2026-03-25T20:13:59.988Z",
+    "updatedAt": "2026-03-25T20:14:02.637Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/e3648394-aa8c-4024-92aa-acb6b5517e05.png",
+    "path": "sample-data/images/5f4791fa0adc479bac1e25caa7b60f89.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Art Deco Turquoise and Emerald Necklace",
+    "name": "Dark Grey Raglan Knit Sweater",
+    "category": "tops",
+    "tags": [
+      "dark grey",
+      "knit",
+      "long sleeve",
+      "raglan sleeves",
+      "casual",
+      "crew neck",
+      "fall",
+      "winter",
+      "basic"
+    ],
+    "description": "A classic dark grey long-sleeve knit sweater featuring a comfortable crew neck and raglan sleeves. It is a versatile wardrobe staple perfect for layering in cooler weather.",
+    "createdAt": "2026-03-25T20:14:02.689Z",
+    "updatedAt": "2026-03-25T20:14:05.739Z"
+  },
+  {
+    "path": "sample-data/images/6.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Prada Slingback Bow Pumps",
+    "category": "shoes",
+    "tags": [
+      "beige",
+      "cream",
+      "nude",
+      "silk",
+      "mesh",
+      "bow detail",
+      "slingback",
+      "stiletto",
+      "luxury",
+      "classic",
+      "elegant"
+    ],
+    "description": "These elegant Prada slingback pumps feature a pointed-toe silhouette crafted from delicate mesh and fabric with a charming bow accent. They are set on a slim stiletto heel, perfect for sophisticated evening wear.",
+    "createdAt": "2026-03-25T20:14:05.789Z",
+    "updatedAt": "2026-03-25T20:14:08.401Z"
+  },
+  {
+    "path": "sample-data/images/62484a6d86b545bd9409963ac4f420a9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Even&Odd Black Leggings",
+    "category": "pants",
+    "tags": [
+      "black",
+      "stretchy",
+      "fitted",
+      "casual",
+      "all-season",
+      "leggings"
+    ],
+    "description": "Simple and comfortable black leggings by Even&Odd, featuring a fitted silhouette and an elasticized waistband. These versatile basic pants are perfect for layering or everyday casual wear.",
+    "createdAt": "2026-03-25T20:14:08.450Z",
+    "updatedAt": "2026-03-25T20:14:11.746Z"
+  },
+  {
+    "path": "sample-data/images/62c9b5e9-3b57-4efc-b8f3-a4b7e79bd530.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Art Deco Inspired Turquoise and Emerald Necklace",
     "category": "accessories",
     "tags": [
       "turquoise",
@@ -589,196 +1015,920 @@
       "silver",
       "art deco",
       "statement",
+      "luxury",
       "vintage style"
     ],
-    "description": "An intricate, high-jewelry statement necklace featuring geometric turquoise inlays, brilliant-cut diamonds, and two large, prominent oval-cut green emerald stones.",
-    "createdAt": "2026-03-13T21:00:39.559Z",
-    "updatedAt": "2026-03-13T21:00:42.377Z"
+    "description": "A lavish statement necklace featuring geometric turquoise accents, pavé diamonds, and two prominent oval-cut emeralds. Its intricate, Art Deco-inspired design makes it a striking piece for formal occasions.",
+    "createdAt": "2026-03-25T20:14:11.800Z",
+    "updatedAt": "2026-03-25T20:14:14.674Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/44416615-6e44-4112-8898-a00c1329ed76.jpg",
+    "path": "sample-data/images/698bcd081ea3490dba1d802a8e87b64b.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Gold Textured Hoop Earrings",
-    "category": "accessories",
+    "name": "Lyle & Scott V-Neck T-Shirt",
+    "category": "tops",
     "tags": [
-      "gold",
-      "metal",
-      "hoop",
-      "textured",
-      "elegant",
-      "dangle"
+      "blue",
+      "cotton",
+      "v-neck",
+      "casual",
+      "short-sleeve",
+      "summer"
     ],
-    "description": "A pair of sophisticated gold earrings featuring a textured, dangling charm suspended from a faceted hoop. These elegant accessories are perfect for adding a touch of luxury to both formal and casual outfits.",
-    "createdAt": "2026-03-13T20:59:13.812Z",
-    "updatedAt": "2026-03-13T20:59:16.272Z"
+    "description": "A classic navy blue v-neck t-shirt featuring the signature Lyle & Scott golden eagle logo on the chest. This comfortable cotton top is a versatile staple for any casual wardrobe.",
+    "createdAt": "2026-03-25T20:14:14.722Z",
+    "updatedAt": "2026-03-25T20:14:17.545Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/719c4cf0-cdcd-4591-9a35-dc6cd0ec5996.png",
+    "path": "sample-data/images/6bc3d74771434074bd2e2ed5659487f7.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Silver Bow and Star Crystal Earrings",
-    "category": "accessories",
+    "name": "Black Off-Shoulder Long Sleeve Top",
+    "category": "tops",
     "tags": [
-      "silver",
-      "crystal",
-      "bow",
-      "star",
-      "glamorous",
-      "jewelry"
+      "black",
+      "long sleeve",
+      "off-shoulder",
+      "minimalist",
+      "fitted",
+      "casual",
+      "versatile"
     ],
-    "description": "These elegant earrings feature a silver-tone rope-style bow design dangling with a sparkling star-shaped crystal charm. They are perfect for adding a touch of feminine charm to any formal or evening outfit.",
-    "createdAt": "2026-03-13T20:59:08.490Z",
-    "updatedAt": "2026-03-13T20:59:11.211Z"
+    "description": "A sleek, black long-sleeve top featuring an elegant off-the-shoulder neckline. Its form-fitting silhouette makes it a versatile staple piece for any wardrobe.",
+    "createdAt": "2026-03-25T20:14:17.605Z",
+    "updatedAt": "2026-03-25T20:14:20.192Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/63c4de54-5777-4ee2-813b-abbb6f0d977c.png",
+    "path": "sample-data/images/6bda141d7d9b4f92b0c19f6a95c7ab1b.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Starry Amethyst Drop Earrings",
-    "category": "accessories",
+    "name": "Blue Hooded Softshell Jacket",
+    "category": "outerwear",
     "tags": [
-      "silver",
-      "purple",
-      "amethyst",
-      "star",
-      "drop",
-      "earrings",
-      "elegant",
-      "jewelry",
-      "gemstone"
+      "blue",
+      "softshell",
+      "hooded",
+      "casual",
+      "sporty",
+      "autumn",
+      "spring",
+      "water-resistant"
     ],
-    "description": "These elegant earrings feature a star-shaped design encrusted with small crystals, paired with a vibrant pear-shaped amethyst drop. They add a sophisticated and celestial touch to any outfit.",
-    "createdAt": "2026-03-13T20:59:03.426Z",
-    "updatedAt": "2026-03-13T20:59:05.792Z"
+    "description": "A versatile blue softshell jacket featuring a protective hood, full-zip closure, and practical side pockets. This functional outerwear piece is perfect for layering during transitional seasons.",
+    "createdAt": "2026-03-25T20:14:20.245Z",
+    "updatedAt": "2026-03-25T20:14:22.841Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/a67f185d-3ee5-4fc5-9322-1027518ab6a6.png",
+    "path": "sample-data/images/6bfdda38539e4ed1bcdeed73c2093e84.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Gold Rhinestone Floral Drop Earrings",
-    "category": "accessories",
+    "name": "Pier One Lightweight Bomber Jacket",
+    "category": "outerwear",
     "tags": [
-      "gold",
-      "rhinestone",
-      "crystal",
-      "floral",
-      "glamorous",
-      "elegant",
-      "statement"
+      "black",
+      "nylon",
+      "bomber",
+      "lightweight",
+      "casual",
+      "spring",
+      "autumn",
+      "zipper"
     ],
-    "description": "These elegant earrings feature a gold-toned double-C logo design accented with sparkling rhinestones and a delicate floral detail. A single dangling crystal stone adds a touch of glamour to these sophisticated drop earrings.",
-    "createdAt": "2026-03-13T20:58:57.625Z",
-    "updatedAt": "2026-03-13T20:59:00.415Z"
+    "description": "A sleek black lightweight bomber jacket by Pier One featuring a classic zip-up front and ribbed cuffs. Perfect for casual layered outfits during transitional weather.",
+    "createdAt": "2026-03-25T20:14:22.891Z",
+    "updatedAt": "2026-03-25T20:14:25.738Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/1aa06939-7635-4a6b-aa6f-fbdde35fc088.png",
+    "path": "sample-data/images/6d662eba1c1b4eb0b25cb4cc5cf025c6.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Butterfly Stud Earrings",
-    "category": "accessories",
+    "name": "Black Ribbed Tank Top",
+    "category": "tops",
     "tags": [
-      "gold",
-      "cream",
-      "butterfly",
-      "elegant",
-      "feminine",
-      "studs"
+      "black",
+      "ribbed",
+      "tank top",
+      "sleeveless",
+      "summer",
+      "minimalist",
+      "casual"
     ],
-    "description": "Delicate butterfly-shaped stud earrings featuring a cream-colored stone inlay and a small clear crystal accent in the center. These elegant gold-tone earrings are perfect for adding a touch of feminine charm to any outfit.",
-    "createdAt": "2026-03-13T20:58:51.320Z",
-    "updatedAt": "2026-03-13T20:58:53.648Z"
+    "description": "A simple and versatile black tank top featuring a classic ribbed texture. Perfect for layering or wearing on its own during warmer seasons.",
+    "createdAt": "2026-03-25T20:14:25.798Z",
+    "updatedAt": "2026-03-25T20:14:29.125Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/3bf3ce81-1941-427c-9901-04f5041b6b89.png",
+    "path": "sample-data/images/7.jpg",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Louis Vuitton Logo Drop Earrings",
-    "category": "accessories",
+    "name": "Saint Laurent Opyum Sandals",
+    "category": "shoes",
     "tags": [
-      "rose gold",
+      "black",
+      "leather",
+      "stiletto",
       "luxury",
-      "jewelry",
-      "designer",
-      "asymmetric",
-      "rhinestone"
+      "elegant",
+      "heels"
     ],
-    "description": "These elegant asymmetric earrings feature the iconic LV initials and a Monogram flower motif with delicate crystal accents in a rose gold tone finish.",
-    "createdAt": "2026-03-13T20:58:36.752Z",
-    "updatedAt": "2026-03-13T20:58:39.685Z"
+    "description": "These iconic Saint Laurent sandals feature a signature sculpted logo heel in black. They are minimalist, strappy stilettos designed for formal occasions and evening wear.",
+    "createdAt": "2026-03-25T20:14:29.175Z",
+    "updatedAt": "2026-03-25T20:14:31.337Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/3bc82345-43ce-4f5d-b8f0-4414c6a7fdec.png",
+    "path": "sample-data/images/756f211cfae6464b832d6f24dcc63824.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Columbia Flashback Windbreaker",
+    "category": "outerwear",
+    "tags": [
+      "light blue",
+      "teal",
+      "colour-block",
+      "nylon",
+      "sporty",
+      "hooded",
+      "spring",
+      "autumn",
+      "lightweight"
+    ],
+    "description": "A lightweight colour-blocked windbreaker featuring an adjustable drawstring hood and hem. This functional piece is perfect for layering during transitional seasons.",
+    "createdAt": "2026-03-25T20:14:31.562Z",
+    "updatedAt": "2026-03-25T20:14:34.062Z"
+  },
+  {
+    "path": "sample-data/images/8.jpg",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Satin Lace-Up Platform Heels",
+    "category": "shoes",
+    "tags": [
+      "black",
+      "satin",
+      "platform",
+      "high heels",
+      "lace-up",
+      "gladiator style",
+      "evening wear"
+    ],
+    "description": "These striking black satin platform heels feature an dramatic lace-up design that wraps around the calf. They offer a bold, high-fashion look perfect for formal events or evening outings.",
+    "createdAt": "2026-03-25T20:14:34.117Z",
+    "updatedAt": "2026-03-25T20:14:38.304Z"
+  },
+  {
+    "path": "sample-data/images/82b422f8-6531-4aa6-bbab-823d3bb58690.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Diamond Drop Fringe Necklace",
+    "category": "accessories",
+    "tags": [
+      "diamond",
+      "silver",
+      "formal",
+      "elegant",
+      "luxurious",
+      "statement",
+      "fine jewelry"
+    ],
+    "description": "An exquisite, high-end diamond necklace featuring a graduated fringe design with dangling pear and round-cut stones. It exudes timeless glamour and is perfect for formal occasions.",
+    "createdAt": "2026-03-25T20:14:38.364Z",
+    "updatedAt": "2026-03-25T20:14:41.670Z"
+  },
+  {
+    "path": "sample-data/images/870d7148158c43e4b307d4bd83a51828.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Hooded Puffer Coat",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "dark blue",
+      "puffer",
+      "quilted",
+      "winter",
+      "hooded",
+      "long coat",
+      "casual"
+    ],
+    "description": "A long, navy blue puffer coat with a cozy hood and a snap-button front closure. This insulated jacket is designed to provide warmth and comfort during the colder winter months.",
+    "createdAt": "2026-03-25T20:14:41.714Z",
+    "updatedAt": "2026-03-25T20:14:43.995Z"
+  },
+  {
+    "path": "sample-data/images/890cab12c95b4fcd99cfdafb1bd8ecc7.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Charcoal Zip-Up Wool Coat",
+    "category": "outerwear",
+    "tags": [
+      "charcoal",
+      "grey",
+      "wool",
+      "winter",
+      "minimalist",
+      "long coat",
+      "zipper"
+    ],
+    "description": "A sophisticated charcoal grey wool-blend coat featuring a full-length front zipper and a high stand-up collar. Its clean, minimalist design makes it an ideal layer for keeping warm during the winter months.",
+    "createdAt": "2026-03-25T20:14:44.293Z",
+    "updatedAt": "2026-03-25T20:14:50.213Z"
+  },
+  {
+    "path": "sample-data/images/8ae8094885224c8eb3663b233d35bd2a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Lemon Print Button-Down Shirt",
+    "category": "tops",
+    "tags": [
+      "white",
+      "yellow",
+      "lemon print",
+      "button-down",
+      "long sleeve",
+      "casual",
+      "summer",
+      "spring"
+    ],
+    "description": "A crisp white button-down shirt featuring an all-over embroidered lemon pattern. This playful, lightweight top is perfect for a breezy spring or summer outfit.",
+    "createdAt": "2026-03-25T20:14:50.266Z",
+    "updatedAt": "2026-03-25T20:14:52.734Z"
+  },
+  {
+    "path": "sample-data/images/8b4005e4e2b541ff8676b632ab69299b.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Leather Trench Coat",
+    "category": "outerwear",
+    "tags": [
+      "black",
+      "leather",
+      "trench coat",
+      "double-breasted",
+      "winter",
+      "autumn",
+      "formal",
+      "sophisticated"
+    ],
+    "description": "A sophisticated black double-breasted trench coat made from high-quality leather. It features a belted waist, classic lapels, and structured shoulders for an elegant, timeless silhouette.",
+    "createdAt": "2026-03-25T20:14:52.782Z",
+    "updatedAt": "2026-03-25T20:14:55.497Z"
+  },
+  {
+    "path": "sample-data/images/8bb5d14e53e44db3b61149a626c1a662.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dark Grey Jogger Chinos",
+    "category": "pants",
+    "tags": [
+      "dark grey",
+      "chinos",
+      "joggers",
+      "casual",
+      "cotton",
+      "elasticated cuffs",
+      "all-season"
+    ],
+    "description": "Versatile dark grey trousers that combine the smart aesthetic of chinos with the comfort of joggers. These pants feature a slim fit and elasticated cuffs, making them perfect for a stylish yet relaxed everyday look.",
+    "createdAt": "2026-03-25T20:14:55.559Z",
+    "updatedAt": "2026-03-25T20:14:58.267Z"
+  },
+  {
+    "path": "sample-data/images/9.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Brown Leather Cap-Toe Boots",
+    "category": "shoes",
+    "tags": [
+      "brown",
+      "leather",
+      "boots",
+      "cap-toe",
+      "casual",
+      "fall",
+      "winter",
+      "lace-up"
+    ],
+    "description": "Durable brown leather lace-up boots featuring a classic cap-toe design. These rugged boots are perfect for cooler seasons and versatile for both casual and semi-formal wear.",
+    "createdAt": "2026-03-25T20:14:58.317Z",
+    "updatedAt": "2026-03-25T20:15:00.535Z"
+  },
+  {
+    "path": "sample-data/images/906c2eac-ff2a-4e09-ac50-11174eb62b84.png",
     "analysisStatus": "ready",
     "analysisError": null,
     "name": "Gold Ginkgo Pearl Drop Earrings",
     "category": "accessories",
     "tags": [
       "gold",
-      "white",
       "pearl",
-      "metal",
+      "floral",
       "elegant",
       "statement",
-      "floral",
-      "spring"
+      "metallic"
     ],
-    "description": "These elegant drop earrings feature a textured gold-tone metal ginkgo leaf design paired with lustrous imitation pearls. They are perfect for adding a touch of sophisticated botanical style to any outfit.",
-    "createdAt": "2026-03-13T20:58:10.164Z",
-    "updatedAt": "2026-03-13T20:58:12.999Z"
+    "description": "These elegant earrings feature a textured gold-tone ginkgo leaf motif paired with a lustrous faux pearl drop. They provide a sophisticated, nature-inspired touch to any formal or evening ensemble.",
+    "createdAt": "2026-03-25T20:15:00.581Z",
+    "updatedAt": "2026-03-25T20:15:03.127Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/1b18c14d-ef68-4d4b-9fd6-535f805295c1.png",
+    "path": "sample-data/images/9263d0997ee34101845fa26c5d0bfea5.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Camellia Pearl Flower Stud Earrings",
-    "category": "accessories",
+    "name": "Black and White Plaid Button-Down",
+    "category": "tops",
+    "tags": [
+      "black",
+      "white",
+      "plaid",
+      "flannel",
+      "casual",
+      "button-down",
+      "long-sleeve",
+      "autumn",
+      "winter"
+    ],
+    "description": "A classic long-sleeved flannel shirt featuring a timeless black and white plaid pattern. This versatile piece includes a traditional collar and full front button closure, perfect for layering during cooler seasons.",
+    "createdAt": "2026-03-25T20:15:03.181Z",
+    "updatedAt": "2026-03-25T20:15:07.991Z"
+  },
+  {
+    "path": "sample-data/images/940733e532fd480c97ecd9dc1d486b53.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Muscle Tank Top Set",
+    "category": "tops",
+    "tags": [
+      "black",
+      "cotton",
+      "sleeveless",
+      "casual",
+      "summer",
+      "minimalist",
+      "multipack"
+    ],
+    "description": "A set of two minimalist black muscle tank tops designed with a clean, sleeveless cut perfect for casual summer wear.",
+    "createdAt": "2026-03-25T20:15:08.042Z",
+    "updatedAt": "2026-03-25T20:15:11.110Z"
+  },
+  {
+    "path": "sample-data/images/94301733bdeb4a7c842db661bfd0c558.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Jack & Jones Logo T-Shirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "white",
+      "cotton",
+      "crew neck",
+      "logo print",
+      "casual",
+      "summer",
+      "short-sleeved"
+    ],
+    "description": "A classic black crew-neck t-shirt featuring the bold Jack & Jones logo printed in white on the front. This versatile piece is perfect for casual everyday wear.",
+    "createdAt": "2026-03-25T20:15:11.161Z",
+    "updatedAt": "2026-03-25T20:15:14.473Z"
+  },
+  {
+    "path": "sample-data/images/94dc99416e7e405ca1260f47f4bff450.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Only & Sons Long Sleeve T-Shirt",
+    "category": "tops",
     "tags": [
       "white",
-      "gold",
-      "pearl",
-      "floral",
-      "elegant",
-      "jewelry",
-      "camellia"
+      "cotton",
+      "long-sleeve",
+      "crew-neck",
+      "minimalist",
+      "casual",
+      "all-season"
     ],
-    "description": "Exquisite flower-shaped stud earrings featuring white enamel petals, a central pearl, and shimmering crystal accents. These elegant accessories are perfect for adding a touch of sophisticated floral charm to any ensemble.",
-    "createdAt": "2026-03-13T20:57:49.479Z",
-    "updatedAt": "2026-03-13T20:57:52.935Z"
+    "description": "A classic, solid white long-sleeve t-shirt with a clean crew-neck design. Its simple and versatile style makes it an essential staple for any wardrobe.",
+    "createdAt": "2026-03-25T20:15:14.518Z",
+    "updatedAt": "2026-03-25T20:15:17.762Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/5c641c9b-ef81-41a6-8ac5-3b15bffb4877.png",
+    "path": "sample-data/images/9859b036e6d14e829dfc6cfd92a3ff8e.webp",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Diamond Pave Hoop Earrings",
+    "name": "Navy Linen Blend Drawstring Trousers",
+    "category": "pants",
+    "tags": [
+      "navy",
+      "linen-blend",
+      "drawstring",
+      "casual",
+      "summer",
+      "spring",
+      "wide-leg"
+    ],
+    "description": "These comfortable dark navy trousers are crafted from a lightweight linen blend, perfect for relaxed summer days. They feature an elasticated waistband with a decorative rope drawstring and a flattering wide-leg fit.",
+    "createdAt": "2026-03-25T20:15:17.826Z",
+    "updatedAt": "2026-03-25T20:15:22.217Z"
+  },
+  {
+    "path": "sample-data/images/9ce90fc7-658d-4647-a0f1-b936e89dac22.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Gold and Jade Disc Pendant Necklace",
     "category": "accessories",
     "tags": [
       "gold",
-      "diamond",
-      "luxurious",
+      "jade",
+      "white",
+      "elegant",
+      "minimalist",
+      "jewelry",
+      "necklace"
+    ],
+    "description": "An elegant necklace featuring a round white jade disc pendant accented with ornate gold detailing and a small sparkling heart charm. This sophisticated piece adds a touch of classic charm to any outfit.",
+    "createdAt": "2026-03-25T20:15:22.267Z",
+    "updatedAt": "2026-03-25T20:15:25.667Z"
+  },
+  {
+    "path": "sample-data/images/a12069fbdd784888a7cc5a020a95e5e7.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Camisole Tank Top",
+    "category": "tops",
+    "tags": [
+      "black",
+      "minimalist",
+      "camisole",
+      "cotton",
+      "summer",
+      "basic",
+      "sleeveless"
+    ],
+    "description": "A simple and versatile black camisole tank top with thin spaghetti straps. This essential piece is perfect for layering or wearing on its own during warmer weather.",
+    "createdAt": "2026-03-25T20:15:27.919Z",
+    "updatedAt": "2026-03-25T20:15:30.395Z"
+  },
+  {
+    "path": "sample-data/images/a8495e598dda43deaae6169b4e5cdd92.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Camel Duffle Coat",
+    "category": "outerwear",
+    "tags": [
+      "camel",
+      "tan",
+      "wool-blend",
+      "duffle",
+      "hooded",
+      "toggle",
+      "plaid-lining",
+      "autumn",
+      "winter",
+      "classic"
+    ],
+    "description": "A classic camel-coloured duffle coat featuring traditional wooden toggle fastenings, a hood, and a cozy plaid interior lining. It is a stylish and warm piece perfect for chilly autumn and winter days.",
+    "createdAt": "2026-03-25T20:15:30.454Z",
+    "updatedAt": "2026-03-25T20:15:33.039Z"
+  },
+  {
+    "path": "sample-data/images/a99cb41996c547ecbfffcffcfe3de09a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Ribbed Wide-Leg Trousers",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "ribbed",
+      "wide-leg",
+      "casual",
+      "minimalist",
+      "autumn",
+      "spring"
+    ],
+    "description": "These elegant grey trousers feature a subtle ribbed texture and a comfortable wide-leg silhouette. Perfect for creating a polished yet relaxed look for daily wear.",
+    "createdAt": "2026-03-25T20:15:33.100Z",
+    "updatedAt": "2026-03-25T20:15:35.840Z"
+  },
+  {
+    "path": "sample-data/images/aa4939a4aa684fa781b5db4bbe374825.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Metallic Faux Leather Shorts",
+    "category": "pants",
+    "tags": [
+      "silver",
+      "metallic",
+      "faux leather",
+      "shorts",
+      "modern",
+      "edgy",
+      "party"
+    ],
+    "description": "Bold silver metallic shorts crafted from faux leather with a structured, modern silhouette. Perfect for making a statement at evening events or parties.",
+    "createdAt": "2026-03-25T20:15:35.906Z",
+    "updatedAt": "2026-03-25T20:15:38.636Z"
+  },
+  {
+    "path": "sample-data/images/b28c7553-bdef-4d22-b3c5-c0e7135d8f26.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Louis Vuitton LV Flower Earrings",
+    "category": "accessories",
+    "tags": [
+      "rose gold",
+      "luxury",
+      "jewelry",
+      "earrings",
+      "designer",
+      "asymmetrical"
+    ],
+    "description": "A pair of asymmetrical designer earrings featuring the iconic LV logo and a Monogram flower motif with delicate chain and stone accents. These elegant rose-gold tone accessories offer a sophisticated, high-fashion look.",
+    "createdAt": "2026-03-25T20:15:38.692Z",
+    "updatedAt": "2026-03-25T20:15:41.921Z"
+  },
+  {
+    "path": "sample-data/images/b5bcaab1ef6145d2a7f0e280fe29ace5.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Blue Belted Outdoor Shorts",
+    "category": "pants",
+    "tags": [
+      "blue",
+      "outdoor",
+      "sporty",
+      "summer",
+      "technical fabric",
+      "shorts"
+    ],
+    "description": "These functional outdoor shorts feature a convenient integrated adjustable belt and a durable, lightweight material. They are perfect for hiking, cycling, or other active summer adventures.",
+    "createdAt": "2026-03-25T20:15:41.972Z",
+    "updatedAt": "2026-03-25T20:15:45.804Z"
+  },
+  {
+    "path": "sample-data/images/b661cc04bb314d33a7ef1f5207050d3f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Wide-Leg Trousers",
+    "category": "pants",
+    "tags": [
+      "black",
+      "minimalist",
+      "wide-leg",
+      "tailored",
+      "all-season",
+      "formal"
+    ],
+    "description": "These elegant black trousers feature a clean, wide-leg silhouette and a polished tailored look. Perfect for versatile office wear or sophisticated evening outfits.",
+    "createdAt": "2026-03-25T20:15:45.862Z",
+    "updatedAt": "2026-03-25T20:15:49.616Z"
+  },
+  {
+    "path": "sample-data/images/b81a850ad6484a9aa4077b867c1b228a.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Dark Green Corduroy Button-Front Mini Skirt",
+    "category": "pants",
+    "tags": [
+      "dark green",
+      "corduroy",
+      "mini skirt",
+      "button-front",
+      "autumn",
+      "casual",
+      "textured"
+    ],
+    "description": "A stylish dark green mini skirt crafted from textured corduroy fabric. Features a classic button-front design with utility-style front pockets for a vintage-inspired look.",
+    "createdAt": "2026-03-25T20:15:49.666Z",
+    "updatedAt": "2026-03-25T20:15:52.138Z"
+  },
+  {
+    "path": "sample-data/images/bba45ea61d9b47fba74527753606825f.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Track Pants",
+    "category": "pants",
+    "tags": [
+      "black",
+      "white",
+      "track pants",
+      "athletic",
+      "sporty",
+      "casual",
+      "year-round"
+    ],
+    "description": "These black track pants feature a minimalist logo, white side stripes, and a comfortable elastic waistband. They are designed for a relaxed, athletic look suitable for casual wear.",
+    "createdAt": "2026-03-25T20:15:52.180Z",
+    "updatedAt": "2026-03-25T20:15:54.676Z"
+  },
+  {
+    "path": "sample-data/images/bbd9af3a-ea20-4299-87ed-70f245f045f4.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Gold Butterfly Stud Earrings",
+    "category": "accessories",
+    "tags": [
+      "gold",
+      "beige",
+      "butterfly",
+      "stud earrings",
+      "delicate",
+      "feminine",
+      "jewelry"
+    ],
+    "description": "Elegant gold-tone butterfly stud earrings featuring soft, iridescent beige wings and a clear center crystal. These delicate earrings add a whimsical touch to any look.",
+    "createdAt": "2026-03-25T20:15:54.721Z",
+    "updatedAt": "2026-03-25T20:15:57.433Z"
+  },
+  {
+    "path": "sample-data/images/bf7a4e002fec400993c9eba880ddbcf2.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "GAP Original Crewneck Sweatshirt",
+    "category": "tops",
+    "tags": [
+      "black",
+      "crewneck",
+      "sweatshirt",
+      "cotton",
+      "casual",
+      "long-sleeve",
+      "winter",
+      "autumn"
+    ],
+    "description": "A classic black crewneck sweatshirt featuring the iconic white Gap logo with 'Original' embroidered in red. It is a comfortable, casual staple piece perfect for layering during cooler weather.",
+    "createdAt": "2026-03-25T20:15:57.478Z",
+    "updatedAt": "2026-03-25T20:16:00.045Z"
+  },
+  {
+    "path": "sample-data/images/c9236fd1351148fc9e5deb36cbd2ea39.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Grey Denim Shorts",
+    "category": "pants",
+    "tags": [
+      "grey",
+      "denim",
+      "shorts",
+      "casual",
+      "summer",
+      "cuffed"
+    ],
+    "description": "These casual grey denim shorts feature a classic five-pocket design, a button fly closure, and a stylish cuffed hem for a relaxed summer look.",
+    "createdAt": "2026-03-25T20:16:00.091Z",
+    "updatedAt": "2026-03-25T20:16:03.099Z"
+  },
+  {
+    "path": "sample-data/images/cc75ac7d8f514d2dbf17577911117dde.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Blue and White Striped Oxford Shirt",
+    "category": "tops",
+    "tags": [
+      "blue",
+      "white",
+      "striped",
+      "oxford",
+      "long-sleeve",
+      "button-down",
+      "preppy",
+      "classic",
+      "casual",
+      "spring",
+      "summer"
+    ],
+    "description": "A classic blue and white vertical striped long-sleeve oxford shirt featuring a button-down collar and the iconic Ralph Lauren logo embroidered on the chest. This timeless piece offers a polished yet casual look suitable for everyday wear.",
+    "createdAt": "2026-03-25T20:16:03.154Z",
+    "updatedAt": "2026-03-25T20:16:05.932Z"
+  },
+  {
+    "path": "sample-data/images/d387fe08db4641f8b79936cf477ef790.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Black Longline Blouse",
+    "category": "tops",
+    "tags": [
+      "black",
+      "long-sleeve",
+      "minimalist",
+      "workwear",
+      "smart-casual"
+    ],
+    "description": "A sophisticated black longline blouse featuring a V-neckline with a pointed collar detail and a clean, minimalist silhouette. Perfect for layering in a professional or smart-casual wardrobe.",
+    "createdAt": "2026-03-25T20:16:05.982Z",
+    "updatedAt": "2026-03-25T20:16:08.989Z"
+  },
+  {
+    "path": "sample-data/images/d80677fb-a347-481c-bcdb-0acd20abf3bc.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Crystal Floral CC Dangle Earrings",
+    "category": "accessories",
+    "tags": [
+      "gold-tone",
+      "rhinestone",
+      "crystal",
+      "floral",
+      "glamorous",
+      "luxury"
+    ],
+    "description": "These elegant stud earrings feature a gold-tone CC design embellished with sparkling rhinestones and a delicate flower motif. A round crystal drop hangs from each piece, adding a sophisticated touch to any outfit.",
+    "createdAt": "2026-03-25T20:16:09.042Z",
+    "updatedAt": "2026-03-25T20:16:12.046Z"
+  },
+  {
+    "path": "sample-data/images/db5a6edebecd4f63a1e65d8d2c29368e.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Olive Waffle Knit Henley",
+    "category": "tops",
+    "tags": [
+      "olive green",
+      "waffle knit",
+      "henley",
+      "long sleeve",
+      "casual",
+      "autumn",
+      "winter",
+      "textured"
+    ],
+    "description": "A classic long-sleeve henley shirt crafted from a comfortable, textured waffle-knit fabric. Featuring a three-button placket, it offers a versatile and timeless style perfect for layering in cooler weather.",
+    "createdAt": "2026-03-25T20:16:12.100Z",
+    "updatedAt": "2026-03-25T20:16:16.222Z"
+  },
+  {
+    "path": "sample-data/images/df1127bf6f2a43b180aa5dda38d5f606.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Tommy Jeans Rugby Shirt",
+    "category": "tops",
+    "tags": [
+      "blue",
+      "white",
+      "striped",
+      "cotton",
+      "long-sleeve",
+      "preppy",
+      "casual",
+      "collegiate",
+      "autumn",
+      "spring"
+    ],
+    "description": "A classic long-sleeve rugby shirt featuring thick horizontal navy and white stripes. It is accented with red '85' embroidery and a crest graphic, adding a collegiate and preppy touch to the design.",
+    "createdAt": "2026-03-25T20:16:16.275Z",
+    "updatedAt": "2026-03-25T20:16:18.905Z"
+  },
+  {
+    "path": "sample-data/images/e4c9849ea9424f03847ef4a41fc23698.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Beige Textured Shorts",
+    "category": "pants",
+    "tags": [
+      "beige",
+      "tan",
+      "textured",
+      "casual",
+      "summer",
+      "shorts",
+      "minimalist"
+    ],
+    "description": "These simple, tailored beige shorts feature a subtle textured fabric and a classic button closure. Perfect for smart-casual summer outfits.",
+    "createdAt": "2026-03-25T20:16:18.952Z",
+    "updatedAt": "2026-03-25T20:16:21.818Z"
+  },
+  {
+    "path": "sample-data/images/e69d26fc-349d-4120-94b2-3cf1b249474d.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Amethyst Starburst Dangle Earrings",
+    "category": "accessories",
+    "tags": [
+      "silver",
+      "purple",
+      "amethyst",
+      "starburst",
+      "dangle",
       "elegant",
       "jewelry"
     ],
-    "description": "Exquisite hoop earrings crafted from rose gold, intricately set with multiple sparkling diamonds in a pavé style. These elegant pieces are perfect for adding a touch of sophistication to formal evening wear.",
-    "createdAt": "2026-03-13T20:57:19.004Z",
-    "updatedAt": "2026-03-13T20:57:21.582Z"
+    "description": "These elegant earrings feature a starburst-shaped stud adorned with tiny clear crystals that suspends a faceted, pear-shaped purple amethyst stone. Perfect for adding a touch of celestial glamour to any outfit.",
+    "createdAt": "2026-03-25T20:16:21.865Z",
+    "updatedAt": "2026-03-25T20:16:25.098Z"
   },
   {
-    "imageUrl": "https://pub-3177cdce302147ffa4b913c2774ac86c.r2.dev/f142f8b4-d39f-4bab-8389-864126366e5d/closet/29e2b502-bedf-4cb9-b2a5-b588a5926627.png",
+    "path": "sample-data/images/ebfc7ba2-4003-4b2e-9c70-1275876b2076.png",
     "analysisStatus": "ready",
     "analysisError": null,
-    "name": "Gold Leaf Drop Earrings",
+    "name": "Rope Bow Star Earrings",
+    "category": "accessories",
+    "tags": [
+      "silver",
+      "crystal",
+      "bow",
+      "star",
+      "elegant",
+      "feminine",
+      "jewelry"
+    ],
+    "description": "These charming earrings feature a textured rope-style bow design suspended above a sparkling star-shaped crystal. They add a sophisticated, whimsical touch to any outfit.",
+    "createdAt": "2026-03-25T20:16:25.150Z",
+    "updatedAt": "2026-03-25T20:16:28.151Z"
+  },
+  {
+    "path": "sample-data/images/f5a4e499e0ef43abb9aa0e308680f896.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Asics Lightweight Running Jacket",
+    "category": "outerwear",
+    "tags": [
+      "pink",
+      "athletic",
+      "windbreaker",
+      "hooded",
+      "sportswear",
+      "lightweight",
+      "spring",
+      "autumn",
+      "zipped"
+    ],
+    "description": "A lightweight, blush pink windbreaker jacket from Asics, designed for athletic performance and outdoor activity. It features a hood, a full front zipper, and a minimalist sporty aesthetic.",
+    "createdAt": "2026-03-25T20:16:28.198Z",
+    "updatedAt": "2026-03-25T20:16:30.985Z"
+  },
+  {
+    "path": "sample-data/images/ff11650d-429e-4699-932c-42cdf88cdaa1.png",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Green Crystal Forest Necklace",
+    "category": "accessories",
+    "tags": [
+      "green",
+      "crystal",
+      "beaded",
+      "boho",
+      "nature-inspired",
+      "handmade",
+      "summer"
+    ],
+    "description": "A layered beaded necklace featuring green crystal accents, leaf-shaped charms, and earth-toned stone beads. This piece offers a whimsical, forest-inspired aesthetic perfect for bohemian styling.",
+    "createdAt": "2026-03-25T20:16:31.032Z",
+    "updatedAt": "2026-03-25T20:16:34.148Z"
+  },
+  {
+    "path": "sample-data/images/fff9aa43c4634649a0ff3ee994364fbe.webp",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Navy Utility Overshirt",
+    "category": "outerwear",
+    "tags": [
+      "navy",
+      "blue",
+      "utility",
+      "overshirt",
+      "jacket",
+      "casual",
+      "collared",
+      "button-down",
+      "transitional"
+    ],
+    "description": "A versatile navy utility-style overshirt featuring a classic collar, button-down front, and practical chest and waist pockets. This durable piece is perfect for layering during transitional seasons.",
+    "createdAt": "2026-03-25T20:16:34.200Z",
+    "updatedAt": "2026-03-25T20:16:37.245Z"
+  },
+  {
+    "path": "sample-data/images/R (1).jfif",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Men's Navy Trench Coat",
+    "category": "outerwear",
+    "tags": [
+      "navy blue",
+      "trench coat",
+      "single-breasted",
+      "formal",
+      "autumn",
+      "winter",
+      "modern"
+    ],
+    "description": "A sophisticated navy blue trench coat featuring a sharp lapel collar and a refined button-down front. Perfect for layering during cooler seasons to elevate any professional or formal outfit.",
+    "createdAt": "2026-03-25T20:16:37.291Z",
+    "updatedAt": "2026-03-25T20:16:40.232Z"
+  },
+  {
+    "path": "sample-data/images/R.jfif",
+    "analysisStatus": "ready",
+    "analysisError": null,
+    "name": "Gold Textured Hoop Earrings",
     "category": "accessories",
     "tags": [
       "gold",
       "metallic",
-      "nature-inspired",
-      "botanical",
-      "elegant",
-      "statement"
+      "hoops",
+      "textured",
+      "drop earrings",
+      "elegant"
     ],
-    "description": "These elegant earrings feature a textured, detailed gold leaf design that drapes beautifully. They add a sophisticated botanical touch to any outfit.",
-    "createdAt": "2026-03-13T20:57:00.751Z",
-    "updatedAt": "2026-03-13T20:57:03.822Z"
+    "description": "These elegant gold-tone earrings feature a textured hoop design with a matching patterned drop accent. Their sophisticated style makes them perfect for both formal occasions and everyday wear.",
+    "createdAt": "2026-03-25T20:16:40.281Z",
+    "updatedAt": "2026-03-25T20:16:42.914Z"
   }
 ]
