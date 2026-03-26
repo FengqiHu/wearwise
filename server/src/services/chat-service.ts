@@ -123,7 +123,7 @@ export class ChatService {
         content: message.content.trim()
       }))
       .filter((message) => message.content.length > 0)
-      .slice(-MAX_CONTEXT_MESSAGES);
+      .slice(-24);
 
     if (nonEmptyMessages.length === 0) {
       throw new Error("At least one message is required for chat completion.");
@@ -213,12 +213,7 @@ export class ChatService {
             }
           }
         ]
-      },
-      ...nonEmptyMessages.map((message) => ({
-        role: message.role,
-        content: message.content
-      }))
-    ];
+      });
     const requestOptions = input.signal
       ? {
           signal: input.signal
@@ -232,6 +227,6 @@ export class ChatService {
 
     await runner.done();
 
-    return assistantText || finalContent;
+    return assistantText;
   }
 }
