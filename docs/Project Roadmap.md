@@ -19,6 +19,8 @@
 
 **Dates:** Week 8-10
 
+**Status:** Complete — deployed at https://wearwise-cs423.web.app/
+
 **Goal:** Deliver the core workflow of clothing recommendations
 
 **Must-to-Have Features**
