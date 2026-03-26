@@ -2,6 +2,8 @@
 
 **Dates:** Week 8–10 (due 2026-03-29)
 
+**Status:** Complete — deployed at https://wearwise-cs423.web.app/
+
 ## **Requirements & Acceptance Criteria** **& Task Breakdown**
 
 ### **R1. Weather-Aware Outfit Recommendations**
@@ -126,7 +128,7 @@ Frontend: Add inline metadata editing UI on detail page
 
 **Ownership**
 
-- `@FengqiHu`: Weather query tool and chat integration (#29, #30, #31, #32, #33, #58).
+- `@FengqiHu`: Weather query tool and chat integration (#29, #30, #31, #32, #33, #58), As well as project deployment (#100).
 - `@hermit-yoshino-xl`: AI outfit recommendation (#34, #36, #37, #39)
 - `@jiruidai`: Try-on image generation on wardrobe page (#44, #49, #50), wardrobe selection and recommendation panel (#43, #45, #46,#48).
 - `@z8ri`: Closet item delete/replace (#51, #52, #53, #78), edit metadata (#55)
