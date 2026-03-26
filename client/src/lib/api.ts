@@ -3,9 +3,16 @@ import { CLOTHING_CATEGORIES } from "../types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
+export interface UserLocation {
+  lat: number;
+  lon: number;
+  timezone: string;
+}
+
 interface ChatStreamPayload {
   message: string;
   conversationId?: string;
+  userLocation?: UserLocation;
 }
 
 interface AuthEnvelope {

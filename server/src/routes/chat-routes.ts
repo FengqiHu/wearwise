@@ -189,7 +189,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const { message, conversationId } = req.body as ChatRequest;
+      const { message, conversationId, userLocation } = req.body as ChatRequest;
       const trimmedMessage = typeof message === "string" ? message.trim() : "";
       const trimmedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
 
@@ -229,13 +229,16 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       try {
         // stream the chat response from the chat service
         // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
-        await chatService.streamChat({
+        await chatService.streamChat({          
           // entry: StoredChatMessage
-          messages: conversation.messages.map((entry) => ({
+          messages: conversation.messages.map((entry) => ({            
             // role: user or assistant
             role: entry.role,
             content: entry.content
-          })), 
+          })),
+          ...(userLocation
+            ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
+            : {}),
           signal: abortController.signal,
           // stream callback
           onChunk: (chunk) => {
