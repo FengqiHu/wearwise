@@ -135,5 +135,9 @@ export function createApp() {
 
   app.use("/api", createHealthRoutes());
 
+  app.get("/", (_req, res) => {
+    res.json({ status: "ok", message: "WearWise API" });
+  });
+
   return app;
 }

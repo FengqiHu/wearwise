@@ -14,9 +14,11 @@ export class AuthService {
     private readonly userRepository: UserRepository
   ) {}
 
+  // resolve the authenticated user from the request, return user details or error
   async resolveAuthenticatedUser(req: Request): Promise<AuthResolution> {
     const token = this.sessionService.readBearerToken(req);
 
+    // identify the user by the token
     if (!token) {
       return {
         user: null,
@@ -33,6 +35,7 @@ export class AuthService {
       };
     }
 
+    // check if user exists
     const user = await this.userRepository.findById(payload.userId);
 
     if (!user) {
@@ -48,6 +51,7 @@ export class AuthService {
     };
   }
 
+  // convert user record to public user (remove sensitive info) for client
   toPublicUser(user: UserRecord): PublicUser {
     return {
       id: user.id,

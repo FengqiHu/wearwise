@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { cn } from "../../lib/cn";
 import { useAuth } from "../../context/auth-context";
@@ -37,17 +37,16 @@ function normalizeAvatarUrl(rawUrl: string | null | undefined): string | null {
 
 export function Navbar() {
   const { isAuthenticated, profile, user } = useAuth();
-  const [avatarIndex, setAvatarIndex] = useState(0);
+  const avatarUrlKey = `${profile?.avatarUrl ?? ""}|${user?.picture ?? ""}`;
+  const [avatarState, setAvatarState] = useState({ key: avatarUrlKey, index: 0 });
+  const avatarIndex = avatarState.key === avatarUrlKey ? avatarState.index : 0;
 
   const avatarLabel = profile?.name?.trim().charAt(0).toUpperCase() || user?.name?.trim().charAt(0).toUpperCase() || "U";
   const avatarCandidates = [normalizeAvatarUrl(profile?.avatarUrl), normalizeAvatarUrl(user?.picture)].filter(
     (value): value is string => Boolean(value)
   );
-  const avatarSrc = avatarCandidates[avatarIndex] ?? null;
 
-  useEffect(() => {
-    setAvatarIndex(0);
-  }, [profile?.avatarUrl, user?.picture]);
+  const avatarSrc = avatarCandidates[avatarIndex] ?? null;
 
   return (
     <header className="sticky top-0 z-30 border-b border-boutique-200 bg-boutique-50/75 backdrop-blur-xl">
@@ -89,7 +88,7 @@ export function Navbar() {
               referrerPolicy="no-referrer"
               onError={(event) => {
                 event.currentTarget.style.display = "none";
-                setAvatarIndex((previous) => previous + 1);
+                setAvatarState((previous) => ({ key: avatarUrlKey, index: previous.index + 1 }));
               }}
             />
           ) : (

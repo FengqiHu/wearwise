@@ -45,13 +45,16 @@ export function createAuthRoutes({
         return;
       }
 
+      // get userinfo, and store token
       const user = await userRepository.upsertFromGoogleIdentity(exchangeResult.identity);
       const accessToken = sessionService.createSessionToken(user.id);
 
+      // return user info and token, incluidng expire time
       res.json({
         accessToken,
         tokenType: "Bearer",
         expiresIn: sessionTtlSeconds,
+        // store user info in the session cookie, so client can read it on page load without an extra request
         user: authService.toPublicUser(user),
         profile: user.profile,
         isFirstLogin: user.profile === null
@@ -62,6 +65,7 @@ export function createAuthRoutes({
     }
   });
 
+  // check current authentication status and get user info (verify the session token in cookie)
   router.get("/auth/me", async (req, res): Promise<void> => {
     try {
       const authResolution = await authService.resolveAuthenticatedUser(req);
