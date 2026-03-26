@@ -39,7 +39,14 @@ interface PresignedUploadResponse {
   key: string;
 }
 
-export type ImageUploadFolder = "avatar" | "headshot" | "full-body";
+export type ImageUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
+const PRESIGNED_UPLOAD_MAX_ATTEMPTS = 4;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function getErrorMessage(status: number, fallbackText: string): string {
   if (status === 401) {
@@ -154,17 +161,33 @@ export async function createPresignedImageUpload(
 }
 
 export async function uploadFileToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type || "application/octet-stream"
-    },
-    body: file
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`S3 upload failed with status ${response.status}.`);
+  for (let attempt = 1; attempt <= PRESIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error(`S3 upload failed with status ${response.status}.`);
+      }
+
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown upload error.");
+
+      if (attempt < PRESIGNED_UPLOAD_MAX_ATTEMPTS) {
+        await sleep(1000 * attempt);
+      }
+    }
   }
+
+  throw new Error(`Upload failed after 3 retries: ${lastError?.message ?? "Unknown upload error."}`);
 }
 
 export async function saveProfileToApi(token: string, profile: UserProfile): Promise<AuthEnvelope> {
@@ -293,6 +316,70 @@ export async function fetchClosetItem(token: string, itemId: string): Promise<Cl
     throw new Error("Item not found.");
   }
   return payload.item;
+}
+
+interface UpdateClosetItemMetadataPayload {
+  name?: string;
+  category?: string;
+  tags?: string[];
+  description?: string;
+}
+
+export async function updateClosetItemMetadata(
+  token: string,
+  itemId: string,
+  payload: UpdateClosetItemMetadataPayload
+): Promise<ClosetItemRecord> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to update closet item.");
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { item: ClosetItemRecord };
+  return data.item;
+}
+
+
+export async function deleteClosetItem(token: string, itemId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to delete closet item.");
+    throw new Error(message);
+  }
+}
+
+interface ReplaceClosetItemImageResponse {
+  item: ClosetItemRecord;
+  uploadUrl: string;
+}
+
+export async function replaceClosetItemImage(
+  token: string,
+  itemId: string,
+  contentType: string
+): Promise<ReplaceClosetItemImageResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/image`, {
+    method: "PUT",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ contentType })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to replace closet item image.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as ReplaceClosetItemImageResponse;
 }
 
 export async function importTestClosetItems(

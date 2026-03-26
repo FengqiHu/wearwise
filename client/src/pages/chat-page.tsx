@@ -11,9 +11,102 @@ import {
 } from "../components/ui/prompt-input";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
-import { deleteChatConversation, fetchChatConversation, fetchChatConversations, streamChatResponse, type UserLocation } from "../lib/api";
+import { deleteChatConversation, fetchChatConversation, fetchChatConversations, fetchClosetItems, streamChatResponse, type UserLocation } from "../lib/api";
 import { cn } from "../lib/cn";
-import type { ChatConversationSummary, ChatMessage } from "../types";
+import type { ChatConversationSummary, ChatMessage, ClothingItem } from "../types";
+
+interface OutfitItem {
+  id: string;
+  name: string;
+}
+
+interface Outfit {
+  outfitName: string;
+  reason: string;
+  items: OutfitItem[];
+}
+
+interface OutfitResponse {
+  outfits: Outfit[];
+}
+
+function parseOutfitResponse(content: string): OutfitResponse | null {
+  const match = content.match(/```json\s*([\s\S]*?)\s*```/);
+  if (!match || !match[1]) return null;
+  try {
+    const parsed = JSON.parse(match[1]) as unknown;
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      "outfits" in parsed &&
+      Array.isArray((parsed as OutfitResponse).outfits)
+    ) {
+      return parsed as OutfitResponse;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function OutfitCards({
+  outfits,
+  closetItems
+}: {
+  outfits: Outfit[];
+  closetItems: ClothingItem[];
+}) {
+  const itemMap = useMemo(() => {
+    const map = new Map<string, ClothingItem>();
+    for (const item of closetItems) map.set(item.id, item);
+    return map;
+  }, [closetItems]);
+
+  return (
+    <div className="flex flex-col gap-3 w-full">
+      <p className="text-xs font-medium text-boutique-600 uppercase tracking-wide">Outfit Recommendations</p>
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+        {outfits.map((outfit, index) => (
+          <div
+            key={index}
+            className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm"
+          >
+            <p className="font-display text-lg leading-snug text-boutique-900">{outfit.outfitName}</p>
+
+            <div className="flex flex-wrap gap-2">
+              {outfit.items.map((item) => {
+                const closetItem = itemMap.get(item.id);
+                return closetItem ? (
+                  <img
+                    key={item.id}
+                    src={closetItem.imageUrl}
+                    alt={item.name}
+                    title={item.name}
+                    className="h-16 w-16 rounded-xl border border-boutique-200 object-cover shadow-sm"
+                  />
+                ) : (
+                  <div
+                    key={item.id}
+                    title={item.name}
+                    className="flex h-16 w-16 items-center justify-center rounded-xl border border-boutique-200 bg-boutique-100 text-xs text-boutique-500"
+                  >
+                    ?
+                  </div>
+                );
+              })}
+            </div>
+
+            <p className="text-xs leading-relaxed text-boutique-700">{outfit.reason}</p>
+
+            <Button variant="outline" size="sm" disabled className="mt-auto w-full">
+              Generate Try-On
+            </Button>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
   return {
@@ -71,9 +164,17 @@ export function ChatPage() {
   const [deletingConversationId, setDeletingConversationId] = useState<string | null>(null);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetchClosetItems(token)
+      .then(setClosetItems)
+      .catch(() => {});
+  }, [token]);
 
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -439,7 +540,15 @@ export function ChatPage() {
                           : "border border-boutique-200 bg-boutique-100/70 text-boutique-900"
                       )}
                     >
-                      {isThinking ? <ThinkingDots /> : <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>}
+                      {isThinking ? (
+                        <ThinkingDots />
+                      ) : (() => {
+                        const outfitData = message.role === "assistant" ? parseOutfitResponse(message.content) : null;
+                        if (outfitData) {
+                          return <OutfitCards outfits={outfitData.outfits} closetItems={closetItems} />;
+                        }
+                        return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
+                      })()}
                     </div>
                   </div>
                 );

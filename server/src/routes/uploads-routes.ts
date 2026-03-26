@@ -22,7 +22,7 @@ function getFileExtension(contentType: string): string {
   return subtype.replace(/[^a-z0-9]/g, "") || "bin";
 }
 
-function normalizeImageKind(rawFolder: unknown): "avatar" | "headshot" | "fullbody" {
+function normalizeImageKind(rawFolder: unknown): "avatar" | "headshot" | "fullbody" | "closet" {
   if (typeof rawFolder !== "string") {
     return "fullbody";
   }
@@ -34,6 +34,10 @@ function normalizeImageKind(rawFolder: unknown): "avatar" | "headshot" | "fullbo
 
   if (trimmed === "headshot") {
     return "headshot";
+  }
+
+  if (trimmed === "closet") {
+    return "closet";
   }
 
   return "fullbody";

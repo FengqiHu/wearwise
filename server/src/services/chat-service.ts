@@ -6,7 +6,7 @@ import { OpenWeatherService } from "./openweather-service.js";
 import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
 
 interface ModelInputMessage {
-  role: ChatRole;
+  role: ChatRole | "system";
   content: string;
 }
 
@@ -213,13 +213,12 @@ export class ChatService {
             }
           }
         ]
-      },
-      input.signal
-        ? {
-            signal: input.signal
-          }
-        : undefined
-    );
+      });
+    const requestOptions = input.signal
+      ? {
+          signal: input.signal
+        }
+      : undefined;
 
     runner.on("content", (content) => {
       assistantText += content;
