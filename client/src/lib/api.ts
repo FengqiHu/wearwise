@@ -398,69 +398,6 @@ export async function importTestClosetItems(
   }
 }
 
-interface UpdateClosetItemMetadataPayload {
-  name?: string;
-  category?: string;
-  tags?: string[];
-  description?: string;
-}
-
-export async function updateClosetItemMetadata(
-  token: string,
-  itemId: string,
-  payload: UpdateClosetItemMetadataPayload
-): Promise<ClosetItemRecord> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
-    method: "PATCH",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to update closet item.");
-    throw new Error(message);
-  }
-
-  const data = (await response.json()) as { item: ClosetItemRecord };
-  return data.item;
-}
-
-export async function deleteClosetItem(token: string, itemId: string): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
-    method: "DELETE",
-    headers: createAuthHeaders(token, false)
-  });
-
-  if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to delete closet item.");
-    throw new Error(message);
-  }
-}
-
-interface ReplaceClosetItemImageResponse {
-  item: ClosetItemRecord;
-  uploadUrl: string;
-}
-
-export async function replaceClosetItemImage(
-  token: string,
-  itemId: string,
-  contentType: string
-): Promise<ReplaceClosetItemImageResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/image`, {
-    method: "PUT",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify({ contentType })
-  });
-
-  if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to replace closet item image.");
-    throw new Error(message);
-  }
-
-  return (await response.json()) as ReplaceClosetItemImageResponse;
-}
-
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/analyze`, {
     method: "POST",

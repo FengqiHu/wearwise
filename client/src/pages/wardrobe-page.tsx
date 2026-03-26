@@ -236,28 +236,6 @@ export function WardrobePage() {
     }
   };
 
-  const handleDelete = async (item: ClothingItem, event: React.MouseEvent): Promise<void> => {
-    event.stopPropagation();
-
-    if (!token) return;
-    if (!window.confirm(`Delete "${item.title}"? This cannot be undone.`)) return;
-
-    setDeletingIds((prev) => new Set(prev).add(item.id));
-
-    try {
-      await deleteClosetItem(token, item.id);
-      setItems((prev) => prev.filter((i) => i.id !== item.id));
-    } catch {
-      alert("Failed to delete item. Please try again.");
-    } finally {
-      setDeletingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(item.id);
-        return next;
-      });
-    }
-  };
-
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") {
       return items;
