@@ -27,7 +27,7 @@
 
 - Users can replace and delete images of clothing items.
 - The system contains mock test data for user to import.
-- The system can invoke a weather query tool to get the weather conditions.
+- The system can invoke a weather query tool.
 - The system recommends three distinct outfits (with no duplicate outfit combinations) per request based on the cloud closet, users' needs and weather.
 - The system generates try-on images based on the recommended outfits and profile image.
 
@@ -43,6 +43,7 @@
 
 **Must-to-Have Features**
 
+- The system can invoke a weather query tool to get the weather conditions.
 - Users can replace and delete their profile information (images, weight, and height).
 - Users can modify the features (including name, category, tag, and description) of their clothes.
 - Users can vote for some outfits from the recommendation results.
