@@ -494,6 +494,8 @@ export function createClosetRoutes({
         return;
       }
 
+      const { user } = authResolution;
+
       // 2. Validate request body
       const body = (req.body as { selectedItemIds?: unknown } | undefined) ?? {};
       const rawIds = body.selectedItemIds;
@@ -521,7 +523,7 @@ export function createClosetRoutes({
 
       // 3. Fetch and validate selected items
       const selectedRecords = await Promise.all(
-        selectedItemIds.map((id) => closetRepository.findById(authResolution.user.id, id))
+        selectedItemIds.map((id) => closetRepository.findById(user.id, id))
       );
 
       if (selectedRecords.some((item) => !item)) {
@@ -578,7 +580,7 @@ export function createClosetRoutes({
 
       // 6. Build candidate pool for missing categories from the user's wardrobe
       const selectedIdSet = new Set(selectedItemIds);
-      const allWardrobe = await closetRepository.listByUser(authResolution.user.id, 1_000);
+      const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
       const readyWardrobe = allWardrobe
         .map((item) => toReadyClosetItem(item))
         .filter((item): item is ReadyClosetItem => item !== null)
