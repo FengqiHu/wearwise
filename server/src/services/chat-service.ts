@@ -92,7 +92,6 @@ function buildDeveloperInstructions(todayIsoDate: string): string {
     "If the user provides a location name without a country code and the location is ambiguous, just use the location you think is most likely based on the conversation history. Do not ask the user to clarify.",
     "If the tool returns ok=false, explain the tool error plainly. If candidates are included, ask the user to pick one of them.",
     "Never say that you do not have live internet access when the weather tool can answer the request.",
-    "When recommending outfits, always fetch live weather first using get_weather (and get_user_location if the user has not specified a location) so the recommendations account for actual temperature and conditions.",
   ].join(" ");
 }
 
@@ -118,17 +117,13 @@ export class ChatService {
       throw new Error("OPENAI_API_KEY is not configured on server.");
     }
 
-    const allMessages = input.messages
+    const nonEmptyMessages = input.messages
       .map((message) => ({
         role: message.role,
         content: message.content.trim()
       }))
-      .filter((message) => message.content.length > 0);
-
-    // Keep system messages (wardrobe context) always present; slice only conversation history
-    const systemMessages = allMessages.filter((m) => m.role === "system");
-    const conversationMessages = allMessages.filter((m) => m.role !== "system").slice(-24);
-    const nonEmptyMessages = [...systemMessages, ...conversationMessages];
+      .filter((message) => message.content.length > 0)
+      .slice(-24);
 
     if (nonEmptyMessages.length === 0) {
       throw new Error("At least one message is required for chat completion.");
