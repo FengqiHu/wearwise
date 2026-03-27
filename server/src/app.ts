@@ -27,7 +27,8 @@ export function createApp() {
   app.use(
     cors({
       origin: env.corsOrigin,
-      credentials: true
+      credentials: true,
+      exposedHeaders: ["X-Conversation-Id"]
     })
   );
 
