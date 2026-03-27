@@ -1,10 +1,12 @@
 import OpenAI from "openai";
+import { z } from "zod";
 import type { ChatRole } from "../types/domain.js";
+import { CurrentTimeService } from "./current-time-service.js";
 import { OpenWeatherService } from "./openweather-service.js";
-import { log } from "node:console";
+import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
 
 interface ModelInputMessage {
-  role: ChatRole;
+  role: ChatRole | "system";
   content: string;
 }
 
@@ -12,35 +14,109 @@ interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
   signal?: AbortSignal;
+  userLocation?: BrowserLocation;
 }
 
-const WEATHER_TOOL_NAME = "get_weather";
-// max tool calling rounds to prevent infinite loop
-const MAX_TOOL_ROUNDS = 4;
+const CHAT_MODEL = "gpt-5-mini";
+const weatherToolParameters = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    location: {
+      type: "string",
+      description: "City or location name, for example Baltimore."
+    },
+    stateCode: {
+      type: "string",
+      description: "Optional state, province, or region code, for example MD."
+    },
+    countryCode: {
+      type: "string",
+      description: "Optional two-letter ISO country code, for example US."
+    },
+    mode: {
+      type: "string",
+      enum: ["current", "forecast"],
+      description: "Use current for live conditions and forecast for a future date."
+    },
+    targetDate: {
+      type: "string",
+      description: "Forecast date in YYYY-MM-DD format. Required when mode is forecast."
+    },
+    targetTime: {
+      type: "string",
+      description: "Optional preferred local time in HH:mm for forecast lookups."
+    }
+  },
+  required: ["location"]
+};
+
+const weatherToolInputSchema = z
+  .object({
+    location: z.string().trim().min(1, "location is required."),
+    stateCode: z.string().trim().min(1).max(32).optional(),
+    countryCode: z.string().trim().length(2).optional(),
+    mode: z.enum(["current", "forecast"]).default("current"),
+    targetDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "targetDate must be YYYY-MM-DD.").optional(),
+    targetTime: z.string().regex(/^\d{2}:\d{2}$/, "targetTime must be HH:mm.").optional()
+  })
+  .superRefine((input, context) => {
+    if (input.mode === "forecast" && !input.targetDate) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["targetDate"],
+        message: "targetDate is required when mode is forecast."
+      });
+    }
+  });
+
+type WeatherToolArgs = z.infer<typeof weatherToolInputSchema>;
+
+function toIsoLocalDate(date: Date): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+
+  return formatter.format(date);
+}
+
+function buildDeveloperInstructions(todayIsoDate: string): string {
+  return [
+    "You are the WearWise assistant.",
+    "When the user asks for live weather, current conditions, rain, snow, temperature, or any forecast, use the get_weather tool instead of answering from memory.",
+    "If the user uses a relative date such as today or tomorrow, convert it to an exact YYYY-MM-DD date before calling the tool.",
+    "Use mode=current for current conditions and mode=forecast for future dates.",
+    "When the user asks for a forecast, use the get_current_time and get_user_location tool to get user's local time and location if the user doesn't specify a location for the forecast. This will help you provide a more accurate forecast.",
+    "If the user provides a location name without a country code and the location is ambiguous, just use the location you think is most likely based on the conversation history. Do not ask the user to clarify.",
+    "If the tool returns ok=false, explain the tool error plainly. If candidates are included, ask the user to pick one of them.",
+    "Never say that you do not have live internet access when the weather tool can answer the request.",
+  ].join(" ");
+}
 
 export class ChatService {
   private readonly client: OpenAI | null;
-  private readonly openWeatherService: OpenWeatherService | null;
+  private readonly openWeatherService: OpenWeatherService;
+  private readonly currentTimeService: CurrentTimeService;
+  private readonly userLocationService: UserLocationService;
 
-  // check the weather service
-  constructor(apiKey: string, openWeatherService?: OpenWeatherService | null) {
+  constructor(apiKey: string, openWeatherService: OpenWeatherService) {
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
-    this.openWeatherService = openWeatherService ?? null;
+    this.openWeatherService = openWeatherService;
+    this.currentTimeService = new CurrentTimeService();
+    this.userLocationService = new UserLocationService(openWeatherService);
   }
 
   isConfigured(): boolean {
     return this.client !== null;
   }
 
-  // 
   async streamChat(input: StreamChatInput): Promise<string> {
-    // check the chat service, now is the openai
     if (!this.client) {
       throw new Error("OPENAI_API_KEY is not configured on server.");
     }
 
-    // validate and prepare messages, remove empty messages
-    // context window is the last 24 messages
     const nonEmptyMessages = input.messages
       .map((message) => ({
         role: message.role,
@@ -53,236 +129,104 @@ export class ChatService {
       throw new Error("At least one message is required for chat completion.");
     }
 
-    const messages = this.buildPromptMessages(nonEmptyMessages);
-    const tools = this.getAvailableTools();
+    const userLocation = input.userLocation;
 
-    // two modes here:
-    // 1. no tool calling, just stream the response
-    // 2. tool calling, stream the response until tool call, execute the tool, 
-    // then continue to stream the response with tool result, repeat until no tool call or exceed max rounds
-    for (let round = 0; round < MAX_TOOL_ROUNDS; round += 1) {
-      // model assignment, you can replace it with other model or LLM providor
-      // set the request
-      const request: OpenAI.Chat.Completions.ChatCompletionCreateParamsNonStreaming = {
-        model: "gpt-5-mini",
-        messages,
-        ...(tools.length > 0
-          ? {
-              tools,
-              tool_choice: "auto" as const
-            }
-          : {})
-      };
-      console.log("Chat completion request:", JSON.stringify(request, null, 2));
-
-      // send the request to LLM
-      const completion = await this.client.chat.completions.create(
-        request,
-        input.signal
-          ? {
-              signal: input.signal
-            }
-          : undefined
-      );
-
-      const assistantMessage = completion.choices[0]?.message;
-
-      if (!assistantMessage) {
-        throw new Error("Chat completion did not return a message.");
-      }
-
-      const toolCalls = assistantMessage.tool_calls ?? [];
-
-      // if no tool call, just return the response
-      if (toolCalls.length === 0) {
-        const assistantText = this.getAssistantText(assistantMessage).trim();
-
-        if (!assistantText) {
-          throw new Error("Chat completion returned an empty response.");
-        }
-
-        input.onChunk(assistantText);
-        return assistantText;
-      }
-
-      // put the message to the history but not the tool call result
-      // this message will not be presented to user
-      messages.push(this.toAssistantToolCallMessage(assistantMessage));
-
-      for (const toolCall of toolCalls) {
-        const toolResult = await this.executeToolCall(toolCall, input.signal);
-        // put the tool call result to the history
-        messages.push({
-          role: "tool",
-          tool_call_id: toolCall.id,
-          content: JSON.stringify(toolResult)
-        });
-      }
-    }
-
-    throw new Error("Chat completion exceeded the maximum number of tool rounds.");
-  }
-
-  private buildPromptMessages(
-    messages: ModelInputMessage[]
-  ): OpenAI.Chat.Completions.ChatCompletionMessageParam[] {
-    return [
+    let assistantText = "";
+    const runner = this.client.chat.completions.runTools(
       {
-        role: "developer",
-        content: this.buildDeveloperPrompt()
-      },
-      // put the history messages in the context, including user and assistant messages
-      ...messages.map((message) => ({
-        role: message.role,
-        content: message.content
-      }))
-    ];
-  }
-
-  // developer prompt
-  private buildDeveloperPrompt(): string {
-    const weatherToolEnabled = Boolean(this.openWeatherService?.isConfigured());
-    const currentDate = this.getCurrentDateIso();
-
-    return [
-      "You are WearWise, an AI stylist inside a wardrobe application.",
-      "Respond in the same language as the user.",
-      "Give concise, practical answers with clear outfit recommendations when appropriate.",
-      "Use the user's supplied weather details directly if they already gave a concrete temperature or condition.",
-      "Do not invent live weather, forecasts, or temperatures.",
-      weatherToolEnabled
-        ? `Today's date is ${currentDate}. Use the get_weather tool when live weather is needed for the answer or for outfit advice, and the user has provided a clear location.`
-        : `Today's date is ${currentDate}. Live weather lookup is not configured right now, so if the user needs current weather or a forecast, say that the live weather tool is unavailable.`,
-      "If live weather is needed but the user did not give a clear location, ask one brief follow-up question.",
-      "If the tool says the location is ambiguous, ask the user to clarify the city, state, or country.",
-      "When the user uses relative dates like today or tomorrow, convert them to explicit dates before calling tools."
-    ].join(" ");
-  }
-
-  private getAvailableTools(): OpenAI.Chat.Completions.ChatCompletionTool[] {
-    if (!this.openWeatherService?.isConfigured()) {
-      return [];
-    }
-
-    return [
-      // Tool 1. Weather tool
-      {
-        type: "function",
-        function: {
-          name: WEATHER_TOOL_NAME,
-          description:
-            "Retrieve live current weather or a 5-day forecast for a specific location. Use this when exact weather matters and the user did not already provide concrete weather details.",
-          parameters: {
-            type: "object",
-            properties: {
-              location: {
-                type: "string",
-                description: "City or place name, such as 'Boston' or 'New York'."
-              },
-              stateCode: {
-                type: "string",
-                description: "Optional state or region code when needed for disambiguation, such as 'MA'."
-              },
-              countryCode: {
-                type: "string",
-                description: "Optional ISO 3166-1 alpha-2 country code, such as 'US' or 'CN'."
-              },
-              mode: {
-                type: "string",
-                enum: ["current", "forecast"],
-                description: "Use 'current' for current weather and 'forecast' for a future date."
-              },
-              targetDate: {
-                type: "string",
-                description: "Required for forecast mode. Format: YYYY-MM-DD."
-              },
-              targetTime: {
-                type: "string",
-                description: "Optional preferred local time in 24-hour HH:mm format."
+        model: CHAT_MODEL,
+        stream: true,
+        messages: [
+          {
+            role: "developer",
+            content: buildDeveloperInstructions(toIsoLocalDate(new Date()))
+          },
+          ...nonEmptyMessages
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "get_weather",
+              description:
+                "Fetches live current weather or a forecast from OpenWeather for a city or location. Use this for real weather conditions instead of guessing.",
+              parameters: weatherToolParameters,
+              parse: (rawArguments: string) => weatherToolInputSchema.parse(JSON.parse(rawArguments)),
+              function: async (args: WeatherToolArgs) => {
+                try {
+                  return await this.openWeatherService.executeTool(JSON.stringify(args), input.signal);
+                } catch (error) {
+                  return {
+                    ok: false,
+                    error: error instanceof Error ? error.message : "Weather lookup failed."
+                  };
+                }
               }
-            },
-            required: ["location", "mode"],
-            additionalProperties: false
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "get_current_time",
+              description:
+                "Returns the current date and time. Optionally accepts an IANA timezone name to get the local time for a specific location.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  timezone: {
+                    type: "string",
+                    description: "IANA timezone name, for example America/New_York or Europe/London. Defaults to UTC if omitted."
+                  }
+                },
+                required: []
+              },
+              parse: (rawArguments: string) => JSON.parse(rawArguments) as { timezone?: string },
+              function: (args: { timezone?: string }) => {
+                return this.currentTimeService.executeTool(JSON.stringify(args));
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "get_user_location",
+              description:
+                "Returns the approximate location of the user based on their IP address, including city, region, country, and timezone.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {},
+                required: []
+              },
+              parse: (_rawArguments: string) => ({}),
+              function: async (_args: Record<string, never>) => {
+                try {
+                  return await this.userLocationService.executeTool(userLocation, input.signal);
+                } catch (error) {
+                  return {
+                    ok: false,
+                    error: error instanceof Error ? error.message : "Location lookup failed."
+                  };
+                }
+              }
+            }
           }
+        ]
+      });
+    const requestOptions = input.signal
+      ? {
+          signal: input.signal
         }
-      }
-    ];
-  }
+      : undefined;
 
-  // execute the tool call
-  private async executeToolCall(
-    toolCall: OpenAI.Chat.Completions.ChatCompletionMessageToolCall,
-    signal?: AbortSignal
-  ): Promise<unknown> {
-    if (toolCall.type !== "function") {
-      return {
-        ok: false,
-        error: `Unsupported tool call type: ${toolCall.type}.`
-      };
-    }
+    runner.on("content", (content) => {
+      assistantText += content;
+      input.onChunk(content);
+    });
 
-    // execute the weather tool
-    if (toolCall.function.name === WEATHER_TOOL_NAME) {
-      if (!this.openWeatherService) {
-        return {
-          ok: false,
-          error: "The weather service is not available."
-        };
-      }
+    await runner.done();
 
-      // return the weather result
-      return this.openWeatherService.executeTool(toolCall.function.arguments, signal);
-    }
-
-    return {
-      ok: false,
-      error: `Unknown tool: ${toolCall.function.name}.`
-    };
-  }
-
-  private toAssistantToolCallMessage(
-    message: OpenAI.Chat.Completions.ChatCompletionMessage
-  ): OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam {
-    const content = this.getAssistantText(message);
-
-    return {
-      role: "assistant",
-      content: content || null,
-      tool_calls: message.tool_calls ?? []
-    };
-  }
-
-  private getAssistantText(
-    message:
-      | OpenAI.Chat.Completions.ChatCompletionMessage
-      | OpenAI.Chat.Completions.ChatCompletionAssistantMessageParam
-  ): string {
-    const content = message.content;
-
-    if (typeof content === "string") {
-      return content;
-    }
-
-    if (!Array.isArray(content)) {
-      return "";
-    }
-
-    return content
-      .map((part) => {
-        if ("text" in part && typeof part.text === "string") {
-          return part.text;
-        }
-
-        return "";
-      })
-      .join("");
-  }
-
-  private getCurrentDateIso(): string {
-    const date = new Date();
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const day = String(date.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return assistantText;
   }
 }

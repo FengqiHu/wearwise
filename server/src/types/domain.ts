@@ -1,6 +1,11 @@
 export interface ChatRequest {
   message: string;
   conversationId?: string;
+  userLocation?: {
+    lat: number;
+    lon: number;
+    timezone: string;
+  };
 }
 
 export interface UserProfile {
@@ -99,6 +104,22 @@ export interface ClosetItemRecord {
   description: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OutfitItem {
+  id: string;
+  category: string;
+  name: string;
+  imageUrl: string;
+  tags: string[];
+  description: string;
+  isUserSelected: boolean;
+  reason: string | null;
+}
+
+export interface RecommendOutfitResponse {
+  outfit: OutfitItem[];
+  styleNote: string;
 }
 
 export interface GenerateOutfitRequest {
