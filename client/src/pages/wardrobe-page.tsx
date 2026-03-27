@@ -1,15 +1,16 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { fetchClosetItems } from "../lib/api";
+import { fetchClosetItems, recommendOutfit } from "../lib/api";
 import { cn } from "../lib/cn";
 import {
   CLOTHING_CATEGORIES,
   type ClothingCategory,
-  type ClothingItem
+  type ClothingItem,
+  type OutfitRecommendation
 } from "../types";
 
 type WardrobeFilter = "all" | ClothingCategory;
@@ -21,17 +22,29 @@ function sortByNewest(items: ClothingItem[]): ClothingItem[] {
 export function WardrobePage() {
   const navigate = useNavigate();
   const { token } = useAuth();
+
+  // Wardrobe list state
   const [items, setItems] = useState<ClothingItem[]>([]);
   const [activeFilter, setActiveFilter] = useState<WardrobeFilter>("all");
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
+
+  // Selection mode state (Issue #45)
   const [selectionMode, setSelectionMode] = useState(false);
   const [selectedItems, setSelectedItems] = useState<Map<ClothingCategory, ClothingItem>>(
     new Map<ClothingCategory, ClothingItem>()
   );
   const [replacedCategory, setReplacedCategory] = useState<ClothingCategory | null>(null);
+
+  // Recommendation state (Issue #48)
+  const [recommendation, setRecommendation] = useState<OutfitRecommendation | null>(null);
+  const [isRecommending, setIsRecommending] = useState(false);
+  const [recommendError, setRecommendError] = useState<string | null>(null);
+  const recommendRequestId = useRef(0);
+
+  // ── Selection mode helpers ──────────────────────────────────────────────
 
   function toggleSelection(item: ClothingItem): void {
     if (item.status === "unfinished") {
@@ -56,12 +69,19 @@ export function WardrobePage() {
 
       return next;
     });
+
+    setRecommendation(null);
+    setRecommendError(null);
   }
 
   function exitSelectionMode(): void {
+    recommendRequestId.current += 1;
     setSelectionMode(false);
     setSelectedItems(new Map<ClothingCategory, ClothingItem>());
     setReplacedCategory(null);
+    setRecommendation(null);
+    setRecommendError(null);
+    setIsRecommending(false);
   }
 
   function handleSelectionModeToggle(): void {
@@ -71,11 +91,51 @@ export function WardrobePage() {
     }
 
     setSelectionMode(true);
+    setRecommendError(null);
   }
 
-  function handleGetRecommendations(): void {
-    // TODO(#48): Wire outfit recommendation request using selectedItems.
+  // ── Recommendation request ──────────────────────────────────────────────
+
+  async function handleGetRecommendations(): Promise<void> {
+    if (!token) {
+      setRecommendError("Authentication failed. Please sign in again.");
+      return;
+    }
+
+    const selectedItemIds = Array.from(selectedItems.values()).map((item) => item.id);
+    if (selectedItemIds.length === 0) {
+      return;
+    }
+
+    const requestId = recommendRequestId.current + 1;
+    recommendRequestId.current = requestId;
+
+    try {
+      setIsRecommending(true);
+      setRecommendError(null);
+      setRecommendation(null);
+
+      const result = await recommendOutfit(token, selectedItemIds);
+
+      if (recommendRequestId.current !== requestId) {
+        return;
+      }
+
+      setRecommendation(result);
+    } catch (err) {
+      if (recommendRequestId.current !== requestId) {
+        return;
+      }
+
+      setRecommendError(err instanceof Error ? err.message : "Failed to get outfit recommendation.");
+    } finally {
+      if (recommendRequestId.current === requestId) {
+        setIsRecommending(false);
+      }
+    }
   }
+
+  // ── Auto-dismiss replacement notification after 2 s ─────────────────────
 
   useEffect(() => {
     if (!replacedCategory) {
@@ -90,6 +150,8 @@ export function WardrobePage() {
       window.clearTimeout(timeoutId);
     };
   }, [replacedCategory]);
+
+  // ── Load wardrobe items ─────────────────────────────────────────────────
 
   useEffect(() => {
     if (!token) {
@@ -125,6 +187,8 @@ export function WardrobePage() {
     };
   }, [token]);
 
+  // ── Filter + pagination ─────────────────────────────────────────────────
+
   const filteredItems = useMemo(() => {
     if (activeFilter === "all") {
       return items;
@@ -153,6 +217,8 @@ export function WardrobePage() {
     [selectedItems]
   );
 
+  // ── Render ──────────────────────────────────────────────────────────────
+
   return (
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
@@ -172,6 +238,7 @@ export function WardrobePage() {
       </header>
 
       <Card className="space-y-5 p-5 md:p-6">
+        {/* Category filter */}
         <div className="flex flex-wrap gap-2">
           <Button
             variant={activeFilter === "all" ? "primary" : "outline"}
@@ -192,6 +259,7 @@ export function WardrobePage() {
           ))}
         </div>
 
+        {/* Selection summary bar */}
         {selectionMode ? (
           <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-boutique-300 bg-boutique-100/95 p-4">
             <div className="space-y-1">
@@ -208,12 +276,25 @@ export function WardrobePage() {
                   Replaced your {replacedCategory} selection
                 </p>
               ) : null}
-              <p className="text-xs text-boutique-700">{selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected</p>
+              <p className="text-xs text-boutique-700">
+                {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected
+              </p>
+              {recommendError ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+                  {recommendError}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <Button size="sm" disabled={selectedItems.size === 0} onClick={handleGetRecommendations}>
-                Get Recommendations
-              </Button>
+              {selectedItems.size > 0 ? (
+                <Button
+                  size="sm"
+                  disabled={isRecommending}
+                  onClick={() => void handleGetRecommendations()}
+                >
+                  {isRecommending ? "Getting recommendations\u2026" : "Get Outfit Recommendation"}
+                </Button>
+              ) : null}
               <Button size="sm" variant="outline" onClick={exitSelectionMode}>
                 Cancel
               </Button>
@@ -221,6 +302,7 @@ export function WardrobePage() {
           </div>
         ) : null}
 
+        {/* Item grid */}
         {isLoading ? (
           <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-10 text-center text-boutique-700">
             Loading your wardrobe...
@@ -299,6 +381,7 @@ export function WardrobePage() {
           </div>
         )}
 
+        {/* Pagination */}
         {totalPages > 1 ? (
           <div className="flex items-center justify-center gap-2 pt-1">
             {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
@@ -314,6 +397,55 @@ export function WardrobePage() {
           </div>
         ) : null}
       </Card>
+
+      {/* Recommendation result panel */}
+      {recommendation ? (
+        <Card className="space-y-5 p-5 md:p-6">
+          <div>
+            <h2 className="font-display text-4xl text-boutique-900">Outfit Recommendation</h2>
+            <p className="mt-2 rounded-2xl border border-boutique-200 bg-boutique-100/80 px-4 py-3 text-sm italic text-boutique-800">
+              {recommendation.styleNote}
+            </p>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {recommendation.outfit.map((item) => (
+              <article
+                key={item.id}
+                className="overflow-hidden rounded-2xl border border-boutique-200 bg-boutique-50 shadow-sm"
+              >
+                <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
+                  {brokenImageIds.has(item.id) ? (
+                    <div className="flex h-full w-full items-center justify-center text-boutique-400 text-xs">No image</div>
+                  ) : (
+                    <img
+                      src={item.imageUrl}
+                      alt={item.name}
+                      className="h-full w-full object-cover"
+                      onError={() => setBrokenImageIds((prev) => new Set(prev).add(item.id))}
+                    />
+                  )}
+                </div>
+
+                <div className="space-y-2 p-3">
+                  <p className="truncate text-sm font-semibold text-boutique-900">{item.name}</p>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge>{item.category}</Badge>
+                    {item.isUserSelected ? (
+                      <Badge className="bg-boutique-800 text-boutique-50">Your pick</Badge>
+                    ) : (
+                      <Badge className="bg-amber-100 text-amber-800">AI suggested</Badge>
+                    )}
+                  </div>
+                  {!item.isUserSelected && item.reason ? (
+                    <p className="text-xs italic text-boutique-600">{item.reason}</p>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        </Card>
+      ) : null}
     </section>
   );
 }

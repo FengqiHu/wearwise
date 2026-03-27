@@ -325,6 +325,18 @@ export function createClosetRoutes({
         return;
       }
 
+      const categoryCount = new Map<string, number>();
+      for (const item of selectedReadyItems) {
+        categoryCount.set(item.category, (categoryCount.get(item.category) ?? 0) + 1);
+      }
+      const duplicatedCategory = [...categoryCount.entries()].find(([, count]) => count > 1)?.[0];
+      if (duplicatedCategory) {
+        res.status(400).json({
+          error: `Only one item per category is allowed. Multiple items submitted for category: '${duplicatedCategory}'.`
+        });
+        return;
+      }
+
       // 4. Build the outfit starting with user-selected anchor items
       const outfit: RecommendOutfitResponse["outfit"] = selectedReadyItems.map((item) => ({
         id: item.id,
@@ -342,7 +354,10 @@ export function createClosetRoutes({
       const missingCategories = OUTFIT_CATEGORIES.filter((category) => !coveredCategories.has(category));
 
       if (missingCategories.length === 0) {
-        res.json({ outfit } satisfies RecommendOutfitResponse);
+        res.json({
+          outfit,
+          styleNote: "Your selected pieces already form a complete outfit."
+        } satisfies RecommendOutfitResponse);
         return;
       }
 
@@ -368,7 +383,10 @@ export function createClosetRoutes({
 
       if (categoriesToRecommend.length === 0) {
         // No candidates exist for any missing category — return with anchor items only
-        res.json({ outfit } satisfies RecommendOutfitResponse);
+        res.json({
+          outfit,
+          styleNote: "A cohesive outfit built around your selected pieces."
+        } satisfies RecommendOutfitResponse);
         return;
       }
 
@@ -443,7 +461,8 @@ export function createClosetRoutes({
         });
       }
 
-      res.json({ outfit } satisfies RecommendOutfitResponse);
+      const styleNote = geminiResult.styleNote.trim() || "A cohesive outfit built around your selected pieces.";
+      res.json({ outfit, styleNote } satisfies RecommendOutfitResponse);
     } catch (error) {
       console.error("Closet recommendation error:", error);
       res.status(500).json({ error: "Failed to generate outfit recommendation." });

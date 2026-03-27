@@ -12,6 +12,9 @@ export type OutfitCategory = (typeof OUTFIT_CATEGORIES)[number];
  * with a one-sentence reason.
  */
 const recommendationSchema = z.object({
+  styleNote: z
+    .string()
+    .describe("A concise one-sentence note describing the overall vibe or style of the completed outfit."),
   recommendations: z.array(
     z.object({
       category: z
@@ -62,6 +65,7 @@ function buildRecommendationPrompt(input: RecommendOutfitInput): string {
     "  - Never invent or modify item IDs.",
     "  - Recommend items that stylistically complement the selected items.",
     "  - Keep each reason to one concise sentence.",
+    "  - Include a styleNote: one sentence describing the overall vibe of the completed outfit.",
     "",
     JSON.stringify(context, null, 2)
   ].join("\n");
