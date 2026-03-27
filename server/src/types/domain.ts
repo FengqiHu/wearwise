@@ -106,6 +106,22 @@ export interface ClosetItemRecord {
   updatedAt: string;
 }
 
+export interface OutfitItem {
+  id: string;
+  category: string;
+  name: string;
+  imageUrl: string;
+  tags: string[];
+  description: string;
+  isUserSelected: boolean;
+  reason: string | null;
+}
+
+export interface RecommendOutfitResponse {
+  outfit: OutfitItem[];
+  styleNote: string;
+}
+
 export interface GenerateOutfitRequest {
   clothingItemIds: string[];
   options?: {
