@@ -1,6 +1,11 @@
 export interface ChatRequest {
   message: string;
   conversationId?: string;
+  userLocation?: {
+    lat: number;
+    lon: number;
+    timezone: string;
+  };
 }
 
 export interface UserProfile {

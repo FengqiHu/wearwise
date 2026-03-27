@@ -1,5 +1,7 @@
 # WearWise
 
+**Live App:** https://wearwise-cs423.web.app/
+
 WearWise is a personal cloud clothing library that lets you upload your wardrobe and get AI-powered outfit recommendations. Provide your clothing images and basic body info, and the agent recommends outfits based on weather, occasion, or personal preferences — then generates a virtual try-on image so you can see how each look would appear on you. You can also upload a product image from any online store to preview how it would fit with your existing wardrobe before buying.
 
 ## Prerequisites
@@ -59,8 +61,29 @@ npm run client
 
 The client runs at `http://localhost:5173` and the server at `http://localhost:3000` by default.
 
-## Running Tests
+## Server Environment
+
+Add your keys in `server/.env` before starting the backend:
 
 ```bash
-# Coming soon — Vitest
+OPENAI_API_KEY=...
+OPENWEATHER_API_KEY=...
 ```
+
+## Running Tests
+
+Tests are written with [Vitest](https://vitest.dev/) and live under `server/src/**/*.test.ts`.
+
+```bash
+cd server
+npm test
+```
+
+This runs all server-side unit tests (services and repositories).
+
+## Deployment
+
+The application is deployed and accessible at https://wearwise-cs423.web.app/
+
+- **Frontend**: Firebase Hosting
++ **Backend**: Render
