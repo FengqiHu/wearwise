@@ -8,6 +8,7 @@ import {
   createPresignedImageUpload,
   deleteClosetItem,
   fetchClosetItems,
+  generateOutfit,
   importTestClosetItems,
   recommendOutfit,
   uploadFileToPresignedUrl
@@ -81,6 +82,11 @@ export function WardrobePage() {
   const [recommendError, setRecommendError] = useState<string | null>(null);
   const recommendRequestId = useRef(0);
 
+  // Try-on image generation state (Issue #50)
+  const [tryOnImageUrl, setTryOnImageUrl] = useState<string | null>(null);
+  const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
+  const [tryOnError, setTryOnError] = useState<string | null>(null);
+
   // ── Selection mode helpers ──────────────────────────────────────────────
 
   function toggleSelection(item: ClothingItem): void {
@@ -118,6 +124,8 @@ export function WardrobePage() {
     setReplacedCategory(null);
     setRecommendation(null);
     setRecommendError(null);
+    setTryOnImageUrl(null);
+    setTryOnError(null);
     setIsRecommending(false);
   }
 
@@ -169,6 +177,32 @@ export function WardrobePage() {
       if (recommendRequestId.current === requestId) {
         setIsRecommending(false);
       }
+    }
+  }
+
+  async function handleGenerateTryOn(): Promise<void> {
+    if (!token || !recommendation || isGeneratingTryOn) {
+      return;
+    }
+
+    const allItemIds = recommendation.outfit.map((item) => item.id);
+
+    try {
+      setIsGeneratingTryOn(true);
+      setTryOnError(null);
+      setTryOnImageUrl(null);
+
+      const result = await generateOutfit(token, allItemIds);
+      setTryOnImageUrl(result.imageUrl);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to generate try-on image.";
+      if (message.includes("no body image")) {
+        setTryOnError("Please upload a full-body photo in your profile first.");
+      } else {
+        setTryOnError(message);
+      }
+    } finally {
+      setIsGeneratingTryOn(false);
     }
   }
 
@@ -643,6 +677,29 @@ export function WardrobePage() {
                 </div>
               </article>
             ))}
+          </div>
+
+          <div className="space-y-4">
+            <Button
+              disabled={isGeneratingTryOn}
+              onClick={handleGenerateTryOn}
+            >
+              {isGeneratingTryOn ? "Generating try-on image\u2026" : "Generate Try-On Image"}
+            </Button>
+
+            {tryOnError ? (
+              <p className="text-sm text-red-600">{tryOnError}</p>
+            ) : null}
+
+            {tryOnImageUrl ? (
+              <div className="overflow-hidden rounded-2xl border border-boutique-200">
+                <img
+                  src={tryOnImageUrl}
+                  alt="Virtual try-on result"
+                  className="w-full object-contain"
+                />
+              </div>
+            ) : null}
           </div>
         </Card>
       ) : null}
