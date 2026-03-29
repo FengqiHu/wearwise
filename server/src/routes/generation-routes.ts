@@ -91,6 +91,7 @@ export function createGenerationRoutes({
       const userId = authResolution.user.id;
       const user = await userRepository.findById(userId);
       const bodyImageUrl = user?.profile?.fullBodyImageUrl ?? null;
+      const headshotImageUrl = user?.profile?.headshotImageUrl ?? null;
 
       if (!bodyImageUrl) {
         res.status(422).json({
@@ -122,6 +123,7 @@ export function createGenerationRoutes({
       // 5. Call Gemini to generate outfit image
       const generatedImageBuffer = await imageGenerationService.generateOutfitImage({
         bodyImageUrl,
+        ...(headshotImageUrl ? { headshotImageUrl } : {}),
         clothingImageUrls,
         ...(options.prompt ? { promptOverride: options.prompt } : {}),
         aspectRatio: options.aspectRatio ?? "3:4"

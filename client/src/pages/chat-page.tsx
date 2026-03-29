@@ -516,6 +516,7 @@ export function ChatPage() {
     abortControllerRef.current = controller;
     setIsGenerating(true);
     let responseConversationId: string | null = activeConversationId;
+    let shouldSyncConversation = false;
 
     try {
       await streamChatResponse(
@@ -534,6 +535,7 @@ export function ChatPage() {
           setActiveConversationId(conversationId);
         }
       );
+      shouldSyncConversation = true;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         appendChunkToMessage(assistantMessage.id, "\n\n(Stopped)");
@@ -544,8 +546,18 @@ export function ChatPage() {
         );
       }
     } finally {
-      setIsGenerating(false);
       abortControllerRef.current = null;
+      if (shouldSyncConversation && responseConversationId) {
+        try {
+          const detail = await fetchChatConversation(token, responseConversationId);
+          setActiveConversationId(detail.conversation.id);
+          setMessages(detail.messages);
+          setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+        } catch {
+          // Keep the streamed local messages if the sync fails.
+        }
+      }
+      setIsGenerating(false);
       await refreshConversationList(responseConversationId ?? undefined);
     }
   };
