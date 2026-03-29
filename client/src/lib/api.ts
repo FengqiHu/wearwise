@@ -453,33 +453,6 @@ export async function recommendOutfit(
   return (await response.json()) as OutfitRecommendation;
 }
 
-interface GenerateOutfitResult {
-  imageUrl: string;
-  generatedAt: string;
-}
-
-export async function generateOutfit(
-  token: string,
-  clothingItemIds: string[]
-): Promise<GenerateOutfitResult> {
-  const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
-    method: "POST",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify({ clothingItemIds })
-  });
-
-  if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to generate outfit image.");
-    throw new Error(message);
-  }
-
-  const data = (await response.json()) as { success: boolean; result: GenerateOutfitResult | null; message?: string };
-  if (!data.success || !data.result) {
-    throw new Error(data.message ?? "Failed to generate outfit image.");
-  }
-
-  return data.result;
-}
 
 export async function streamChatResponse(
   token: string,
