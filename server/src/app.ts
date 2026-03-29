@@ -131,6 +131,7 @@ export function createApp() {
       authService,
       userRepository,
       closetRepository,
+      conversationRepository,
       generationRepository,
       imageGenerationService,
       r2StorageService
