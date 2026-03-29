@@ -494,3 +494,28 @@ export async function streamChatResponse(
     onChunk(decoder.decode(value, { stream: true }));
   }
 }
+
+export async function generateOutfit(token: string, clothingItemIds: string[]): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ clothingItemIds })
+  });
+
+  if (response.status === 422) {
+    throw new Error("You need to upload a full-body photo in your profile before generating a try-on image.");
+  }
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, `Failed to generate outfit image (status ${response.status})`);
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { success: boolean; result: { imageUrl: string } | null; message?: string };
+
+  if (!data.success || !data.result) {
+    throw new Error(data.message ?? "Image generation failed.");
+  }
+
+  return data.result.imageUrl;
+}
