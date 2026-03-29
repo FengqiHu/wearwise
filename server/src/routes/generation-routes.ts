@@ -1,5 +1,6 @@
 import { Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
+import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { GenerationRepository } from "../repositories/generation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
@@ -11,6 +12,7 @@ interface GenerationRoutesDependencies {
   authService: AuthService;
   userRepository: UserRepository;
   closetRepository: ClosetRepository;
+  conversationRepository: ConversationRepository;
   generationRepository: GenerationRepository;
   imageGenerationService: ImageGenerationService;
   r2StorageService: R2StorageService;
@@ -20,6 +22,7 @@ export function createGenerationRoutes({
   authService,
   userRepository,
   closetRepository,
+  conversationRepository,
   generationRepository,
   imageGenerationService,
   r2StorageService
@@ -32,7 +35,7 @@ export function createGenerationRoutes({
    * Generates a realistic outfit image by combining the user's body image
    * with their selected clothing items via Gemini image generation.
    *
-   * Request body: { clothingItemIds: string[], options?: { scene?, style?, prompt?, aspectRatio? } }
+   * Request body: { clothingItemIds: string[], conversationId?, messageId?, outfitKey?, options?: { scene?, style?, prompt?, aspectRatio? } }
    * Response 200: { success: true, result: { imageUrl, generatedAt } }
    */
   router.post("/generate/outfit", async (req, res): Promise<void> => {
@@ -60,12 +63,24 @@ export function createGenerationRoutes({
       // 2. Parse request body
       const body = (req.body as GenerateOutfitRequest | undefined) ?? { clothingItemIds: [] };
       const clothingItemIds = Array.isArray(body.clothingItemIds) ? body.clothingItemIds : [];
+      const conversationId = typeof body.conversationId === "string" ? body.conversationId.trim() : "";
+      const messageId = typeof body.messageId === "string" ? body.messageId.trim() : "";
+      const outfitKey = typeof body.outfitKey === "string" ? body.outfitKey.trim() : "";
 
       if (clothingItemIds.length === 0) {
         res.status(400).json({
           success: false,
           result: null,
           message: "clothingItemIds is required and must not be empty."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+
+      if ((conversationId || messageId || outfitKey) && (!conversationId || !messageId || !outfitKey)) {
+        res.status(400).json({
+          success: false,
+          result: null,
+          message: "conversationId, messageId, and outfitKey are all required to save a try-on image to chat history."
         } satisfies GenerateOutfitResponse);
         return;
       }
@@ -120,7 +135,27 @@ export function createGenerationRoutes({
       // 7. Save generation record to MongoDB
       await generationRepository.create(userId, clothingItemIds, generatedImageUrl);
 
-      // 8. Return result
+      // 8. Persist the generated image onto the source chat message when identifiers are provided.
+      if (conversationId && messageId && outfitKey) {
+        const updatedConversation = await conversationRepository.attachTryOnImage(
+          userId,
+          conversationId,
+          messageId,
+          outfitKey,
+          generatedImageUrl
+        );
+
+        if (!updatedConversation) {
+          res.status(404).json({
+            success: false,
+            result: null,
+            message: "Conversation message not found."
+          } satisfies GenerateOutfitResponse);
+          return;
+        }
+      }
+
+      // 9. Return result
       res.json({
         success: true,
         result: {
