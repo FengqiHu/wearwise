@@ -72,6 +72,7 @@ async function parseResponseError(response: Response, fallback: string): Promise
   try {
     const payload = (await response.json()) as {
       error?: string;
+      message?: string;
       providerError?: string | null;
       providerDescription?: string | null;
     };
@@ -82,6 +83,10 @@ async function parseResponseError(response: Response, fallback: string): Promise
       }
 
       return payload.error;
+    }
+
+    if (payload.message) {
+      return payload.message;
     }
   } catch {
     // Ignore parse errors and use fallback text.
@@ -493,4 +498,49 @@ export async function streamChatResponse(
 
     onChunk(decoder.decode(value, { stream: true }));
   }
+}
+
+interface GenerateOutfitOptions {
+  conversationId?: string;
+  messageId?: string;
+  outfitKey?: string;
+}
+
+export async function generateOutfit(
+  token: string,
+  clothingItemIds: string[],
+  options?: GenerateOutfitOptions
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({
+      clothingItemIds,
+      ...(options?.conversationId ? { conversationId: options.conversationId } : {}),
+      ...(options?.messageId ? { messageId: options.messageId } : {}),
+      ...(options?.outfitKey ? { outfitKey: options.outfitKey } : {})
+    })
+  });
+
+  if (response.status === 422) {
+    const message = await parseResponseError(response, "Unable to generate a try-on image.");
+    if (/body image/i.test(message)) {
+      throw new Error("You need to upload a full-body photo in your profile before generating a try-on image.");
+    }
+
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, `Failed to generate outfit image (status ${response.status})`);
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { success: boolean; result: { imageUrl: string } | null; message?: string };
+
+  if (!data.success || !data.result) {
+    throw new Error(data.message ?? "Image generation failed.");
+  }
+
+  return data.result.imageUrl;
 }

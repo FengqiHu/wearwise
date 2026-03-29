@@ -64,11 +64,18 @@ export interface AuthError {
 
 export type ChatRole = "user" | "assistant";
 
+export interface StoredTryOnImage {
+  outfitKey: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
 export interface StoredChatMessage {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
+  tryOnImages?: StoredTryOnImage[];
 }
 
 export interface ConversationRecord {
@@ -124,6 +131,9 @@ export interface RecommendOutfitResponse {
 
 export interface GenerateOutfitRequest {
   clothingItemIds: string[];
+  conversationId?: string;
+  messageId?: string;
+  outfitKey?: string;
   options?: {
     scene?: string;
     style?: string;
