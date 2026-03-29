@@ -46,6 +46,53 @@ const sampleItems = [
   }
 ];
 
+const UI_TIMEOUT_MS = 5_000;
+
+function createJsonFetchResponse(payload: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload
+  } as Response;
+}
+
+function createBlobFetchResponse(data: string, type: string): Response {
+  return {
+    ok: true,
+    status: 200,
+    blob: async () => new Blob([data], { type })
+  } as Response;
+}
+
+async function waitForImportedWardrobe(expectedImportCalls: number, expectedUploadCalls: number): Promise<void> {
+  await waitFor(() => {
+    expect(apiMocks.importTestClosetItems).toHaveBeenCalledTimes(expectedImportCalls);
+    expect(apiMocks.createPresignedImageUpload).toHaveBeenCalledTimes(expectedUploadCalls);
+    expect(apiMocks.uploadFileToPresignedUrl).toHaveBeenCalledTimes(expectedUploadCalls);
+  }, { timeout: UI_TIMEOUT_MS });
+
+  expect(await screen.findByText(/alpha top/i, {}, { timeout: UI_TIMEOUT_MS })).toBeInTheDocument();
+  expect(await screen.findByText(/beta pants/i, {}, { timeout: UI_TIMEOUT_MS })).toBeInTheDocument();
+  expect(
+    await screen.findByText(/2 test item\(s\) imported into your wardrobe\./i, {}, { timeout: UI_TIMEOUT_MS })
+  ).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.getAllByLabelText("Delete item")).toHaveLength(2);
+  }, { timeout: UI_TIMEOUT_MS });
+}
+
+async function deleteAllImportedItems(user: ReturnType<typeof userEvent.setup>, expectedDeleteCalls: number): Promise<void> {
+  for (let call = 1; call <= expectedDeleteCalls; call += 1) {
+    const [deleteButton] = await screen.findAllByLabelText("Delete item", {}, { timeout: UI_TIMEOUT_MS });
+    await user.click(deleteButton);
+
+    await waitFor(() => {
+      expect(apiMocks.deleteClosetItem).toHaveBeenCalledTimes(call);
+    }, { timeout: UI_TIMEOUT_MS });
+  }
+}
+
 describe("WardrobePage Add test data regression", () => {
   let wardrobeState: ClothingItem[];
   let importRound: number;
@@ -96,18 +143,15 @@ describe("WardrobePage Add test data regression", () => {
       const url = typeof input === "string" ? input : input.toString();
 
       if (url === "/sample-data/sample-clothes-data.json") {
-        return new Response(JSON.stringify(sampleItems), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
+        return createJsonFetchResponse(sampleItems);
       }
 
       if (url === "/sample-data/images/alpha-top.png") {
-        return new Response(new Blob(["alpha"], { type: "image/png" }), { status: 200 });
+        return createBlobFetchResponse("alpha", "image/png");
       }
 
       if (url === "/sample-data/images/beta-pants.jpg") {
-        return new Response(new Blob(["beta"], { type: "image/jpeg" }), { status: 200 });
+        return createBlobFetchResponse("beta", "image/jpeg");
       }
 
       throw new Error(`Unexpected fetch request: ${url}`);
@@ -127,21 +171,15 @@ describe("WardrobePage Add test data regression", () => {
 
     await user.click(screen.getByRole("button", { name: "Add test data" }));
 
-    await screen.findByText("2 test item(s) imported into your wardrobe.");
-    expect(screen.getByText("Alpha Top")).toBeDefined();
-    expect(screen.getByText("Beta Pants")).toBeDefined();
+    await waitForImportedWardrobe(1, 2);
 
-    for (const deleteButton of screen.getAllByLabelText("Delete item")) {
-      await user.click(deleteButton);
-    }
+    await deleteAllImportedItems(user, 2);
 
-    await screen.findByText("No items found for this filter.");
+    await screen.findByText("No items found for this filter.", {}, { timeout: UI_TIMEOUT_MS });
 
     await user.click(screen.getByRole("button", { name: "Add test data" }));
 
-    await screen.findByText("2 test item(s) imported into your wardrobe.");
-    expect(screen.getByText("Alpha Top")).toBeDefined();
-    expect(screen.getByText("Beta Pants")).toBeDefined();
+    await waitForImportedWardrobe(2, 4);
 
     await waitFor(() => {
       expect(apiMocks.importTestClosetItems).toHaveBeenCalledTimes(2);
