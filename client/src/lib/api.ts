@@ -458,6 +458,7 @@ export async function recommendOutfit(
   return (await response.json()) as OutfitRecommendation;
 }
 
+
 export async function streamChatResponse(
   token: string,
   payload: ChatStreamPayload,
