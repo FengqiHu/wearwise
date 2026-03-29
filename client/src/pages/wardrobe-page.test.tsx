@@ -46,6 +46,37 @@ const sampleItems = [
   }
 ];
 
+const UI_TIMEOUT_MS = 5_000;
+
+async function waitForImportedWardrobe(expectedImportCalls: number, expectedUploadCalls: number): Promise<void> {
+  await waitFor(() => {
+    expect(apiMocks.importTestClosetItems).toHaveBeenCalledTimes(expectedImportCalls);
+    expect(apiMocks.createPresignedImageUpload).toHaveBeenCalledTimes(expectedUploadCalls);
+    expect(apiMocks.uploadFileToPresignedUrl).toHaveBeenCalledTimes(expectedUploadCalls);
+  }, { timeout: UI_TIMEOUT_MS });
+
+  expect(await screen.findByText(/alpha top/i, {}, { timeout: UI_TIMEOUT_MS })).toBeInTheDocument();
+  expect(await screen.findByText(/beta pants/i, {}, { timeout: UI_TIMEOUT_MS })).toBeInTheDocument();
+  expect(
+    await screen.findByText(/2 test item\(s\) imported into your wardrobe\./i, {}, { timeout: UI_TIMEOUT_MS })
+  ).toBeInTheDocument();
+
+  await waitFor(() => {
+    expect(screen.getAllByLabelText("Delete item")).toHaveLength(2);
+  }, { timeout: UI_TIMEOUT_MS });
+}
+
+async function deleteAllImportedItems(user: ReturnType<typeof userEvent.setup>, expectedDeleteCalls: number): Promise<void> {
+  for (let call = 1; call <= expectedDeleteCalls; call += 1) {
+    const [deleteButton] = await screen.findAllByLabelText("Delete item", {}, { timeout: UI_TIMEOUT_MS });
+    await user.click(deleteButton);
+
+    await waitFor(() => {
+      expect(apiMocks.deleteClosetItem).toHaveBeenCalledTimes(call);
+    }, { timeout: UI_TIMEOUT_MS });
+  }
+}
+
 describe("WardrobePage Add test data regression", () => {
   let wardrobeState: ClothingItem[];
   let importRound: number;
@@ -127,21 +158,15 @@ describe("WardrobePage Add test data regression", () => {
 
     await user.click(screen.getByRole("button", { name: "Add test data" }));
 
-    await screen.findByText("2 test item(s) imported into your wardrobe.");
-    expect(screen.getByText("Alpha Top")).toBeDefined();
-    expect(screen.getByText("Beta Pants")).toBeDefined();
+    await waitForImportedWardrobe(1, 2);
 
-    for (const deleteButton of screen.getAllByLabelText("Delete item")) {
-      await user.click(deleteButton);
-    }
+    await deleteAllImportedItems(user, 2);
 
-    await screen.findByText("No items found for this filter.");
+    await screen.findByText("No items found for this filter.", {}, { timeout: UI_TIMEOUT_MS });
 
     await user.click(screen.getByRole("button", { name: "Add test data" }));
 
-    await screen.findByText("2 test item(s) imported into your wardrobe.");
-    expect(screen.getByText("Alpha Top")).toBeDefined();
-    expect(screen.getByText("Beta Pants")).toBeDefined();
+    await waitForImportedWardrobe(2, 4);
 
     await waitFor(() => {
       expect(apiMocks.importTestClosetItems).toHaveBeenCalledTimes(2);
