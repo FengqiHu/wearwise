@@ -152,6 +152,11 @@ export function ProfilePage() {
     const trimmedFullBodyImageUrl = form.fullBodyImageUrl.trim();
     const trimmedHeadshotImageUrl = form.headshotImageUrl.trim();
 
+    if (!trimmedFullBodyImageUrl) {
+      setError("Full-body is required.");
+      return;
+    }
+
     const nextProfile: UserProfile = {
       name: form.name.trim(),
       heightCm,
@@ -335,7 +340,7 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Full-body Photo (optional)</label>
+                <label className="mb-1 block text-sm font-medium text-boutique-700">Full-body (required)</label>
                 <div className="group relative block h-[280px] w-[200px] overflow-hidden rounded-2xl border border-boutique-300 bg-boutique-100">
                   <img src={fullBodyDisplay} alt="Full-body preview" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
                   {form.fullBodyImageUrl ? (

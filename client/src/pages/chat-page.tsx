@@ -11,7 +11,15 @@ import {
 } from "../components/ui/prompt-input";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
-import { deleteChatConversation, fetchChatConversation, fetchChatConversations, fetchClosetItems, streamChatResponse, type UserLocation } from "../lib/api";
+import {
+  deleteChatConversation,
+  fetchChatConversation,
+  fetchChatConversations,
+  fetchClosetItems,
+  generateOutfit,
+  streamChatResponse,
+  type UserLocation
+} from "../lib/api";
 import { cn } from "../lib/cn";
 import type { ChatConversationSummary, ChatMessage, ClothingItem } from "../types";
 
@@ -28,6 +36,12 @@ interface Outfit {
 
 interface OutfitResponse {
   outfits: Outfit[];
+}
+
+interface OutfitGenerationState {
+  generatedImageUrl: string | null;
+  error: string | null;
+  isLoading: boolean;
 }
 
 function parseOutfitResponse(content: string): OutfitResponse | null {
@@ -49,12 +63,65 @@ function parseOutfitResponse(content: string): OutfitResponse | null {
   }
 }
 
+function buildOutfitGenerationKey(messageId: string, outfitIndex: number, outfit: Outfit): string {
+  return `${messageId}:${outfitIndex}:${outfit.items.map((item) => item.id).join(",")}`;
+}
+
+function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<string, OutfitGenerationState> {
+  const nextStates: Record<string, OutfitGenerationState> = {};
+
+  for (const message of messages) {
+    for (const tryOnImage of message.tryOnImages ?? []) {
+      nextStates[tryOnImage.outfitKey] = {
+        generatedImageUrl: tryOnImage.imageUrl,
+        error: null,
+        isLoading: false
+      };
+    }
+  }
+
+  return nextStates;
+}
+
+function upsertTryOnImageInMessages(
+  messages: ChatMessage[],
+  messageId: string,
+  outfitKey: string,
+  imageUrl: string
+): ChatMessage[] {
+  return messages.map((message) => {
+    if (message.id !== messageId) {
+      return message;
+    }
+
+    const nextTryOnImages = [
+      ...(message.tryOnImages ?? []).filter((entry) => entry.outfitKey !== outfitKey),
+      {
+        outfitKey,
+        imageUrl,
+        createdAt: new Date().toISOString()
+      }
+    ];
+
+    return {
+      ...message,
+      tryOnImages: nextTryOnImages
+    };
+  });
+}
+
 function OutfitCards({
+  messageId,
   outfits,
-  closetItems
+  closetItems,
+  generationStates,
+  onGenerateTryOn
 }: {
+  messageId: string;
   outfits: Outfit[];
   closetItems: ClothingItem[];
+  generationStates: Record<string, OutfitGenerationState>;
+  onGenerateTryOn: (outfitKey: string, clothingItemIds: string[]) => Promise<void>;
 }) {
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
@@ -66,43 +133,86 @@ function OutfitCards({
     <div className="flex flex-col gap-3 w-full">
       <p className="text-xs font-medium text-boutique-600 uppercase tracking-wide">Outfit Recommendations</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {outfits.map((outfit, index) => (
-          <div
-            key={index}
-            className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm"
-          >
-            <p className="font-display text-lg leading-snug text-boutique-900">{outfit.outfitName}</p>
+        {outfits.map((outfit, index) => {
+          const outfitKey = buildOutfitGenerationKey(messageId, index, outfit);
+          const generationState = generationStates[outfitKey] ?? {
+            generatedImageUrl: null,
+            error: null,
+            isLoading: false
+          };
+          const clothingItemIds = outfit.items.map((item) => item.id).filter(Boolean);
 
-            <div className="flex flex-wrap gap-2">
-              {outfit.items.map((item) => {
-                const closetItem = itemMap.get(item.id);
-                return closetItem ? (
+          return (
+            <div
+              key={outfitKey}
+              className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm"
+            >
+              <p className="font-display text-lg leading-snug text-boutique-900">{outfit.outfitName}</p>
+
+              <div className="flex flex-wrap gap-2">
+                {outfit.items.map((item) => {
+                  const closetItem = itemMap.get(item.id);
+                  return closetItem ? (
+                    <img
+                      key={item.id}
+                      src={closetItem.imageUrl}
+                      alt={item.name}
+                      title={item.name}
+                      className="h-16 w-16 rounded-xl border border-boutique-200 object-cover shadow-sm"
+                    />
+                  ) : (
+                    <div
+                      key={item.id}
+                      title={item.name}
+                      className="flex h-16 w-16 items-center justify-center rounded-xl border border-boutique-200 bg-boutique-100 text-xs text-boutique-500"
+                    >
+                      ?
+                    </div>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs leading-relaxed text-boutique-700">{outfit.reason}</p>
+
+              {generationState.generatedImageUrl ? (
+                <div className="overflow-hidden rounded-2xl border border-boutique-200 bg-white/80">
                   <img
-                    key={item.id}
-                    src={closetItem.imageUrl}
-                    alt={item.name}
-                    title={item.name}
-                    className="h-16 w-16 rounded-xl border border-boutique-200 object-cover shadow-sm"
+                    src={generationState.generatedImageUrl}
+                    alt={`${outfit.outfitName} try-on`}
+                    className="h-80 w-full object-cover md:h-96"
                   />
+                </div>
+              ) : null}
+
+              {generationState.error ? (
+                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
+                  {generationState.error}
+                </p>
+              ) : null}
+
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={generationState.isLoading || clothingItemIds.length === 0}
+                className="mt-auto w-full"
+                onClick={() => {
+                  void onGenerateTryOn(outfitKey, clothingItemIds);
+                }}
+              >
+                {generationState.isLoading ? (
+                  <span className="inline-flex items-center gap-2">
+                    <ThinkingDots />
+                    <span>Generating...</span>
+                  </span>
+                ) : generationState.generatedImageUrl ? (
+                  "Regenerate Try-On"
                 ) : (
-                  <div
-                    key={item.id}
-                    title={item.name}
-                    className="flex h-16 w-16 items-center justify-center rounded-xl border border-boutique-200 bg-boutique-100 text-xs text-boutique-500"
-                  >
-                    ?
-                  </div>
-                );
-              })}
+                  "Generate Try-On"
+                )}
+              </Button>
             </div>
-
-            <p className="text-xs leading-relaxed text-boutique-700">{outfit.reason}</p>
-
-            <Button variant="outline" size="sm" disabled className="mt-auto w-full">
-              Generate Try-On
-            </Button>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -165,6 +275,7 @@ export function ChatPage() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
+  const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -205,6 +316,7 @@ export function ChatPage() {
       setConversations([]);
       setActiveConversationId(null);
       setMessages([greeting]);
+      setOutfitGenerationStates({});
       setIsLoadingHistory(false);
       return;
     }
@@ -227,6 +339,7 @@ export function ChatPage() {
         if (list.length === 0) {
           setActiveConversationId(null);
           setMessages([greeting]);
+          setOutfitGenerationStates({});
           return;
         }
 
@@ -239,6 +352,7 @@ export function ChatPage() {
 
         setActiveConversationId(firstConversationId);
         setMessages(detail.messages);
+        setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
       } catch (error) {
         if (!active) {
           return;
@@ -248,6 +362,7 @@ export function ChatPage() {
         setHistoryError(message);
         setActiveConversationId(null);
         setMessages([greeting]);
+        setOutfitGenerationStates({});
       } finally {
         if (active) {
           setIsLoadingHistory(false);
@@ -295,6 +410,7 @@ export function ChatPage() {
         const detail = await fetchChatConversation(token, conversationId);
         setActiveConversationId(conversationId);
         setMessages(detail.messages);
+        setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load conversation.";
         setHistoryError(message);
@@ -312,6 +428,7 @@ export function ChatPage() {
 
     setActiveConversationId(null);
     setMessages([greeting]);
+    setOutfitGenerationStates({});
     setInput("");
     setHistoryError(null);
   }, [greeting, isGenerating]);
@@ -348,11 +465,13 @@ export function ChatPage() {
             try {
               const detail = await fetchChatConversation(token, nextConversationId);
               setMessages(detail.messages);
+              setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
             } finally {
               setIsLoadingConversation(false);
             }
           } else {
             setMessages([greeting]);
+            setOutfitGenerationStates({});
           }
         }
       } catch (error) {
@@ -397,6 +516,7 @@ export function ChatPage() {
     abortControllerRef.current = controller;
     setIsGenerating(true);
     let responseConversationId: string | null = activeConversationId;
+    let shouldSyncConversation = false;
 
     try {
       await streamChatResponse(
@@ -415,6 +535,7 @@ export function ChatPage() {
           setActiveConversationId(conversationId);
         }
       );
+      shouldSyncConversation = true;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
         appendChunkToMessage(assistantMessage.id, "\n\n(Stopped)");
@@ -425,8 +546,18 @@ export function ChatPage() {
         );
       }
     } finally {
-      setIsGenerating(false);
       abortControllerRef.current = null;
+      if (shouldSyncConversation && responseConversationId) {
+        try {
+          const detail = await fetchChatConversation(token, responseConversationId);
+          setActiveConversationId(detail.conversation.id);
+          setMessages(detail.messages);
+          setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+        } catch {
+          // Keep the streamed local messages if the sync fails.
+        }
+      }
+      setIsGenerating(false);
       await refreshConversationList(responseConversationId ?? undefined);
     }
   };
@@ -435,6 +566,65 @@ export function ChatPage() {
     abortControllerRef.current?.abort();
     abortControllerRef.current = null;
   };
+
+  const handleGenerateTryOn = useCallback(
+    async (messageId: string, outfitKey: string, clothingItemIds: string[]): Promise<void> => {
+      if (!token || clothingItemIds.length === 0) {
+        return;
+      }
+
+      const conversationId = activeConversationId;
+      if (!conversationId) {
+        setOutfitGenerationStates((previous) => ({
+          ...previous,
+          [outfitKey]: {
+            generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
+            error: "Open or create a saved conversation before generating a try-on image.",
+            isLoading: false
+          }
+        }));
+        return;
+      }
+
+      setOutfitGenerationStates((previous) => ({
+        ...previous,
+        [outfitKey]: {
+          generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
+          error: null,
+          isLoading: true
+        }
+      }));
+
+      try {
+        const generatedImageUrl = await generateOutfit(token, clothingItemIds, {
+          conversationId,
+          messageId,
+          outfitKey
+        });
+
+        setMessages((previous) => upsertTryOnImageInMessages(previous, messageId, outfitKey, generatedImageUrl));
+
+        setOutfitGenerationStates((previous) => ({
+          ...previous,
+          [outfitKey]: {
+            generatedImageUrl,
+            error: null,
+            isLoading: false
+          }
+        }));
+      } catch (error) {
+        setOutfitGenerationStates((previous) => ({
+          ...previous,
+          [outfitKey]: {
+            generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
+            error: error instanceof Error ? error.message : "Failed to generate a try-on image.",
+            isLoading: false
+          }
+        }));
+      }
+    },
+    [activeConversationId, token]
+  );
 
   return (
     <section className="grid h-[calc(100vh-9.5rem)] w-full max-w-none gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
@@ -545,7 +735,17 @@ export function ChatPage() {
                       ) : (() => {
                         const outfitData = message.role === "assistant" ? parseOutfitResponse(message.content) : null;
                         if (outfitData) {
-                          return <OutfitCards outfits={outfitData.outfits} closetItems={closetItems} />;
+                          return (
+                            <OutfitCards
+                              messageId={message.id}
+                              outfits={outfitData.outfits}
+                              closetItems={closetItems}
+                              generationStates={outfitGenerationStates}
+                              onGenerateTryOn={(outfitKey, clothingItemIds) =>
+                                handleGenerateTryOn(message.id, outfitKey, clothingItemIds)
+                              }
+                            />
+                          );
                         }
                         return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
                       })()}
