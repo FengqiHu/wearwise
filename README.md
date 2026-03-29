@@ -24,7 +24,7 @@ WearWise is a personal cloud clothing library that lets you upload your wardrobe
 | Weather | OpenWeather API |
 | AI (Reasoning) | Gemini |
 | AI (Images) | Nano Banana |
-| Deployment | Vercel (web + serverless), Render (workers) |
+| Deployment | Firebase (web + serverless), Render (workers) |
 | Testing | Vitest |
 
 ## Setup
