@@ -211,6 +211,12 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
+      const [closetItems, userRecord] = await Promise.all([
+        closetRepository.listByUser(userId),
+        userRepository.findById(userId)
+      ]);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems);
+
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -229,13 +235,14 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       try {
         // stream the chat response from the chat service
         // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
-        await chatService.streamChat({          
-          // entry: StoredChatMessage
-          messages: conversation.messages.map((entry) => ({            
-            // role: user or assistant
-            role: entry.role,
-            content: entry.content
-          })),
+        await chatService.streamChat({
+          messages: [
+            { role: "system", content: wardrobeSystemMessage },
+            ...conversation.messages.map((entry) => ({
+              role: entry.role,
+              content: entry.content
+            }))
+          ],
           ...(userLocation
             ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
             : {}),

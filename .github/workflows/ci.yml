@@ -26,3 +26,6 @@ jobs:
 
       - name: Type-check server
         run: cd server && npx tsc --noEmit
+
+      - name: Run server tests
+        run: cd server && npm run test
