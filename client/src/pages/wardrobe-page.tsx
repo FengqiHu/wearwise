@@ -192,8 +192,8 @@ export function WardrobePage() {
       setTryOnError(null);
       setTryOnImageUrl(null);
 
-      const result = await generateOutfit(token, allItemIds);
-      setTryOnImageUrl(result.imageUrl);
+      const imageUrl = await generateOutfit(token, allItemIds);
+      setTryOnImageUrl(imageUrl);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to generate try-on image.";
       if (message.includes("no body image")) {
