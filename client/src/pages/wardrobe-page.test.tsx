@@ -48,6 +48,22 @@ const sampleItems = [
 
 const UI_TIMEOUT_MS = 5_000;
 
+function createJsonFetchResponse(payload: unknown): Response {
+  return {
+    ok: true,
+    status: 200,
+    json: async () => payload
+  } as Response;
+}
+
+function createBlobFetchResponse(data: string, type: string): Response {
+  return {
+    ok: true,
+    status: 200,
+    blob: async () => new Blob([data], { type })
+  } as Response;
+}
+
 async function waitForImportedWardrobe(expectedImportCalls: number, expectedUploadCalls: number): Promise<void> {
   await waitFor(() => {
     expect(apiMocks.importTestClosetItems).toHaveBeenCalledTimes(expectedImportCalls);
@@ -127,18 +143,15 @@ describe("WardrobePage Add test data regression", () => {
       const url = typeof input === "string" ? input : input.toString();
 
       if (url === "/sample-data/sample-clothes-data.json") {
-        return new Response(JSON.stringify(sampleItems), {
-          status: 200,
-          headers: { "Content-Type": "application/json" }
-        });
+        return createJsonFetchResponse(sampleItems);
       }
 
       if (url === "/sample-data/images/alpha-top.png") {
-        return new Response(new Blob(["alpha"], { type: "image/png" }), { status: 200 });
+        return createBlobFetchResponse("alpha", "image/png");
       }
 
       if (url === "/sample-data/images/beta-pants.jpg") {
-        return new Response(new Blob(["beta"], { type: "image/jpeg" }), { status: 200 });
+        return createBlobFetchResponse("beta", "image/jpeg");
       }
 
       throw new Error(`Unexpected fetch request: ${url}`);
