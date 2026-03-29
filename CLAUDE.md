@@ -15,42 +15,42 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 * **Database**: MongoDB
 
-* **Image Storage:Cloudflare R2
+* **Image Storage:** Cloudflare R2
 
 * **Auth:** Google OAuth 2.0
 
 * **Consent Review:** Google Cloud Vision – SafeSearch
 
-* **Weather API**:OpenWeather(weather query)
+* **Weather API:** OpenWeather (weather query)
 
-* **AI Services:Gemini (reasoning for recommendation), Nano Banana (image generation)
+* **AI Services:** Gemini (reasoning for recommendation), Nano Banana (image generation)
 
-* **Deployment:** Vercel for web app and serverless APIs, Render for long-running workers
+* **Deployment:** Firebase Hosting (frontend), Render (backend)
 
 * **Testing:** Vitest
 
 
 ## Commands
 
-<!-- TODO: Fill in after choosing your tech stack -->
-
-- Install dependencies: `npm install`
-- Run development server: `npm run dev`
-- Run tests: `<command>`
-- Run linter: `<command>`
-- Build for production: `<command>`
+- Install dependencies: `npm run install-all`
+- Run development server: `npm start` (runs both client and server)
+- Run all tests: `cd server && npm test` (backend) / `cd client && npm test` (frontend)
+- Run linter: `cd client && npm run lint`
+- Build for production: `cd client && npm run build`
 
 ## Code Style
 
-<!-- TODO: Document your team's style decisions -->
-
-- Formatting: (e.g., Prettier, Black, etc.)
-- Linting: (e.g., ESLint, Ruff, etc.)
-- Naming conventions: (e.g., camelCase for JS, snake_case for Python)
+- Linting: ESLint (client)
+- Naming conventions: camelCase for variables/functions, PascalCase for React components and types
 
 ## Architecture
 
-<!-- TODO: Describe your project structure -->
+- `client/` — React + TypeScript frontend (Vite, React Router, Tailwind CSS)
+- `server/` — Express + TypeScript backend (MongoDB via Atlas, Cloudflare R2 for image storage)
+- `docs/` — Iteration plans, PRD, team agreement
+- `server/src/services/` — Business logic (chat, weather, auth, image generation)
+- `server/src/routes/` — Express route handlers
+- `server/src/repositories/` — MongoDB data access layer
 
 ## Branch & Commit Conventions
 
