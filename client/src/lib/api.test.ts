@@ -21,7 +21,6 @@ describe("generateOutfit", () => {
         }
       })
     );
-
     const imageUrl = await generateOutfit("test-token", ["top-1", "pants-2"]);
 
     expect(imageUrl).toBe("https://example.com/generated-outfit.png");
