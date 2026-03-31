@@ -3,6 +3,7 @@ import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
+import { GeminiEmbeddingService } from "../services/gemini-embedding-service.js";
 import type { ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 
@@ -12,6 +13,7 @@ interface ChatRoutesDependencies {
   conversationRepository: ConversationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
+  geminiEmbeddingService: GeminiEmbeddingService;
 }
 
 function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[]): string {
@@ -70,7 +72,7 @@ Rules for the JSON:
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe`;
 }
 
-export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
+export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository, geminiEmbeddingService }: ChatRoutesDependencies): Router {
   const router = Router();
 
   // get all conversations
@@ -211,10 +213,23 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
-      const [closetItems, userRecord] = await Promise.all([
-        closetRepository.listByUser(userId),
-        userRepository.findById(userId)
-      ]);
+      const [userRecord] = await Promise.all([userRepository.findById(userId)]);
+
+      // Retrieve relevant wardrobe items via semantic search when embeddings are
+      // available; otherwise fall back to the full wardrobe list.
+      let closetItems: ClosetItemRecord[];
+      if (geminiEmbeddingService.isConfigured()) {
+        try {
+          const queryEmbedding = await geminiEmbeddingService.embedText(trimmedMessage);
+          closetItems = await closetRepository.vectorSearch(userId, queryEmbedding, { limit: 25 });
+        } catch (vectorErr) {
+          console.warn("Vector search failed in chat, falling back to full scan:", vectorErr);
+          closetItems = await closetRepository.listByUser(userId);
+        }
+      } else {
+        closetItems = await closetRepository.listByUser(userId);
+      }
+
       const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems);
 
       // set headers for SSE

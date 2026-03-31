@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import type { GeminiEmbeddingService } from "../services/gemini-embedding-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import {
   OUTFIT_CATEGORIES,
@@ -18,6 +19,7 @@ interface ClosetRoutesDependencies {
   r2StorageService: R2StorageService;
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
+  geminiEmbeddingService: GeminiEmbeddingService;
 }
 
 /**
@@ -85,7 +87,8 @@ export function createClosetRoutes({
   closetRepository,
   r2StorageService,
   geminiExtractionService,
-  geminiRecommendationService
+  geminiRecommendationService,
+  geminiEmbeddingService
 }: ClosetRoutesDependencies): Router {
   const router = Router();
 
@@ -460,6 +463,16 @@ export function createClosetRoutes({
         tags: extraction.tags,
         description: extraction.description
       });
+
+      // Generate and store embedding asynchronously — does not block the response
+      if (geminiEmbeddingService.isConfigured()) {
+        const itemText = geminiEmbeddingService.buildItemText(extraction);
+        geminiEmbeddingService
+          .embedText(itemText)
+          .then((embedding) => closetRepository.updateEmbedding(authResolution.user!.id, itemId, embedding))
+          .catch((err) => console.warn("Embedding generation failed (non-fatal):", err));
+      }
+
       res.json({ item: updated });
     } catch (extractionError) {
       console.error("Gemini analyze error:", extractionError);
@@ -578,10 +591,33 @@ export function createClosetRoutes({
         return;
       }
 
-      // 6. Build candidate pool for missing categories from the user's wardrobe
+      // 6. Build candidate pool for missing categories from the user's wardrobe.
+      // Use vector search when embeddings are available to retrieve the most
+      // style-relevant candidates; fall back to a full scan otherwise.
       const selectedIdSet = new Set(selectedItemIds);
-      const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
-      const readyWardrobe = allWardrobe
+      const anchorText = selectedReadyItems
+        .map((item) => geminiEmbeddingService.buildItemText(item))
+        .join(" ");
+
+      let rawCandidates: ClosetItemRecord[];
+      if (geminiEmbeddingService.isConfigured()) {
+        try {
+          const queryEmbedding = await geminiEmbeddingService.embedText(anchorText);
+          rawCandidates = await closetRepository.vectorSearch(user.id, queryEmbedding, {
+            limit: 50,
+            excludeIds: selectedItemIds
+          });
+        } catch (vectorErr) {
+          console.warn("Vector search failed, falling back to full scan:", vectorErr);
+          const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
+          rawCandidates = allWardrobe.filter((item) => !selectedIdSet.has(item.id));
+        }
+      } else {
+        const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
+        rawCandidates = allWardrobe.filter((item) => !selectedIdSet.has(item.id));
+      }
+
+      const readyWardrobe = rawCandidates
         .map((item) => toReadyClosetItem(item))
         .filter((item): item is ReadyClosetItem => item !== null)
         .filter((item) => !selectedIdSet.has(item.id));

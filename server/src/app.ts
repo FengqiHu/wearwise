@@ -14,6 +14,7 @@ import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
+import { GeminiEmbeddingService } from "./services/gemini-embedding-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
 import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
@@ -70,6 +71,7 @@ export function createApp() {
   const chatService = new ChatService(env.openaiApiKey, openWeatherService);
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
   const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
+  const geminiEmbeddingService = new GeminiEmbeddingService({ apiKey: env.geminiApiKey });
   const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
   const googleOAuthService = new GoogleOAuthService({
     clientId: env.googleClientId,
@@ -110,7 +112,8 @@ export function createApp() {
       conversationRepository,
       chatService,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiEmbeddingService
     })
   );
 
@@ -121,7 +124,8 @@ export function createApp() {
       closetRepository,
       r2StorageService,
       geminiExtractionService,
-      geminiRecommendationService
+      geminiRecommendationService,
+      geminiEmbeddingService
     })
   );
 

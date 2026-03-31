@@ -9,6 +9,7 @@ import type { UserRepository } from "../repositories/user-repository.js";
 import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
+import { GeminiEmbeddingService } from "../services/gemini-embedding-service.js";
 import type { ClosetItemRecord, ConversationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
 
 type StreamChatInput = Parameters<ChatService["streamChat"]>[0];
@@ -81,6 +82,7 @@ async function startServer(dependencies: {
   conversationRepository: ConversationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
+  geminiEmbeddingService: GeminiEmbeddingService;
 }): Promise<{ baseUrl: string; server: Server }> {
   const app = express();
   app.use(express.json());
@@ -196,13 +198,17 @@ function makeRouteHarness(options: {
     findById: vi.fn().mockResolvedValue(userRecord)
   } as unknown as UserRepository;
 
+  // Embedding service disabled in tests so the harness falls back to listByUser
+  const geminiEmbeddingService = { isConfigured: () => false } as unknown as GeminiEmbeddingService;
+
   return {
     dependencies: {
       authService,
       chatService,
       conversationRepository,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiEmbeddingService
     },
     getCapturedStreamInput: () => capturedStreamInput,
     spies: {
