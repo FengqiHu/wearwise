@@ -66,27 +66,7 @@
 
 ---
 
-### **R4. Profile Photo Management**
-
-**Description:** Users can replace or delete their profile photos (face and full-body) after initial upload. Deleted photos are removed from both MongoDB and R2 storage.
-
-**Task Breakdown:**
-
-- Add `DELETE /api/profile/photo/:type` endpoint (type: `face` | `fullBody`)
-- Add `PUT /api/profile/photo/:type` endpoint for replacement (upload new → delete old from R2)
-- Add replace and delete controls to the profile page UI
-- Write tests for delete and replace endpoints: old R2 object removed, MongoDB reference updated
-
-**Acceptance Criteria:**
-
-- Users can delete their face photo and/or full-body photo from the profile page
-- Users can replace either photo with a new upload; the old photo is deleted from R2
-- After deletion, the profile reflects the absence of the photo and try-on generation is blocked with a clear message
-- All changes persist across sessions
-
----
-
-### **R5. Chat History & Try-On History Page**
+### **R4. Chat History & Try-On History Page**
 
 **Description:** The system stores completed chat sessions and their associated try-on images. Users can access a history page to review past recommendations and generated images.
 
@@ -120,9 +100,8 @@
 
 - `@FengqiHu`: LLM recommendation context enrichment (R2)
 - `@hermit-yoshino-xl`: Outfit voting — backend and frontend (R1)
-- `@jiruidai`: Accessory toggle (R3), chat history persistence (R5 backend)
-- `@z8ri`: Profile photo management (R4)
-- `@Nanshengbeisheng`: History page UI (R5 frontend)
+- `@z8ri`: History page (R4)
+- `@Nanshengbeisheng`: Accessory toggle (R3)
 
 **Dependency Order**
 

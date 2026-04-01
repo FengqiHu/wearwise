@@ -155,7 +155,6 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 **Must-Have Features:**
 - LLM summarizes weather, occasion, and user attributes to improve recommendations
 - Users can vote on recommended outfits to express preferences
-- Users can replace and delete their profile photos
 - Users can choose whether to include accessories in recommendations
 - Chat sessions and try-on images stored in a user-accessible history page
 
