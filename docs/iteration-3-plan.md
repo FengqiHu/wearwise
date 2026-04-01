@@ -95,8 +95,6 @@
 - **Voting storage:** Outfit identity is determined by the sorted set of clothing item IDs. This hash is computed on the backend to ensure consistency across sessions. Frontend sends the raw item ID array; backend computes the hash before storing.
 - **History persistence:** Sessions are written asynchronously after the chat response is sent, so history storage does not block the user-facing response. Failures in history persistence are logged but do not surface to the user.
 - **Accessory toggle:** Accessories are defined as items with `category: "accessory"` in the closet schema. No new category type is introduced — this relies on correct categorization during upload/analysis.
-- **Profile photo management:** The replace flow atomically updates the R2 key and MongoDB reference in the same request to avoid orphaned storage objects.
-
 **Ownership**
 
 - `@FengqiHu`: Outfit voting — backend and frontend (R1)
@@ -106,6 +104,6 @@
 
 **Dependency Order**
 
-- Session persistence (R5 backend) must land before the history page UI (R5 frontend) is testable end-to-end.
+- Session persistence (R4 backend) must land before the history page UI (R4 frontend) is testable end-to-end.
 - Voting endpoint (R1 backend) must exist before outfit card vote buttons (R1 frontend) can be wired up.
 - LLM context enrichment (R2) should land early so other recommendation-adjacent work can be tested against the richer prompt.
