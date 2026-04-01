@@ -14,7 +14,9 @@ import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
+import { GeminiEmbeddingService } from "./services/gemini-embedding-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
+import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
 import { ImageGenerationService } from "./services/image-generation-service.js";
 import { OpenWeatherService } from "./services/openweather-service.js";
@@ -27,7 +29,8 @@ export function createApp() {
   app.use(
     cors({
       origin: env.corsOrigin,
-      credentials: true
+      credentials: true,
+      exposedHeaders: ["X-Conversation-Id"]
     })
   );
 
@@ -67,6 +70,8 @@ export function createApp() {
   const openWeatherService = new OpenWeatherService(env.openWeatherApiKey);
   const chatService = new ChatService(env.openaiApiKey, openWeatherService);
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
+  const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
+  const geminiEmbeddingService = new GeminiEmbeddingService({ apiKey: env.geminiApiKey });
   const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
   const googleOAuthService = new GoogleOAuthService({
     clientId: env.googleClientId,
@@ -105,7 +110,10 @@ export function createApp() {
     createChatRoutes({
       authService,
       conversationRepository,
-      chatService
+      chatService,
+      closetRepository,
+      userRepository,
+      geminiEmbeddingService
     })
   );
 
@@ -115,7 +123,9 @@ export function createApp() {
       authService,
       closetRepository,
       r2StorageService,
-      geminiExtractionService
+      geminiExtractionService,
+      geminiRecommendationService,
+      geminiEmbeddingService
     })
   );
 
@@ -125,6 +135,7 @@ export function createApp() {
       authService,
       userRepository,
       closetRepository,
+      conversationRepository,
       generationRepository,
       imageGenerationService,
       r2StorageService
@@ -132,6 +143,10 @@ export function createApp() {
   );
 
   app.use("/api", createHealthRoutes());
+
+  app.get("/", (_req, res) => {
+    res.json({ status: "ok", message: "WearWise API" });
+  });
 
   return app;
 }

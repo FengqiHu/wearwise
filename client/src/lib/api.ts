@@ -1,11 +1,26 @@
-import type { AuthenticatedUser, ChatConversationDetail, ChatConversationSummary, ClothingItem, ClosetItemRecord, UserProfile } from "../types";
+import type {
+  AuthenticatedUser,
+  ChatConversationDetail,
+  ChatConversationSummary,
+  ClothingItem,
+  ClosetItemRecord,
+  OutfitRecommendation,
+  UserProfile
+} from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
 
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
+export interface UserLocation {
+  lat: number;
+  lon: number;
+  timezone: string;
+}
+
 interface ChatStreamPayload {
   message: string;
   conversationId?: string;
+  userLocation?: UserLocation;
 }
 
 interface AuthEnvelope {
@@ -32,7 +47,14 @@ interface PresignedUploadResponse {
   key: string;
 }
 
-export type ImageUploadFolder = "avatar" | "headshot" | "full-body";
+export type ImageUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
+const PRESIGNED_UPLOAD_MAX_ATTEMPTS = 4;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
 
 function getErrorMessage(status: number, fallbackText: string): string {
   if (status === 401) {
@@ -50,6 +72,7 @@ async function parseResponseError(response: Response, fallback: string): Promise
   try {
     const payload = (await response.json()) as {
       error?: string;
+      message?: string;
       providerError?: string | null;
       providerDescription?: string | null;
     };
@@ -60,6 +83,10 @@ async function parseResponseError(response: Response, fallback: string): Promise
       }
 
       return payload.error;
+    }
+
+    if (payload.message) {
+      return payload.message;
     }
   } catch {
     // Ignore parse errors and use fallback text.
@@ -147,17 +174,33 @@ export async function createPresignedImageUpload(
 }
 
 export async function uploadFileToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
-  const response = await fetch(uploadUrl, {
-    method: "PUT",
-    headers: {
-      "Content-Type": file.type || "application/octet-stream"
-    },
-    body: file
-  });
+  let lastError: Error | null = null;
 
-  if (!response.ok) {
-    throw new Error(`S3 upload failed with status ${response.status}.`);
+  for (let attempt = 1; attempt <= PRESIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      const response = await fetch(uploadUrl, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream"
+        },
+        body: file
+      });
+
+      if (!response.ok) {
+        throw new Error(`S3 upload failed with status ${response.status}.`);
+      }
+
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error("Unknown upload error.");
+
+      if (attempt < PRESIGNED_UPLOAD_MAX_ATTEMPTS) {
+        await sleep(1000 * attempt);
+      }
+    }
   }
+
+  throw new Error(`Upload failed after 3 retries: ${lastError?.message ?? "Unknown upload error."}`);
 }
 
 export async function saveProfileToApi(token: string, profile: UserProfile): Promise<AuthEnvelope> {
@@ -238,6 +281,20 @@ interface CreateClosetItemResponse {
   uploadUrl: string;
 }
 
+interface ImportTestClosetItemsPayload {
+  items: Array<{
+    imageUrl: string;
+    analysisStatus: "pending" | "ready" | "error";
+    analysisError: string | null;
+    name: string | null;
+    category: string | null;
+    tags: string[];
+    description: string | null;
+    createdAt?: string;
+    updatedAt?: string;
+  }>;
+}
+
 export async function createClosetItem(
   token: string,
   contentType: string
@@ -274,6 +331,86 @@ export async function fetchClosetItem(token: string, itemId: string): Promise<Cl
   return payload.item;
 }
 
+interface UpdateClosetItemMetadataPayload {
+  name?: string;
+  category?: string;
+  tags?: string[];
+  description?: string;
+}
+
+export async function updateClosetItemMetadata(
+  token: string,
+  itemId: string,
+  payload: UpdateClosetItemMetadataPayload
+): Promise<ClosetItemRecord> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "PATCH",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to update closet item.");
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { item: ClosetItemRecord };
+  return data.item;
+}
+
+
+export async function deleteClosetItem(token: string, itemId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}`, {
+    method: "DELETE",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to delete closet item.");
+    throw new Error(message);
+  }
+}
+
+interface ReplaceClosetItemImageResponse {
+  item: ClosetItemRecord;
+  uploadUrl: string;
+}
+
+export async function replaceClosetItemImage(
+  token: string,
+  itemId: string,
+  contentType: string
+): Promise<ReplaceClosetItemImageResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/image`, {
+    method: "PUT",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ contentType })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to replace closet item image.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as ReplaceClosetItemImageResponse;
+}
+
+export async function importTestClosetItems(
+  token: string,
+  payload: ImportTestClosetItemsPayload
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to import test closet items.");
+    throw new Error(message);
+  }
+}
+
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/analyze`, {
     method: "POST",
@@ -302,6 +439,25 @@ export async function fetchClosetItems(token: string): Promise<ClothingItem[]> {
   const records = Array.isArray(payload.items) ? payload.items : [];
   return records.map(closetItemToClothingItem);
 }
+
+export async function recommendOutfit(
+  token: string,
+  selectedItemIds: string[]
+): Promise<OutfitRecommendation> {
+  const response = await fetch(`${API_BASE_URL}/api/closet/recommend`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ selectedItemIds })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to generate outfit recommendation.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as OutfitRecommendation;
+}
+
 
 export async function streamChatResponse(
   token: string,
@@ -343,4 +499,49 @@ export async function streamChatResponse(
 
     onChunk(decoder.decode(value, { stream: true }));
   }
+}
+
+interface GenerateOutfitOptions {
+  conversationId?: string;
+  messageId?: string;
+  outfitKey?: string;
+}
+
+export async function generateOutfit(
+  token: string,
+  clothingItemIds: string[],
+  options?: GenerateOutfitOptions
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({
+      clothingItemIds,
+      ...(options?.conversationId ? { conversationId: options.conversationId } : {}),
+      ...(options?.messageId ? { messageId: options.messageId } : {}),
+      ...(options?.outfitKey ? { outfitKey: options.outfitKey } : {})
+    })
+  });
+
+  if (response.status === 422) {
+    const message = await parseResponseError(response, "Unable to generate a try-on image.");
+    if (/body image/i.test(message)) {
+      throw new Error("You need to upload a full-body photo in your profile before generating a try-on image.");
+    }
+
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, `Failed to generate outfit image (status ${response.status})`);
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { success: boolean; result: { imageUrl: string } | null; message?: string };
+
+  if (!data.success || !data.result) {
+    throw new Error(data.message ?? "Image generation failed.");
+  }
+
+  return data.result.imageUrl;
 }

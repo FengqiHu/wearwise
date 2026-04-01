@@ -1,6 +1,11 @@
 export interface ChatRequest {
   message: string;
   conversationId?: string;
+  userLocation?: {
+    lat: number;
+    lon: number;
+    timezone: string;
+  };
 }
 
 export interface UserProfile {
@@ -59,11 +64,18 @@ export interface AuthError {
 
 export type ChatRole = "user" | "assistant";
 
+export interface StoredTryOnImage {
+  outfitKey: string;
+  imageUrl: string;
+  createdAt: string;
+}
+
 export interface StoredChatMessage {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
+  tryOnImages?: StoredTryOnImage[];
 }
 
 export interface ConversationRecord {
@@ -101,8 +113,27 @@ export interface ClosetItemRecord {
   updatedAt: string;
 }
 
+export interface OutfitItem {
+  id: string;
+  category: string;
+  name: string;
+  imageUrl: string;
+  tags: string[];
+  description: string;
+  isUserSelected: boolean;
+  reason: string | null;
+}
+
+export interface RecommendOutfitResponse {
+  outfit: OutfitItem[];
+  styleNote: string;
+}
+
 export interface GenerateOutfitRequest {
   clothingItemIds: string[];
+  conversationId?: string;
+  messageId?: string;
+  outfitKey?: string;
   options?: {
     scene?: string;
     style?: string;

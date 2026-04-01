@@ -1,16 +1,78 @@
 import { Router } from "express";
+import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
+import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { ChatRequest } from "../types/domain.js";
+import { GeminiEmbeddingService } from "../services/gemini-embedding-service.js";
+import type { ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
   chatService: ChatService;
   conversationRepository: ConversationRepository;
+  closetRepository: ClosetRepository;
+  userRepository: UserRepository;
+  geminiEmbeddingService: GeminiEmbeddingService;
 }
 
-export function createChatRoutes({ authService, chatService, conversationRepository }: ChatRoutesDependencies): Router {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[]): string {
+  const profileSection = profile
+    ? `User profile:
+- Name: ${profile.name}
+- Height: ${profile.heightCm} cm
+- Weight: ${profile.weightKg} kg
+- Style preferences: ${profile.styleNote || "not specified"}`
+    : "User profile: not set up yet.";
+
+  const readyItems = items.filter((item) => item.analysisStatus === "ready");
+
+  const wardrobeSection =
+    readyItems.length === 0
+      ? "Wardrobe: no clothing items available yet."
+      : `Wardrobe (${readyItems.length} items):
+${readyItems
+  .map(
+    (item) =>
+      `- ID: ${item.id} | Name: ${item.name ?? "Unnamed"} | Category: ${item.category ?? "Unknown"} | Tags: ${item.tags.join(", ") || "none"} | Description: ${item.description ?? "none"}`
+  )
+  .join("\n")}`;
+
+  return `You are a personal stylist assistant with access to the user's wardrobe and profile.
+
+${profileSection}
+
+${wardrobeSection}
+
+## Response rules
+
+For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
+
+For outfit recommendation requests: you MUST respond with ONLY a JSON code block in this exact format, no other text before or after:
+
+\`\`\`json
+{
+  "outfits": [
+    {
+      "outfitName": "Outfit name here",
+      "reason": "Why this outfit suits the occasion and user",
+      "items": [
+        { "id": "<exact item ID>", "name": "<item name>" }
+      ]
+    }
+  ]
+}
+\`\`\`
+
+Rules for the JSON:
+- Always include exactly 3 outfits in the "outfits" array
+- Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
+- Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
+- Only use items from the wardrobe list above, with their exact IDs
+- The "name" field in each item is for display only — it must match the item's name from the wardrobe`;
+}
+
+export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository, geminiEmbeddingService }: ChatRoutesDependencies): Router {
   const router = Router();
 
   // get all conversations
@@ -129,7 +191,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const { message, conversationId } = req.body as ChatRequest;
+      const { message, conversationId, userLocation } = req.body as ChatRequest;
       const trimmedMessage = typeof message === "string" ? message.trim() : "";
       const trimmedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
 
@@ -151,6 +213,25 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
+      const [userRecord] = await Promise.all([userRepository.findById(userId)]);
+
+      // Retrieve relevant wardrobe items via semantic search when embeddings are
+      // available; otherwise fall back to the full wardrobe list.
+      let closetItems: ClosetItemRecord[];
+      if (geminiEmbeddingService.isConfigured()) {
+        try {
+          const queryEmbedding = await geminiEmbeddingService.embedText(trimmedMessage);
+          closetItems = await closetRepository.vectorSearch(userId, queryEmbedding, { limit: 25 });
+        } catch (vectorErr) {
+          console.warn("Vector search failed in chat, falling back to full scan:", vectorErr);
+          closetItems = await closetRepository.listByUser(userId);
+        }
+      } else {
+        closetItems = await closetRepository.listByUser(userId);
+      }
+
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems);
+
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
@@ -170,12 +251,16 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         // stream the chat response from the chat service
         // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
         await chatService.streamChat({
-          // entry: StoredChatMessage
-          messages: conversation.messages.map((entry) => ({
-            // role: user or assistant
-            role: entry.role,
-            content: entry.content
-          })), 
+          messages: [
+            { role: "system", content: wardrobeSystemMessage },
+            ...conversation.messages.map((entry) => ({
+              role: entry.role,
+              content: entry.content
+            }))
+          ],
+          ...(userLocation
+            ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
+            : {}),
           signal: abortController.signal,
           // stream callback
           onChunk: (chunk) => {

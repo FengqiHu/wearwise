@@ -24,7 +24,7 @@ WearWise is a personal cloud clothing library that lets you upload your wardrobe
 | Weather | OpenWeather API |
 | AI (Reasoning) | Gemini |
 | AI (Images) | Nano Banana |
-| Deployment | Vercel (web + serverless), Render (workers) |
+| Deployment | Firebase (web + serverless), Render (workers) |
 | Testing | Vitest |
 
 ## Setup
@@ -60,6 +60,15 @@ npm run client
 ```
 
 The client runs at `http://localhost:5173` and the server at `http://localhost:3000` by default.
+
+## Server Environment
+
+Add your keys in `server/.env` before starting the backend:
+
+```bash
+OPENAI_API_KEY=...
+OPENWEATHER_API_KEY=...
+```
 
 ## Running Tests
 

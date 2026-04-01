@@ -1,10 +1,13 @@
 import { GoogleGenAI } from "@google/genai";
 
-const GENERATION_MODEL = "gemini-2.5-flash-image";
+const GENERATION_MODEL = "gemini-3.1-flash-image-preview";
 
 const DEFAULT_PROMPT =
-  "Create a realistic full-body photo of this person wearing these clothing items as a complete outfit. " +
-  "The photo should look natural, well-lit, and fashion-forward.";
+  "The first reference image is the user's full-body photo. The second reference image, if present, is the user's headshot photo. The remaining reference images are clothing items. " +
+  "Create a realistic full-body photo of the exact same person shown in the reference body image, now wearing these clothing items as a complete outfit. " +
+  "Preserve the person's identity, face, hairstyle, skin tone, body shape, proportions, and overall appearance. " +
+  "Use the headshot photo, when provided, to better preserve the same face and identity. Do not change the person into someone else, do not alter age, ethnicity, facial structure, or gender presentation, and do not invent a different model. " +
+  "Use the clothing images only to change the outfit. Keep the result natural, well-lit, fashion-forward, and consistent with the original person's look.";
 
 interface ImageGenerationServiceOptions {
   apiKey: string;
@@ -35,6 +38,7 @@ export class ImageGenerationService {
 
   async generateOutfitImage(params: {
     bodyImageUrl: string;
+    headshotImageUrl?: string;
     clothingImageUrls: string[];
     promptOverride?: string;
     aspectRatio?: string;
@@ -43,14 +47,18 @@ export class ImageGenerationService {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
 
-    const { bodyImageUrl, clothingImageUrls, promptOverride, aspectRatio = "3:4" } = params;
+    const { bodyImageUrl, headshotImageUrl, clothingImageUrls, promptOverride, aspectRatio = "3:4" } = params;
 
     const bodyImage = await this.fetchImageAsBase64(bodyImageUrl);
+    const headshotImage = headshotImageUrl ? await this.fetchImageAsBase64(headshotImageUrl) : null;
     const clothingImages = await Promise.all(clothingImageUrls.map((url) => this.fetchImageAsBase64(url)));
 
     const parts: object[] = [
       { text: promptOverride ?? DEFAULT_PROMPT },
       { inlineData: { mimeType: bodyImage.mimeType, data: bodyImage.base64 } },
+      ...(headshotImage
+        ? [{ inlineData: { mimeType: headshotImage.mimeType, data: headshotImage.base64 } }]
+        : []),
       ...clothingImages.map((img) => ({
         inlineData: { mimeType: img.mimeType, data: img.base64 }
       }))
