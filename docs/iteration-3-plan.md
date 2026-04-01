@@ -66,16 +66,12 @@
 
 ---
 
-### **R4. Chat History & Try-On History Page**
+### **R4. Try-On History Page**
 
-**Description:** The system stores completed chat sessions and their associated try-on images. Users can access a history page to review past recommendations and generated images.
+**Description:** The system stores try-on images. Users can access a history page to review past recommendations and generated images.
 
 **Task Breakdown:**
 
-- Add a `sessions` collection to MongoDB: each document stores session ID, user ID, timestamp, messages, and try-on image URLs
-- Update `POST /api/chat` to persist the session on completion
-- Create `GET /api/sessions` endpoint returning the user's session list (paginated)
-- Create `GET /api/sessions/:id` endpoint returning full session detail including try-on images
 - Build a History page in the frontend with a session list and a detail view
 - Write tests for session persistence and retrieval endpoints
 
@@ -98,10 +94,10 @@
 
 **Ownership**
 
-- `@FengqiHu`: LLM recommendation context enrichment (R2)
-- `@hermit-yoshino-xl`: Outfit voting — backend and frontend (R1)
-- `@z8ri`: History page (R4)
-- `@Nanshengbeisheng`: Accessory toggle (R3)
+- `@FengqiHu`: Outfit voting — backend and frontend (R1)
+- `@hermit-yoshino-xl`: LLM recommendation context enrichment (R2) 
+- `@z8ri`: Accessory toggle (R3)
+- `@Nanshengbeisheng`: History page (R4) 
 
 **Dependency Order**
 
