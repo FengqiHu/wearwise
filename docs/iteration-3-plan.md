@@ -95,6 +95,9 @@
 - **Voting storage:** Outfit identity is determined by the sorted set of clothing item IDs. This hash is computed on the backend to ensure consistency across sessions. Frontend sends the raw item ID array; backend computes the hash before storing.
 - **History persistence:** Sessions are written asynchronously after the chat response is sent, so history storage does not block the user-facing response. Failures in history persistence are logged but do not surface to the user.
 - **Accessory toggle:** Accessories are defined as items with `category: "accessory"` in the closet schema. No new category type is introduced — this relies on correct categorization during upload/analysis.
+- **Occasion inference:** Occasion is inferred by the LLM from conversation history rather than collected via a structured UI input. If the occasion cannot be determined, the LLM proactively asks before making recommendations. This keeps the chat interface uncluttered and lets users express their needs naturally.
+- **Message timestamp injection:** `createdAt` from each `StoredChatMessage` is prepended to the message content as an ISO timestamp (e.g., `[2026-03-31T09:00:00Z] ...`) before being passed to the LLM. This allows the LLM to reason about the recency of context without introducing new fields to the message schema.
+
 **Ownership**
 
 - `@FengqiHu`: Outfit voting — backend and frontend (R1)
