@@ -98,7 +98,7 @@
 **Ownership**
 
 - `@FengqiHu`: Outfit voting — backend and frontend (R1)
-- `@hermit-yoshino-xl`: LLM recommendation context enrichment (R2) 
+- `@ZeliMa`: LLM recommendation context enrichment (R2) 
 - `@z8ri`: Accessory toggle (R3)
 - `@Nanshengbeisheng`: History page (R4) 
 
