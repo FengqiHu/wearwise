@@ -28,7 +28,7 @@
 
 ### **R2. LLM-Enhanced Recommendation Context**
 
-**Description:** Enrich the system prompt sent to Gemini with the user's sex, and instruct the LLM to infer the occasion from conversation history and summarize weather conditions in recommendations. Additionally, inject message timestamps into the conversation context so the LLM can reason about the recency of historical messages and avoid acting on stale information. Currently, `buildWardrobeSystemMessage()` only injects name, height, weight, and style note; and `createdAt` is stripped from messages before being passed to the LLM, making it impossible to distinguish old context from new.
+**Description:** Enrich the system prompt sent to LLM with the user's sex, and instruct the LLM to infer the occasion from conversation history and summarize weather conditions in recommendations. Additionally, inject message timestamps into the conversation context so the LLM can reason about the recency of historical messages and avoid acting on stale information. Currently, `buildWardrobeSystemMessage()` only injects name, height, weight, and style note; and `createdAt` is stripped from messages before being passed to the LLM, making it impossible to distinguish old context from new.
 
 **Task Breakdown:**
 
@@ -101,7 +101,7 @@
 **Ownership**
 
 - `@FengqiHu`: Outfit voting — backend and frontend (R1)
-- `@hermit-yoshino-xl`: LLM recommendation context enrichment (R2) 
+- `@ZeliMa`: LLM recommendation context enrichment (R2) 
 - `@z8ri`: Accessory toggle (R3)
 - `@Nanshengbeisheng`: History page (R4) 
 
