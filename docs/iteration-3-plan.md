@@ -28,21 +28,26 @@
 
 ### **R2. LLM-Enhanced Recommendation Context**
 
-**Description:** The system prompt sent to Gemini is enriched with a structured summary of weather conditions, the stated occasion, and the user's sex/body info, so recommendations are more contextually grounded and explainable.
+**Description:** Enrich the system prompt sent to Gemini with the user's sex, and instruct the LLM to infer the occasion from conversation history and summarize weather conditions in recommendations. Additionally, inject message timestamps into the conversation context so the LLM can reason about the recency of historical messages and avoid acting on stale information. Currently, `buildWardrobeSystemMessage()` only injects name, height, weight, and style note; and `createdAt` is stripped from messages before being passed to the LLM, making it impossible to distinguish old context from new.
 
 **Task Breakdown:**
 
-- Extend the recommendation system prompt to include a structured weather summary (temperature band, precipitation, wind), occasion label, and user sex
-- Update `POST /api/chat` to pass these fields from the request body into the system prompt
-- Update the frontend chat input to collect occasion and optionally user sex if not already in the profile
-- Write tests verifying the system message contains weather summary, occasion, and user sex fields
+- Add optional field `sex?: 'male' | 'female' | 'other'` to `UserProfile` in `server/src/types/domain.ts`
+- Update `parseProfileFromRequest()` in `server/src/services/profile-service.ts` to read and validate the `sex` field
+- Add a sex selector (male / female / other) to the Profile page UI, saving via the existing `POST /api/profile`
+- Extend `buildWardrobeSystemMessage()` to include the user's sex in the profile section; fall back to `"not specified"` when unset
+- Extend `buildWardrobeSystemMessage()` with an occasion inference instruction: require the LLM to extract the user's destination or activity from conversation history, and proactively ask before recommending if the occasion is unclear
+- Extend `buildWardrobeSystemMessage()` with a weather summary instruction: require the LLM to open each recommendation with a one-line weather summary (e.g., `"Cool and rainy, 12 °C"`) when weather data is available
+- In `chat-routes.ts`, update `conversation.messages.map()` to prepend `entry.createdAt` to each message's content (e.g., `[2026-03-31T09:00:00Z] I need an outfit for my interview`)
+- Write integration tests for `POST /api/chat` verifying the system prompt contains the sex field, timestamp prefixes, and weather summary instruction; write unit tests for profile sex field persistence; mock the chat service — no real Gemini calls; document manual testing of LLM weather summary output in the PR description
 
 **Acceptance Criteria:**
 
-- The system prompt includes a natural-language weather summary (e.g., "Cool and rainy, 12 °C")
-- The system prompt includes the stated occasion (e.g., "casual outing", "job interview")
-- The system prompt includes the user's sex from their profile
-- Recommendations visibly reflect these inputs (e.g., recommending a raincoat on a rainy day)
+- Users can set their sex on the Profile page; the value persists and is returned by `GET /api/profile`; when unset, the system prompt falls back to `"not specified"` rather than omitting the field
+- The system prompt includes the user's sex (e.g., `"Sex: male"`)
+- When the user has not mentioned an occasion, the AI asks about their plans before making recommendations; when the occasion can be inferred from the conversation, the AI states it explicitly at the start of the response (e.g., `"Based on your job interview tomorrow..."`)
+- Each historical message carries a timestamp prefix, allowing the LLM to distinguish stale context from the current request and avoid carrying over outdated occasion information
+- When weather data is available, recommendations open with a one-line weather summary and clothing choices reflect the conditions
 
 ---
 
