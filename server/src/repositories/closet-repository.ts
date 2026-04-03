@@ -12,7 +12,6 @@ interface ClosetItemDocument {
   category: string | null;
   tags: string[];
   description: string | null;
-  embedding?: number[];
   createdAt: string;
   updatedAt: string;
 }
@@ -207,53 +206,5 @@ export class ClosetRepository {
       { returnDocument: "after" }
     );
     return result ? toClosetItemRecord(result) : null;
-  }
-
-  async updateEmbedding(userId: string, itemId: string, embedding: number[]): Promise<void> {
-    const collection = await this.getCollection();
-    await collection.updateOne(
-      { _id: itemId, userId },
-      { $set: { embedding, updatedAt: nowIsoString() } }
-    );
-  }
-
-  /**
-   * Performs a semantic vector search over the user's closet items using MongoDB Atlas
-   * Vector Search. The collection must have a vector index named "closet_vector_index"
-   * with path "embedding", numDimensions 768, similarity "cosine", and filter paths
-   * "userId" and "analysisStatus". Falls back to an empty array on error so callers
-   * can degrade gracefully to a regular listByUser query.
-   */
-  async vectorSearch(
-    userId: string,
-    queryEmbedding: number[],
-    options: { limit?: number; excludeIds?: string[] } = {}
-  ): Promise<ClosetItemRecord[]> {
-    const { limit = 25, excludeIds = [] } = options;
-    const collection = await this.getCollection();
-
-    // numCandidates must be >= limit; use 10× for better recall
-    const numCandidates = Math.max(limit * 10, 100);
-
-    const pipeline: object[] = [
-      {
-        $vectorSearch: {
-          index: "closet_vector_index",
-          path: "embedding",
-          queryVector: queryEmbedding,
-          numCandidates,
-          limit: limit + excludeIds.length,
-          filter: { userId, analysisStatus: "ready" }
-        }
-      }
-    ];
-
-    if (excludeIds.length > 0) {
-      pipeline.push({ $match: { _id: { $nin: excludeIds } } });
-      pipeline.push({ $limit: limit });
-    }
-
-    const documents = await collection.aggregate<ClosetItemDocument>(pipeline).toArray();
-    return documents.map(toClosetItemRecord);
   }
 }
