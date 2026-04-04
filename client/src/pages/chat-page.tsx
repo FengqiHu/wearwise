@@ -277,6 +277,7 @@ export function ChatPage() {
   const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
   const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [includeAccessories, setIncludeAccessories] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -524,6 +525,7 @@ export function ChatPage() {
         {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
+          includeAccessories,
           userLocation: userLocation ?? undefined
         },
         controller.signal,
@@ -789,6 +791,17 @@ export function ChatPage() {
             />
 
             <PromptInputActions>
+              <PromptInputAction>
+                <label className="flex items-center gap-2 text-sm text-boutique-600 select-none cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={includeAccessories}
+                    onChange={(e) => setIncludeAccessories(e.target.checked)}
+                    className="accent-boutique-700"
+                  />
+                  Include accessories
+                </label>
+              </PromptInputAction>
               <PromptInputAction>
                 {isGenerating ? (
                   <Button variant="danger" className="min-w-28" onClick={stopGeneration}>

@@ -20,6 +20,7 @@ export interface UserLocation {
 interface ChatStreamPayload {
   message: string;
   conversationId?: string;
+  includeAccessories?: boolean;
   userLocation?: UserLocation;
 }
 
