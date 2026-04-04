@@ -21,7 +21,7 @@ describe("generateOutfit", () => {
         }
       })
     );
-    const imageUrl = await generateOutfit("test-token", ["top-1", "pants-2"]);
+    const imageUrl = await generateOutfit("test-token", "rec-123");
 
     expect(imageUrl).toBe("https://example.com/generated-outfit.png");
     expect(fetchMock).toHaveBeenCalledTimes(1);
@@ -34,7 +34,7 @@ describe("generateOutfit", () => {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          clothingItemIds: ["top-1", "pants-2"]
+          recommendationId: "rec-123"
         })
       })
     );
@@ -50,7 +50,7 @@ describe("generateOutfit", () => {
       )
     );
 
-    await expect(generateOutfit("test-token", ["top-1"])).rejects.toThrow(
+    await expect(generateOutfit("test-token", "rec-123")).rejects.toThrow(
       "You need to upload a full-body photo in your profile before generating a try-on image."
     );
   });
@@ -59,13 +59,13 @@ describe("generateOutfit", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       createJsonResponse(
         {
-          message: "Conversation message not found."
+          message: "Recommendation not found."
         },
         404
       )
     );
 
-    await expect(generateOutfit("test-token", ["top-1"])).rejects.toThrow("Conversation message not found.");
+    await expect(generateOutfit("test-token", "rec-123")).rejects.toThrow("Recommendation not found.");
   });
 
   it("throws the payload message when the response is 200 but generation still fails", async () => {
@@ -77,6 +77,6 @@ describe("generateOutfit", () => {
       })
     );
 
-    await expect(generateOutfit("test-token", ["top-1"])).rejects.toThrow("Image generation failed.");
+    await expect(generateOutfit("test-token", "rec-123")).rejects.toThrow("Image generation failed.");
   });
 });
