@@ -1,6 +1,6 @@
 import crypto from "node:crypto";
 import { Collection, MongoClient } from "mongodb";
-import type { ChatRole, ConversationRecord, ConversationSummary, StoredChatMessage, StoredTryOnImage } from "../types/domain.js";
+import type { ChatRole, ConversationRecord, ConversationSummary, StoredChatMessage } from "../types/domain.js";
 
 interface ConversationDocument {
   _id: string;
@@ -101,36 +101,6 @@ export class ConversationRepository {
     };
   }
 
-  private upsertTryOnImageInMessages(
-    messages: StoredChatMessage[],
-    messageId: string,
-    tryOnImage: StoredTryOnImage
-  ): StoredChatMessage[] | null {
-    const messageIndex = messages.findIndex((message) => message.id === messageId);
-    if (messageIndex === -1) {
-      return null;
-    }
-
-    const targetMessage = messages[messageIndex];
-    if (!targetMessage) {
-      return null;
-    }
-
-    const existingTryOnImages = targetMessage.tryOnImages ?? [];
-    const nextTryOnImages = [
-      ...existingTryOnImages.filter((entry) => entry.outfitKey !== tryOnImage.outfitKey),
-      tryOnImage
-    ];
-
-    const nextMessages = [...messages];
-    nextMessages[messageIndex] = {
-      ...targetMessage,
-      tryOnImages: nextTryOnImages
-    };
-
-    return nextMessages;
-  }
-
   async listByUser(userId: string, limit = 40): Promise<ConversationSummary[]> {
     const collection = await this.getCollection();
     const documents = await collection.find({ userId }).sort({ lastMessageAt: -1 }).limit(limit).toArray();
@@ -200,47 +170,28 @@ export class ConversationRepository {
     return toConversationRecord(updated);
   }
 
-  async attachTryOnImage(
+  async setMessageRecommendationIds(
     userId: string,
     conversationId: string,
     messageId: string,
-    outfitKey: string,
-    imageUrl: string
+    recommendationIds: string[]
   ): Promise<ConversationRecord | null> {
     const collection = await this.getCollection();
-    const conversation = await collection.findOne({
-      _id: conversationId,
-      userId
-    });
+    const conversation = await collection.findOne({ _id: conversationId, userId });
+    if (!conversation) return null;
 
-    if (!conversation) {
-      return null;
-    }
-
-    const nextMessages = this.upsertTryOnImageInMessages(conversation.messages, messageId, {
-      outfitKey,
-      imageUrl,
-      createdAt: nowIsoString()
-    });
-
-    if (!nextMessages) {
-      return null;
-    }
+    const messageIndex = conversation.messages.findIndex((m) => m.id === messageId);
+    if (messageIndex === -1) return null;
 
     const updated = await collection.findOneAndUpdate(
-      {
-        _id: conversationId,
-        userId
-      },
+      { _id: conversationId, userId },
       {
         $set: {
-          messages: nextMessages,
+          [`messages.${messageIndex}.recommendationIds`]: recommendationIds,
           updatedAt: nowIsoString()
         }
       },
-      {
-        returnDocument: "after"
-      }
+      { returnDocument: "after" }
     );
 
     return updated ? toConversationRecord(updated) : null;

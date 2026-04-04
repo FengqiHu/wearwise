@@ -502,26 +502,47 @@ export async function streamChatResponse(
   }
 }
 
-interface GenerateOutfitOptions {
-  conversationId?: string;
-  messageId?: string;
-  outfitKey?: string;
-}
-
-export async function generateOutfit(
+export async function generateOutfitByItems(
   token: string,
-  clothingItemIds: string[],
-  options?: GenerateOutfitOptions
+  clothingItemIds: string[]
 ): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
     method: "POST",
     headers: createAuthHeaders(token),
-    body: JSON.stringify({
-      clothingItemIds,
-      ...(options?.conversationId ? { conversationId: options.conversationId } : {}),
-      ...(options?.messageId ? { messageId: options.messageId } : {}),
-      ...(options?.outfitKey ? { outfitKey: options.outfitKey } : {})
-    })
+    body: JSON.stringify({ clothingItemIds })
+  });
+
+  if (response.status === 422) {
+    const message = await parseResponseError(response, "Unable to generate a try-on image.");
+    if (/body image/i.test(message)) {
+      throw new Error("You need to upload a full-body photo in your profile before generating a try-on image.");
+    }
+
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, `Failed to generate outfit image (status ${response.status})`);
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { success: boolean; result: { imageUrl: string } | null; message?: string };
+
+  if (!data.success || !data.result) {
+    throw new Error(data.message ?? "Image generation failed.");
+  }
+
+  return data.result.imageUrl;
+}
+
+export async function generateOutfit(
+  token: string,
+  recommendationId: string
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/generate/outfit`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ recommendationId })
   });
 
   if (response.status === 422) {

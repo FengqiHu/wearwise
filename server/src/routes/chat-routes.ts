@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
+import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import type { ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
@@ -10,8 +11,38 @@ interface ChatRoutesDependencies {
   authService: AuthService;
   chatService: ChatService;
   conversationRepository: ConversationRepository;
+  recommendationRepository: RecommendationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
+}
+
+interface ParsedOutfit {
+  outfitName: string;
+  reason: string;
+  items: Array<{ id: string; name: string }>;
+}
+
+interface ParsedOutfitResponse {
+  outfits: ParsedOutfit[];
+}
+
+function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
+  const match = content.match(/```json\s*([\s\S]*?)\s*```/);
+  if (!match?.[1]) return null;
+  try {
+    const parsed = JSON.parse(match[1]) as unknown;
+    if (
+      parsed !== null &&
+      typeof parsed === "object" &&
+      "outfits" in parsed &&
+      Array.isArray((parsed as ParsedOutfitResponse).outfits)
+    ) {
+      return parsed as ParsedOutfitResponse;
+    }
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], includeAccessories: boolean): string {
@@ -72,7 +103,7 @@ Rules for the JSON:
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe`;
 }
 
-export function createChatRoutes({ authService, chatService, conversationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
+export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
   const router = Router();
 
   // get all conversations
@@ -121,6 +152,22 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
+      // Attach recommendations to messages that have recommendationIds
+      const messagesWithRecommendations = await Promise.all(
+        conversation.messages.map(async (message) => {
+          if (!message.recommendationIds || message.recommendationIds.length === 0) {
+            return message;
+          }
+          const recommendations = await Promise.all(
+            message.recommendationIds.map((id) => recommendationRepository.findById(authResolution.user!.id, id))
+          );
+          return {
+            ...message,
+            recommendations: recommendations.filter(Boolean)
+          };
+        })
+      );
+
       res.json({
         conversation: {
           id: conversation.id,
@@ -129,7 +176,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           updatedAt: conversation.updatedAt,
           lastMessageAt: conversation.lastMessageAt
         },
-        messages: conversation.messages
+        messages: messagesWithRecommendations
       });
     } catch (error) {
       console.error("Chat detail error:", error);
@@ -256,7 +303,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           }
         });
 
-        // save the msg to databse
+        // save the msg to database and create recommendations if outfits were generated
         if (assistantText.trim().length > 0) {
           const updatedConversation = await conversationRepository.appendMessage(
             userId,
@@ -265,6 +312,40 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             assistantText
           );
           assistantSaved = Boolean(updatedConversation);
+
+          // Parse outfits from assistant response and save as recommendation records
+          if (updatedConversation) {
+            const outfitData = parseOutfitResponse(assistantText);
+            if (outfitData && outfitData.outfits.length > 0) {
+              const assistantMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
+              if (assistantMessage) {
+                try {
+                  const recommendations = await recommendationRepository.createMany(
+                    outfitData.outfits.map((outfit) => ({
+                      userId,
+                      outfitName: outfit.outfitName,
+                      reason: outfit.reason,
+                      items: outfit.items.map((item) => ({ id: item.id, name: item.name })),
+                      occasions: [],
+                      conversationId: conversationIdForSave,
+                      messageId: assistantMessage.id
+                    }))
+                  );
+
+                  // Attach recommendation IDs to the assistant message
+                  const recommendationIds = recommendations.map((r) => r.id);
+                  await conversationRepository.setMessageRecommendationIds(
+                    userId,
+                    conversationIdForSave,
+                    assistantMessage.id,
+                    recommendationIds
+                  );
+                } catch (error) {
+                  console.error("Failed to save recommendations:", error);
+                }
+              }
+            }
+          }
         }
       } catch (error) {
         if (!abortController.signal.aborted) {

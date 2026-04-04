@@ -8,7 +8,7 @@ import {
   createPresignedImageUpload,
   deleteClosetItem,
   fetchClosetItems,
-  generateOutfit,
+  generateOutfitByItems,
   importTestClosetItems,
   recommendOutfit,
   uploadFileToPresignedUrl
@@ -192,7 +192,7 @@ export function WardrobePage() {
       setTryOnError(null);
       setTryOnImageUrl(null);
 
-      const imageUrl = await generateOutfit(token, allItemIds);
+      const imageUrl = await generateOutfitByItems(token, allItemIds);
       setTryOnImageUrl(imageUrl);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to generate try-on image.";

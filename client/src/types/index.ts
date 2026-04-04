@@ -68,16 +68,35 @@ export interface AuthenticatedUser {
   picture: string | null;
 }
 
+export interface RecommendationGeneration {
+  imageUrl: string;
+  createdAt: string;
+}
+
+export type RecommendationVote = "up" | "down";
+
+export interface Recommendation {
+  id: string;
+  userId: string;
+  outfitName: string;
+  reason: string;
+  items: Array<{ id: string; name: string }>;
+  occasions: string[];
+  generation: RecommendationGeneration | null;
+  vote: RecommendationVote | null;
+  conversationId: string;
+  messageId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
   content: string;
   createdAt?: string;
-  tryOnImages?: Array<{
-    outfitKey: string;
-    imageUrl: string;
-    createdAt: string;
-  }>;
+  recommendationIds?: string[];
+  recommendations?: Recommendation[];
 }
 
 export interface ChatConversationSummary {

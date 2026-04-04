@@ -21,22 +21,7 @@ import {
   type UserLocation
 } from "../lib/api";
 import { cn } from "../lib/cn";
-import type { ChatConversationSummary, ChatMessage, ClothingItem } from "../types";
-
-interface OutfitItem {
-  id: string;
-  name: string;
-}
-
-interface Outfit {
-  outfitName: string;
-  reason: string;
-  items: OutfitItem[];
-}
-
-interface OutfitResponse {
-  outfits: Outfit[];
-}
+import type { ChatConversationSummary, ChatMessage, ClothingItem, Recommendation } from "../types";
 
 interface OutfitGenerationState {
   generatedImageUrl: string | null;
@@ -44,84 +29,34 @@ interface OutfitGenerationState {
   isLoading: boolean;
 }
 
-function parseOutfitResponse(content: string): OutfitResponse | null {
-  const match = content.match(/```json\s*([\s\S]*?)\s*```/);
-  if (!match || !match[1]) return null;
-  try {
-    const parsed = JSON.parse(match[1]) as unknown;
-    if (
-      parsed !== null &&
-      typeof parsed === "object" &&
-      "outfits" in parsed &&
-      Array.isArray((parsed as OutfitResponse).outfits)
-    ) {
-      return parsed as OutfitResponse;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
-
-function buildOutfitGenerationKey(messageId: string, outfitIndex: number, outfit: Outfit): string {
-  return `${messageId}:${outfitIndex}:${outfit.items.map((item) => item.id).join(",")}`;
-}
-
 function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<string, OutfitGenerationState> {
   const nextStates: Record<string, OutfitGenerationState> = {};
 
   for (const message of messages) {
-    for (const tryOnImage of message.tryOnImages ?? []) {
-      nextStates[tryOnImage.outfitKey] = {
-        generatedImageUrl: tryOnImage.imageUrl,
-        error: null,
-        isLoading: false
-      };
+    for (const rec of message.recommendations ?? []) {
+      if (rec.generation) {
+        nextStates[rec.id] = {
+          generatedImageUrl: rec.generation.imageUrl,
+          error: null,
+          isLoading: false
+        };
+      }
     }
   }
 
   return nextStates;
 }
 
-function upsertTryOnImageInMessages(
-  messages: ChatMessage[],
-  messageId: string,
-  outfitKey: string,
-  imageUrl: string
-): ChatMessage[] {
-  return messages.map((message) => {
-    if (message.id !== messageId) {
-      return message;
-    }
-
-    const nextTryOnImages = [
-      ...(message.tryOnImages ?? []).filter((entry) => entry.outfitKey !== outfitKey),
-      {
-        outfitKey,
-        imageUrl,
-        createdAt: new Date().toISOString()
-      }
-    ];
-
-    return {
-      ...message,
-      tryOnImages: nextTryOnImages
-    };
-  });
-}
-
-function OutfitCards({
-  messageId,
-  outfits,
+function RecommendationCards({
+  recommendations,
   closetItems,
   generationStates,
   onGenerateTryOn
 }: {
-  messageId: string;
-  outfits: Outfit[];
+  recommendations: Recommendation[];
   closetItems: ClothingItem[];
   generationStates: Record<string, OutfitGenerationState>;
-  onGenerateTryOn: (outfitKey: string, clothingItemIds: string[]) => Promise<void>;
+  onGenerateTryOn: (recommendationId: string) => Promise<void>;
 }) {
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
@@ -133,24 +68,22 @@ function OutfitCards({
     <div className="flex flex-col gap-3 w-full">
       <p className="text-xs font-medium text-boutique-600 uppercase tracking-wide">Outfit Recommendations</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        {outfits.map((outfit, index) => {
-          const outfitKey = buildOutfitGenerationKey(messageId, index, outfit);
-          const generationState = generationStates[outfitKey] ?? {
+        {recommendations.map((rec) => {
+          const generationState = generationStates[rec.id] ?? {
             generatedImageUrl: null,
             error: null,
             isLoading: false
           };
-          const clothingItemIds = outfit.items.map((item) => item.id).filter(Boolean);
 
           return (
             <div
-              key={outfitKey}
+              key={rec.id}
               className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm"
             >
-              <p className="font-display text-lg leading-snug text-boutique-900">{outfit.outfitName}</p>
+              <p className="font-display text-lg leading-snug text-boutique-900">{rec.outfitName}</p>
 
               <div className="flex flex-wrap gap-2">
-                {outfit.items.map((item) => {
+                {(rec.items ?? []).map((item) => {
                   const closetItem = itemMap.get(item.id);
                   return closetItem ? (
                     <img
@@ -172,13 +105,13 @@ function OutfitCards({
                 })}
               </div>
 
-              <p className="text-xs leading-relaxed text-boutique-700">{outfit.reason}</p>
+              <p className="text-xs leading-relaxed text-boutique-700">{rec.reason}</p>
 
               {generationState.generatedImageUrl ? (
                 <div className="overflow-hidden rounded-2xl border border-boutique-200 bg-white/80">
                   <img
                     src={generationState.generatedImageUrl}
-                    alt={`${outfit.outfitName} try-on`}
+                    alt={`${rec.outfitName} try-on`}
                     className="h-80 w-full object-cover md:h-96"
                   />
                 </div>
@@ -193,10 +126,10 @@ function OutfitCards({
               <Button
                 variant="outline"
                 size="sm"
-                disabled={generationState.isLoading || clothingItemIds.length === 0}
+                disabled={generationState.isLoading || (rec.items ?? []).length === 0}
                 className="mt-auto w-full"
                 onClick={() => {
-                  void onGenerateTryOn(outfitKey, clothingItemIds);
+                  void onGenerateTryOn(rec.id);
                 }}
               >
                 {generationState.isLoading ? (
@@ -570,45 +503,26 @@ export function ChatPage() {
   };
 
   const handleGenerateTryOn = useCallback(
-    async (messageId: string, outfitKey: string, clothingItemIds: string[]): Promise<void> => {
-      if (!token || clothingItemIds.length === 0) {
-        return;
-      }
-
-      const conversationId = activeConversationId;
-      if (!conversationId) {
-        setOutfitGenerationStates((previous) => ({
-          ...previous,
-          [outfitKey]: {
-            generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
-            error: "Open or create a saved conversation before generating a try-on image.",
-            isLoading: false
-          }
-        }));
+    async (recommendationId: string): Promise<void> => {
+      if (!token) {
         return;
       }
 
       setOutfitGenerationStates((previous) => ({
         ...previous,
-        [outfitKey]: {
-          generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
+        [recommendationId]: {
+          generatedImageUrl: previous[recommendationId]?.generatedImageUrl ?? null,
           error: null,
           isLoading: true
         }
       }));
 
       try {
-        const generatedImageUrl = await generateOutfit(token, clothingItemIds, {
-          conversationId,
-          messageId,
-          outfitKey
-        });
-
-        setMessages((previous) => upsertTryOnImageInMessages(previous, messageId, outfitKey, generatedImageUrl));
+        const generatedImageUrl = await generateOutfit(token, recommendationId);
 
         setOutfitGenerationStates((previous) => ({
           ...previous,
-          [outfitKey]: {
+          [recommendationId]: {
             generatedImageUrl,
             error: null,
             isLoading: false
@@ -617,15 +531,15 @@ export function ChatPage() {
       } catch (error) {
         setOutfitGenerationStates((previous) => ({
           ...previous,
-          [outfitKey]: {
-            generatedImageUrl: previous[outfitKey]?.generatedImageUrl ?? null,
+          [recommendationId]: {
+            generatedImageUrl: previous[recommendationId]?.generatedImageUrl ?? null,
             error: error instanceof Error ? error.message : "Failed to generate a try-on image.",
             isLoading: false
           }
         }));
       }
     },
-    [activeConversationId, token]
+    [token]
   );
 
   return (
@@ -735,17 +649,14 @@ export function ChatPage() {
                       {isThinking ? (
                         <ThinkingDots />
                       ) : (() => {
-                        const outfitData = message.role === "assistant" ? parseOutfitResponse(message.content) : null;
-                        if (outfitData) {
+                        const recommendations = message.recommendations;
+                        if (recommendations && recommendations.length > 0) {
                           return (
-                            <OutfitCards
-                              messageId={message.id}
-                              outfits={outfitData.outfits}
+                            <RecommendationCards
+                              recommendations={recommendations}
                               closetItems={closetItems}
                               generationStates={outfitGenerationStates}
-                              onGenerateTryOn={(outfitKey, clothingItemIds) =>
-                                handleGenerateTryOn(message.id, outfitKey, clothingItemIds)
-                              }
+                              onGenerateTryOn={handleGenerateTryOn}
                             />
                           );
                         }
