@@ -1,6 +1,7 @@
 export interface ChatRequest {
   message: string;
   conversationId?: string;
+  includeAccessories?: boolean;
   userLocation?: {
     lat: number;
     lon: number;

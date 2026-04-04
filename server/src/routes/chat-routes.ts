@@ -14,7 +14,7 @@ interface ChatRoutesDependencies {
   userRepository: UserRepository;
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[]): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], includeAccessories: boolean): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -23,7 +23,9 @@ function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetIt
 - Style preferences: ${profile.styleNote || "not specified"}`
     : "User profile: not set up yet.";
 
-  const readyItems = items.filter((item) => item.analysisStatus === "ready");
+  const readyItems = items.filter(
+    (item) => item.analysisStatus === "ready" && (includeAccessories || item.category !== "accessories")
+  );
 
   const wardrobeSection =
     readyItems.length === 0
@@ -189,7 +191,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const { message, conversationId, userLocation } = req.body as ChatRequest;
+      const { message, conversationId, includeAccessories, userLocation } = req.body as ChatRequest;
       const trimmedMessage = typeof message === "string" ? message.trim() : "";
       const trimmedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
 
@@ -215,7 +217,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         closetRepository.listByUser(userId),
         userRepository.findById(userId)
       ]);
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, includeAccessories === true);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
