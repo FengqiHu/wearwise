@@ -4,6 +4,7 @@ import { env } from "./config/env.js";
 import { ClosetRepository } from "./repositories/closet-repository.js";
 import { ConversationRepository } from "./repositories/conversation-repository.js";
 import { GenerationRepository } from "./repositories/generation-repository.js";
+import { RecommendationRepository } from "./repositories/recommendation-repository.js";
 import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
@@ -55,6 +56,11 @@ export function createApp() {
     mongoUri: env.mongoUri,
     databaseName: env.mongoDatabaseName,
     collectionName: env.mongoGenerationsCollection
+  });
+  const recommendationRepository = new RecommendationRepository({
+    mongoUri: env.mongoUri,
+    databaseName: env.mongoDatabaseName,
+    collectionName: env.mongoRecommendationsCollection
   });
   const r2StorageService = new R2StorageService({
     bucket: env.s3Bucket,
@@ -108,6 +114,7 @@ export function createApp() {
     createChatRoutes({
       authService,
       conversationRepository,
+      recommendationRepository,
       chatService,
       closetRepository,
       userRepository
@@ -131,8 +138,8 @@ export function createApp() {
       authService,
       userRepository,
       closetRepository,
-      conversationRepository,
       generationRepository,
+      recommendationRepository,
       imageGenerationService,
       r2StorageService
     })

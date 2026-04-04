@@ -45,6 +45,7 @@ const mongoUsersCollection = getEnv("MONGODB_USERS_COLLECTION") || "users";
 const mongoConversationsCollection = getEnv("MONGODB_CONVERSATIONS_COLLECTION") || "conversations";
 const mongoClosetCollection = getEnv("MONGODB_CLOSET_COLLECTION") || "closet_items";
 const mongoGenerationsCollection = getEnv("MONGODB_GENERATIONS_COLLECTION") || "generations";
+const mongoRecommendationsCollection = getEnv("MONGODB_RECOMMENDATIONS_COLLECTION") || "recommendations";
 
 const s3Bucket = getEnv("S3_BUCKET");
 const s3Region = getEnv("S3_REGION") || "auto";
@@ -75,6 +76,7 @@ export const env = {
   mongoConversationsCollection,
   mongoClosetCollection,
   mongoGenerationsCollection,
+  mongoRecommendationsCollection,
   s3Bucket,
   s3Region,
   s3Endpoint,

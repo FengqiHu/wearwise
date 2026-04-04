@@ -5,6 +5,7 @@ import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { ConversationRepository } from "../repositories/conversation-repository.js";
+import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
@@ -79,6 +80,7 @@ async function startServer(dependencies: {
   authService: AuthService;
   chatService: ChatService;
   conversationRepository: ConversationRepository;
+  recommendationRepository: RecommendationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
 }): Promise<{ baseUrl: string; server: Server }> {
@@ -188,6 +190,12 @@ function makeRouteHarness(options: {
     )
   } as unknown as ConversationRepository;
 
+  const recommendationRepository = {
+    createMany: vi.fn().mockResolvedValue([]),
+    findById: vi.fn().mockResolvedValue(null),
+    findByMessage: vi.fn().mockResolvedValue([])
+  } as unknown as RecommendationRepository;
+
   const closetRepository = {
     listByUser: vi.fn().mockResolvedValue(closetItems)
   } as unknown as ClosetRepository;
@@ -201,6 +209,7 @@ function makeRouteHarness(options: {
       authService,
       chatService,
       conversationRepository,
+      recommendationRepository,
       closetRepository,
       userRepository
     },

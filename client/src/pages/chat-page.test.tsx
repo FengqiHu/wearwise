@@ -200,22 +200,24 @@ describe("ChatPage", () => {
   });
 
   describe("outfit cards", () => {
-    it("renders outfit cards when assistant returns JSON outfit block", async () => {
-      const outfitJson = JSON.stringify({
-        outfits: [
-          { outfitName: "Casual Friday", reason: "Comfortable and stylish.", items: [{ id: "item-1", name: "Blue Tee" }] },
-          { outfitName: "Office Look", reason: "Professional.", items: [{ id: "item-2", name: "Black Blazer" }] },
-          { outfitName: "Weekend Stroll", reason: "Relaxed.", items: [{ id: "item-3", name: "White Sneakers" }] }
-        ]
-      });
-
+    it("renders outfit cards when assistant message has recommendations", async () => {
       apiMocks.fetchChatConversations.mockResolvedValue([
         { id: "conv-1", title: "Outfit Suggestions", lastMessagePreview: "", updatedAt: new Date().toISOString() }
       ]);
       apiMocks.fetchChatConversation.mockResolvedValue({
         id: "conv-1",
         messages: [
-          { id: "m1", role: "assistant", content: `Here are your outfits:\n\`\`\`json\n${outfitJson}\n\`\`\`` }
+          {
+            id: "m1",
+            role: "assistant",
+            content: "Here are your outfits.",
+            recommendationIds: ["rec-1", "rec-2", "rec-3"],
+            recommendations: [
+              { id: "rec-1", userId: "u1", outfitName: "Casual Friday", reason: "Comfortable and stylish.", items: [{ id: "item-1", name: "Blue Tee" }], occasions: [], generation: null, vote: null, conversationId: "conv-1", messageId: "m1", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+              { id: "rec-2", userId: "u1", outfitName: "Office Look", reason: "Professional.", items: [{ id: "item-2", name: "Black Blazer" }], occasions: [], generation: null, vote: null, conversationId: "conv-1", messageId: "m1", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() },
+              { id: "rec-3", userId: "u1", outfitName: "Weekend Stroll", reason: "Relaxed.", items: [{ id: "item-3", name: "White Sneakers" }], occasions: [], generation: null, vote: null, conversationId: "conv-1", messageId: "m1", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() }
+            ]
+          }
         ]
       });
 

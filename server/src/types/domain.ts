@@ -64,18 +64,12 @@ export interface AuthError {
 
 export type ChatRole = "user" | "assistant";
 
-export interface StoredTryOnImage {
-  outfitKey: string;
-  imageUrl: string;
-  createdAt: string;
-}
-
 export interface StoredChatMessage {
   id: string;
   role: ChatRole;
   content: string;
   createdAt: string;
-  tryOnImages?: StoredTryOnImage[];
+  recommendationIds?: string[];
 }
 
 export interface ConversationRecord {
@@ -130,10 +124,8 @@ export interface RecommendOutfitResponse {
 }
 
 export interface GenerateOutfitRequest {
-  clothingItemIds: string[];
-  conversationId?: string;
-  messageId?: string;
-  outfitKey?: string;
+  recommendationId?: string;
+  clothingItemIds?: string[];
   options?: {
     scene?: string;
     style?: string;
@@ -157,4 +149,31 @@ export interface GenerationRecord {
   clothingItemIds: string[];
   generatedImageUrl: string;
   createdAt: string;
+}
+
+export interface RecommendationItem {
+  id: string;
+  name: string;
+}
+
+export interface RecommendationGeneration {
+  imageUrl: string;
+  createdAt: string;
+}
+
+export type RecommendationVote = "up" | "down";
+
+export interface RecommendationRecord {
+  id: string;
+  userId: string;
+  outfitName: string;
+  reason: string;
+  items: RecommendationItem[];
+  occasions: string[];
+  generation: RecommendationGeneration | null;
+  vote: RecommendationVote | null;
+  conversationId: string;
+  messageId: string;
+  createdAt: string;
+  updatedAt: string;
 }
