@@ -17,10 +17,12 @@ export interface UserLocation {
   timezone: string;
 }
 
+export type AccessoryMode = "include" | "exclude" | "auto";
+
 interface ChatStreamPayload {
   message: string;
   conversationId?: string;
-  includeAccessories?: boolean;
+  accessoryMode?: AccessoryMode;
   userLocation?: UserLocation;
 }
 

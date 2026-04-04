@@ -4,7 +4,7 @@ import { ConversationRepository } from "../repositories/conversation-repository.
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
+import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
@@ -45,7 +45,7 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], includeAccessories: boolean): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -55,7 +55,7 @@ function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetIt
     : "User profile: not set up yet.";
 
   const readyItems = items.filter(
-    (item) => item.analysisStatus === "ready" && (includeAccessories || item.category !== "accessories")
+    (item) => item.analysisStatus === "ready" && (accessoryMode !== "exclude" || item.category !== "accessories")
   );
 
   const wardrobeSection =
@@ -100,7 +100,8 @@ Rules for the JSON:
 - Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
 - Only use items from the wardrobe list above, with their exact IDs
-- The "name" field in each item is for display only — it must match the item's name from the wardrobe`;
+- The "name" field in each item is for display only — it must match the item's name from the wardrobe
+- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
@@ -238,7 +239,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const { message, conversationId, includeAccessories, userLocation } = req.body as ChatRequest;
+      const { message, conversationId, accessoryMode, userLocation } = req.body as ChatRequest;
       const trimmedMessage = typeof message === "string" ? message.trim() : "";
       const trimmedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
 
@@ -264,7 +265,9 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         closetRepository.listByUser(userId),
         userRepository.findById(userId)
       ]);
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, includeAccessories === true);
+      const validModes = ["include", "exclude", "auto"] as const;
+      const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");

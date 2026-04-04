@@ -1,7 +1,9 @@
+export type AccessoryMode = "include" | "exclude" | "auto";
+
 export interface ChatRequest {
   message: string;
   conversationId?: string;
-  includeAccessories?: boolean;
+  accessoryMode?: AccessoryMode;
   userLocation?: {
     lat: number;
     lon: number;

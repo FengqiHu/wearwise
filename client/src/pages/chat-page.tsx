@@ -210,7 +210,7 @@ export function ChatPage() {
   const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
   const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [includeAccessories, setIncludeAccessories] = useState(false);
+  const [accessoryMode, setAccessoryMode] = useState<"include" | "exclude" | "auto">("auto");
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -458,7 +458,7 @@ export function ChatPage() {
         {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
-          includeAccessories,
+          accessoryMode,
           userLocation: userLocation ?? undefined
         },
         controller.signal,
@@ -610,18 +610,32 @@ export function ChatPage() {
             <p className="mt-1 text-sm text-boutique-700">Ask for outfit suggestions by weather, occasion, or style preference.</p>
           </div>
 
-          {activeConversationId ? (
-            <Button
-              variant="danger"
-              size="sm"
-              disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
-              onClick={() => {
-                void handleDeleteConversation(activeConversationId);
-              }}
-            >
-              Delete Chat
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
+              <span>Accessories:</span>
+              <select
+                value={accessoryMode}
+                onChange={(e) => setAccessoryMode(e.target.value as "include" | "exclude" | "auto")}
+                className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
+              >
+                <option value="auto">AI decides</option>
+                <option value="include">Include</option>
+                <option value="exclude">Exclude</option>
+              </select>
+            </label>
+            {activeConversationId ? (
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
+                onClick={() => {
+                  void handleDeleteConversation(activeConversationId);
+                }}
+              >
+                Delete Chat
+              </Button>
+            ) : null}
+          </div>
         </header>
 
         <Card className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
@@ -702,17 +716,6 @@ export function ChatPage() {
             />
 
             <PromptInputActions>
-              <PromptInputAction>
-                <label className="flex items-center gap-2 text-sm text-boutique-600 select-none cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={includeAccessories}
-                    onChange={(e) => setIncludeAccessories(e.target.checked)}
-                    className="accent-boutique-700"
-                  />
-                  Include accessories
-                </label>
-              </PromptInputAction>
               <PromptInputAction>
                 {isGenerating ? (
                   <Button variant="danger" className="min-w-28" onClick={stopGeneration}>
