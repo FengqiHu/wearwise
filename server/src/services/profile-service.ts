@@ -22,6 +22,10 @@ export function parseProfileFromRequest(input: unknown): ParseProfileResult {
   const payload = input as Record<string, unknown>;
   const name = typeof payload.name === "string" ? payload.name.trim() : "";
   const styleNote = typeof payload.styleNote === "string" ? payload.styleNote.trim() : "";
+  const VALID_SEX = ["male", "female", "other"] as const;
+  const sex = VALID_SEX.includes(payload.sex as typeof VALID_SEX[number])
+    ? (payload.sex as "male" | "female" | "other")
+    : undefined;
   const fullBodyImageUrl = normalizeOptionalString(payload.fullBodyImageUrl);
   const headshotImageUrl = normalizeOptionalString(payload.headshotImageUrl);
   const avatarUrl = normalizeOptionalString(payload.avatarUrl);
@@ -58,7 +62,8 @@ export function parseProfileFromRequest(input: unknown): ParseProfileResult {
       styleNote,
       avatarUrl,
       fullBodyImageUrl,
-      headshotImageUrl
+      headshotImageUrl,
+      ...(sex !== undefined && { sex })
     }
   };
 }
