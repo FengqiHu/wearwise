@@ -151,6 +151,10 @@ function RecommendationCards({
   );
 }
 
+function isRawOutfitJson(content: string): boolean {
+  return /```json[\s\S]*"outfits"/.test(content);
+}
+
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -672,6 +676,14 @@ export function ChatPage() {
                               generationStates={outfitGenerationStates}
                               onGenerateTryOn={handleGenerateTryOn}
                             />
+                          );
+                        }
+                        if (isRawOutfitJson(message.content)) {
+                          return (
+                            <span className="inline-flex items-center gap-2 text-boutique-600">
+                              <ThinkingDots />
+                              <span>Building outfit recommendations...</span>
+                            </span>
                           );
                         }
                         return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
