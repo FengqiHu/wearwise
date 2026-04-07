@@ -19,7 +19,6 @@ export interface UserProfile {
   avatarUrl: string | null;
   fullBodyImageUrl: string | null;
   headshotImageUrl: string | null;
-  sex?: 'male' | 'female' | 'other';
 }
 
 export interface UserRecord {
