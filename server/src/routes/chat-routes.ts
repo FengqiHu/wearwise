@@ -292,7 +292,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             { role: "system", content: wardrobeSystemMessage },
             ...conversation.messages.map((entry) => ({
               role: entry.role,
-              content: entry.content
+              content: `[${entry.createdAt}] ${entry.content}`
             }))
           ],
           ...(userLocation
