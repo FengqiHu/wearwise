@@ -79,7 +79,7 @@ ${wardrobeSection}
 
 For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
 
-For outfit recommendation requests: you MUST respond with ONLY a JSON code block in this exact format, no other text before or after:
+For outfit recommendation requests: if weather data is available, open with a single weather summary line (e.g. "Cool and rainy, 12 °C"), then respond with ONLY a JSON code block in this exact format, no other text before or after the JSON block:
 
 \`\`\`json
 {
@@ -102,6 +102,14 @@ Rules for the JSON:
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
+
+## Weather-aware recommendations
+
+When making outfit recommendations:
+1. Use the get_weather tool (with the user's location from get_user_location if not already known) to fetch current weather conditions.
+2. If weather data is available, open your response with a single weather summary line before the JSON block, e.g. "Cool and rainy, 12 °C".
+3. Let weather conditions influence clothing choices — suggest appropriate layers, waterproof items, or light fabrics based on the weather.
+4. If weather data is unavailable, skip the summary and proceed directly to the JSON block.
 
 ## Occasion awareness
 
