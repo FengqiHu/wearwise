@@ -45,7 +45,7 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -101,7 +101,30 @@ Rules for the JSON:
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
-- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}`;
+- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
+
+## Weather-aware recommendations
+
+When making outfit recommendations:
+1. Use the get_weather tool (with the user's location from get_user_location if not already known) to fetch current weather conditions.
+2. Let weather conditions influence clothing choices — suggest appropriate layers, waterproof items, or light fabrics based on the weather.
+3. Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining today, so I recommend this waterproof jacket paired with...".
+4. If weather data is unavailable, omit weather from the reason and recommend based on other context.
+
+## Occasion awareness
+
+Before making an outfit recommendation, call get_current_time${userTimezone ? ` with timezone "${userTimezone}"` : ""} to get the current local date and time.
+
+Each historical message is prefixed with an ISO timestamp. When evaluating schedule or occasion information in the conversation history:
+
+1. Resolve any relative time references ("tomorrow", "next week", "明天", "下周", or any absolute date) relative to THAT MESSAGE's own timestamp, not today's date.
+2. If the resolved date matches today → treat the information as current, even if the message was sent on a previous day.
+3. If the resolved date does not match today → treat the information as outdated and do not rely on it.
+4. If no occasion or schedule has been identified for today:
+   - DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
+   - EVENING (18:00–23:59 local time): ask whether the user wants an outfit for today or for tomorrow.
+5. If the user declines or has no specific plans → proceed with a general recommendation and do not ask again.
+6. When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview today, this outfit conveys professionalism...".`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
@@ -267,7 +290,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       ]);
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -292,7 +315,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             { role: "system", content: wardrobeSystemMessage },
             ...conversation.messages.map((entry) => ({
               role: entry.role,
-              content: entry.content
+              content: `[${entry.createdAt}] ${entry.content}`
             }))
           ],
           ...(userLocation
