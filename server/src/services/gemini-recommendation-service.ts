@@ -1,5 +1,6 @@
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
+import type { RecommendationItem, RecommendationVote } from "../types/domain.js";
 
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
@@ -71,6 +72,32 @@ function buildRecommendationPrompt(input: RecommendOutfitInput): string {
   ].join("\n");
 }
 
+export interface VotedOutfit {
+  outfitName: string;
+  items: RecommendationItem[];
+  vote: RecommendationVote;
+}
+
+function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
+  const liked = votedOutfits.filter((o) => o.vote === "up");
+  const disliked = votedOutfits.filter((o) => o.vote === "down");
+
+  const formatOutfit = (o: VotedOutfit) =>
+    `- ${o.outfitName}: ${o.items.map((i) => i.name).join(", ")}`;
+
+  return [
+    "You are a fashion analyst. Based on a user's outfit vote history, write a concise style preference note (1-2 sentences max).",
+    "Focus on patterns: colors, styles, formality, or item types they consistently like or dislike.",
+    "Be specific but brief. Do not list outfits — summarize the underlying preference.",
+    "",
+    liked.length > 0 ? `Liked outfits:\n${liked.map(formatOutfit).join("\n")}` : "No liked outfits.",
+    "",
+    disliked.length > 0 ? `Disliked outfits:\n${disliked.map(formatOutfit).join("\n")}` : "No disliked outfits.",
+    "",
+    "Style preference note:"
+  ].join("\n");
+}
+
 export class GeminiRecommendationService {
   private readonly ai: GoogleGenAI | null;
 
@@ -80,6 +107,17 @@ export class GeminiRecommendationService {
 
   isConfigured(): boolean {
     return this.ai !== null;
+  }
+
+  async summarizeStyle(votedOutfits: VotedOutfit[]): Promise<string> {
+    if (!this.ai) {
+      throw new Error("GEMINI_API_KEY is not configured on server.");
+    }
+    const response = await this.ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ parts: [{ text: buildStyleSummaryPrompt(votedOutfits) }] }]
+    });
+    return (response.text ?? "").trim();
   }
 
   async recommendOutfit(input: RecommendOutfitInput): Promise<RecommendOutfitResult> {
