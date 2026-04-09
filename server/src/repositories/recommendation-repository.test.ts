@@ -1,0 +1,149 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { RecommendationRepository } from "./recommendation-repository.js";
+
+const { mockCollection, mockClient } = vi.hoisted(() => {
+  const mockCollection = {
+    insertOne: vi.fn(),
+    insertMany: vi.fn(),
+    findOne: vi.fn(),
+    find: vi.fn(),
+    findOneAndUpdate: vi.fn(),
+    createIndex: vi.fn()
+  };
+  const mockDb = { collection: vi.fn(() => mockCollection) };
+  const mockClient = { connect: vi.fn(), db: vi.fn(() => mockDb) };
+  return { mockCollection, mockClient };
+});
+
+vi.mock("mongodb", () => ({
+  MongoClient: vi.fn(function () {
+    return mockClient;
+  })
+}));
+
+function makeRepo() {
+  return new RecommendationRepository({
+    mongoUri: "mongodb://localhost:27017",
+    databaseName: "test",
+    collectionName: "recommendations"
+  });
+}
+
+function makeDoc(overrides: Record<string, unknown> = {}) {
+  return {
+    _id: "rec-1",
+    userId: "user-1",
+    outfitName: "Casual Look",
+    reason: "Comfortable",
+    items: [{ id: "item-1", name: "Blue Shirt" }],
+    occasions: [],
+    generation: null,
+    vote: null,
+    conversationId: "conv-1",
+    messageId: "msg-1",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function makeFindChain(docs: unknown[]) {
+  return {
+    sort: vi.fn().mockReturnThis(),
+    toArray: vi.fn().mockResolvedValue(docs)
+  };
+}
+
+describe("RecommendationRepository", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCollection.find.mockReturnValue(makeFindChain([]));
+  });
+
+  describe("updateVote", () => {
+    it("returns updated record with the new vote value", async () => {
+      const repo = makeRepo();
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ vote: "up" }));
+
+      const result = await repo.updateVote("user-1", "rec-1", "up");
+
+      expect(result?.vote).toBe("up");
+      expect(mockCollection.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: "rec-1", userId: "user-1" },
+        expect.objectContaining({ $set: expect.objectContaining({ vote: "up" }) }),
+        { returnDocument: "after" }
+      );
+    });
+
+    it("clears vote when null is passed", async () => {
+      const repo = makeRepo();
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ vote: null }));
+
+      const result = await repo.updateVote("user-1", "rec-1", null);
+
+      expect(result?.vote).toBeNull();
+      expect(mockCollection.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: "rec-1", userId: "user-1" },
+        expect.objectContaining({ $set: expect.objectContaining({ vote: null }) }),
+        { returnDocument: "after" }
+      );
+    });
+
+    it("returns null when recommendation is not found", async () => {
+      const repo = makeRepo();
+      mockCollection.findOneAndUpdate.mockResolvedValue(null);
+
+      const result = await repo.updateVote("user-1", "nonexistent", "up");
+
+      expect(result).toBeNull();
+    });
+  });
+
+  describe("findVotedByUser", () => {
+    it("returns recommendations with up and down votes", async () => {
+      const repo = makeRepo();
+      const docs = [
+        makeDoc({ _id: "rec-1", vote: "up" }),
+        makeDoc({ _id: "rec-2", vote: "down" })
+      ];
+      mockCollection.find.mockReturnValue(makeFindChain(docs));
+
+      const result = await repo.findVotedByUser("user-1");
+
+      expect(result).toHaveLength(2);
+      expect(result[0]?.vote).toBe("up");
+      expect(result[1]?.vote).toBe("down");
+    });
+
+    it("queries only for up and down votes, excluding null", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      await repo.findVotedByUser("user-1");
+
+      expect(mockCollection.find).toHaveBeenCalledWith(
+        expect.objectContaining({ vote: { $in: ["up", "down"] } })
+      );
+    });
+
+    it("scopes the query to the given userId", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      await repo.findVotedByUser("user-99");
+
+      expect(mockCollection.find).toHaveBeenCalledWith(
+        expect.objectContaining({ userId: "user-99" })
+      );
+    });
+
+    it("returns empty array when no voted recommendations exist", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      const result = await repo.findVotedByUser("user-1");
+
+      expect(result).toEqual([]);
+    });
+  });
+});
