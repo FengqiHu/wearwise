@@ -117,7 +117,8 @@ export function createApp() {
       recommendationRepository,
       chatService,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiRecommendationService
     })
   );
 
