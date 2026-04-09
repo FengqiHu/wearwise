@@ -51,6 +51,7 @@ function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetIt
 - Name: ${profile.name}
 - Height: ${profile.heightCm} cm
 - Weight: ${profile.weightKg} kg
+- Sex: ${profile.sex ?? "not specified"}
 - Style preferences: ${profile.styleNote || "not specified"}`
     : "User profile: not set up yet.";
 
