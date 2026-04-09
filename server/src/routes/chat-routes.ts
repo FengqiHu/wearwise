@@ -104,32 +104,43 @@ Rules for the JSON:
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
 
-## Location unavailable
+## Pre-recommendation checklist
 
-If get_user_location returns ok: false, ask the user for their city or current location (e.g. "What city are you in?") before making a recommendation. Ask at most once per conversation — if the user declines or does not answer, proceed without location context.
+Before generating any outfit recommendation, complete ALL of the following steps in order. Do not skip ahead.
 
-## Weather-aware recommendations
+### Step 1 — Resolve location and weather
 
-When making outfit recommendations:
-1. Use the get_weather tool (with the user's location from get_user_location if not already known) to fetch current weather conditions.
-2. Let weather conditions influence clothing choices — suggest appropriate layers, waterproof items, or light fabrics based on the weather.
-3. Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining today, so I recommend this waterproof jacket paired with...".
-4. If weather data is unavailable, omit weather from the reason and recommend based on other context.
+${userTimezone
+  ? `Location is available. Call get_weather with the user's location to fetch current conditions.`
+  : `Location is not available from the browser. Follow this sequence:
+a. Call get_user_location.
+b. If it returns ok: false AND the user has already provided a city name in the conversation, call get_weather with that city name AND infer its IANA timezone (e.g. "Asia/Shanghai" for Shanghai, "America/New_York" for New York) — then proceed to Step 2.
+c. If it returns ok: false AND no city has been provided yet, ask the user: "What city are you in?" — then STOP and wait for the reply. Ask at most once; if the user declines, skip weather and proceed to Step 2 without location context.`}
 
-## Occasion awareness
+Use weather conditions to influence clothing choices (layers, waterproof items, light fabrics). Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining, so I chose this waterproof jacket…". If weather data is unavailable, omit it from the reason.
 
-Before making an outfit recommendation, ${userTimezone ? `call get_current_time with timezone "${userTimezone}"` : "use get_user_location to get the user's timezone, then call get_current_time with that timezone. If get_user_location fails but the user has provided their city name in the conversation, infer the IANA timezone from the city name (e.g. \"Asia/Shanghai\" for Shanghai, \"America/New_York\" for New York) and call get_current_time directly with that timezone — do not wait for get_user_location"} to get the current local date and time.
+### Step 2 — Get current local time
 
-Each historical message is prefixed with an ISO timestamp. When evaluating schedule or occasion information in the conversation history:
+${userTimezone
+  ? `Call get_current_time with timezone "${userTimezone}".`
+  : `If you obtained a timezone in Step 1, call get_current_time with that timezone. Otherwise skip this step.`}
 
-1. Resolve any relative time references ("tomorrow", "next week", "明天", "下周", or any absolute date) relative to THAT MESSAGE's own timestamp, not today's date.
-2. If the resolved date matches today → treat the information as current, even if the message was sent on a previous day.
-3. If the resolved date does not match today → treat the information as outdated and do not rely on it.
-4. If no occasion or schedule has been identified for today:
-   - DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
-   - EVENING (18:00–23:59 local time): ask whether the user wants an outfit for today or for tomorrow.
-5. If the user declines or has no specific plans → proceed with a general recommendation and do not ask again.
-6. When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview today, this outfit conveys professionalism...".`;
+### Step 3 — Check occasion
+
+Each historical message is prefixed with an ISO timestamp. When evaluating schedule information in the conversation history:
+1. Resolve relative time references ("tomorrow", "next week", "明天", "下周") relative to THAT MESSAGE's own timestamp, not today's date.
+2. If the resolved date matches today → treat the information as current.
+3. If the resolved date does not match today → treat it as outdated and do not rely on it.
+
+If no occasion has been identified for the relevant day, and you obtained local time in Step 2:
+- DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
+- EVENING (18:00–23:59 local time): ask once, e.g. "Do you have anything planned for tomorrow?"
+
+Wait for the user's reply before generating outfits. If the user declines or has no plans, proceed with a general recommendation and do not ask again.
+
+### Step 4 — Generate outfits
+
+When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {

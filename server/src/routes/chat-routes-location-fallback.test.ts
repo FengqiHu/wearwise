@@ -149,7 +149,26 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     }
   });
 
-  it("includes a location-unavailable fallback instruction in the system message", async () => {
+  it("includes a pre-recommendation checklist with ordered steps in the system message", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Recommend an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Pre-recommendation checklist");
+    expect(systemMessage).toContain("Step 1");
+    expect(systemMessage).toContain("Step 2");
+    expect(systemMessage).toContain("Step 3");
+    expect(systemMessage).toContain("Step 4");
+  });
+
+  it("instructs the model to ask for city when get_user_location fails and no location is provided", async () => {
     const harness = makeHarness();
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -162,10 +181,11 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("get_user_location");
-    expect(systemMessage).toContain("ask the user");
+    expect(systemMessage).toContain("What city are you in?");
+    expect(systemMessage).toContain("at most once");
   });
 
-  it("instructs the model to ask at most once when location is unavailable", async () => {
+  it("instructs the model to infer IANA timezone from city name when location is unavailable", async () => {
     const harness = makeHarness();
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -177,10 +197,28 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     });
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
-    expect(systemMessage).toContain("at most once");
+    expect(systemMessage).toContain("infer its IANA timezone");
+    expect(systemMessage).toContain("get_current_time");
   });
 
-  it("includes the fallback instruction even when userLocation is provided", async () => {
+  it("instructs the model to ask about occasion after resolving time (DAYTIME and EVENING cases)", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Recommend an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("DAYTIME");
+    expect(systemMessage).toContain("EVENING");
+    expect(systemMessage).toContain("Do you have anything planned for tomorrow?");
+  });
+
+  it("skips location fallback instructions and uses provided timezone when location is available", async () => {
     const harness = makeHarness();
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -195,44 +233,8 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     });
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
-    expect(systemMessage).toContain("get_user_location");
-    expect(systemMessage).toContain("ask the user");
-  });
-
-  it("instructs the model to infer IANA timezone from city name when get_user_location fails", async () => {
-    const harness = makeHarness();
-    const started = await startServer(harness.dependencies);
-    server = started.server;
-
-    await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Recommend an outfit." })
-    });
-
-    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
-    expect(systemMessage).toContain("infer the IANA timezone");
-    expect(systemMessage).toContain("get_current_time");
-  });
-
-  it("positions the location-unavailable instruction before the weather and occasion sections", async () => {
-    const harness = makeHarness();
-    const started = await startServer(harness.dependencies);
-    server = started.server;
-
-    await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Recommend an outfit." })
-    });
-
-    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
-    const locationIdx = systemMessage.indexOf("Location unavailable");
-    const weatherIdx = systemMessage.indexOf("Weather-aware recommendations");
-    const occasionIdx = systemMessage.indexOf("Occasion awareness");
-
-    expect(locationIdx).toBeGreaterThan(-1);
-    expect(locationIdx).toBeLessThan(weatherIdx);
-    expect(locationIdx).toBeLessThan(occasionIdx);
+    expect(systemMessage).toContain("Location is available");
+    expect(systemMessage).toContain("America/New_York");
+    expect(systemMessage).not.toContain("What city are you in?");
   });
 });
