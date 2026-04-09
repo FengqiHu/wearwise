@@ -85,16 +85,18 @@ function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
   const formatOutfit = (o: VotedOutfit) =>
     `- ${o.outfitName}: ${o.items.map((i) => i.name).join(", ")}`;
 
+  console.log("generate style summary");
+
   return [
-    "You are a fashion analyst. Based on a user's outfit vote history, write a concise style preference note (1-2 sentences max).",
+    "You are a fashion analyst. Based on a user's outfit vote history, write a concise style preference note (3-4 sentences max).",
     "Focus on patterns: colors, styles, formality, or item types they consistently like or dislike.",
-    "Be specific but brief. Do not list outfits — summarize the underlying preference.",
-    "",
+    "Be specific but brief. Do not list outfits — summarize the underlying preference. ",
+    "Write in the first person (I like ...), keeping the text straightforward—avoid introductory or concluding remarks.",
+    "Do not judge the preference, such as ' Your style effectively bridges the gap between...'",
     liked.length > 0 ? `Liked outfits:\n${liked.map(formatOutfit).join("\n")}` : "No liked outfits.",
     "",
     disliked.length > 0 ? `Disliked outfits:\n${disliked.map(formatOutfit).join("\n")}` : "No disliked outfits.",
     "",
-    "Style preference note:"
   ].join("\n");
 }
 

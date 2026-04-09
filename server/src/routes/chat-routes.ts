@@ -224,50 +224,6 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     }
   });
 
-  // vote on a recommendation
-  router.patch("/recommendations/:recommendationId/vote", async (req, res): Promise<void> => {
-    try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
-
-      const recommendationId = (req.params.recommendationId ?? "").trim();
-
-      if (!recommendationId) {
-        res.status(400).json({ error: "recommendationId is required." });
-        return;
-      }
-
-      const { vote } = req.body as { vote?: unknown };
-
-      if (vote !== "up" && vote !== "down" && vote !== null) {
-        res.status(400).json({ error: "vote must be 'up', 'down', or null." });
-        return;
-      }
-
-      const updated = await recommendationRepository.updateVote(
-        authResolution.user.id,
-        recommendationId,
-        vote
-      );
-
-      if (!updated) {
-        res.status(404).json({ error: "Recommendation not found." });
-        return;
-      }
-
-      res.json({ recommendation: updated });
-    } catch (error) {
-      console.error("Recommendation vote error:", error);
-      res.status(500).json({ error: "Failed to update vote." });
-    }
-  });
-
   // delete a conversation
   router.delete("/chat/conversations/:conversationId", async (req, res): Promise<void> => {
     try {
