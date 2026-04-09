@@ -421,7 +421,7 @@ describe("createChatRoutes POST /chat – weather and occasion instructions in s
     });
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
-    expect(systemMessage).toContain("Occasion awareness");
+    expect(systemMessage).toContain("Pre-recommendation checklist");
     expect(systemMessage).toContain("get_current_time");
   });
 
