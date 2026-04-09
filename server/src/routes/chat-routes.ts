@@ -104,6 +104,10 @@ Rules for the JSON:
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
 
+## Location unavailable
+
+If get_user_location returns ok: false, ask the user for their city or current location (e.g. "What city are you in?") before making a recommendation. Ask at most once per conversation — if the user declines or does not answer, proceed without location context.
+
 ## Weather-aware recommendations
 
 When making outfit recommendations:
