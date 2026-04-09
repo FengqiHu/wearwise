@@ -16,6 +16,7 @@
 - Create `POST /api/outfits/vote` endpoint to record a vote
 - Add thumbs-up / thumbs-down buttons to outfit cards in the chat UI and wardrobe recommendation panel
 - Write tests for the vote endpoint: valid vote stored, duplicate vote updates existing record, invalid payload rejected
+- Each time user makes vote, the system will trigher LLM to generate user's dressing preference.
 
 **Acceptance Criteria:**
 
@@ -23,6 +24,7 @@
 - Clicking a vote button sends the outfit composition and vote direction to the backend
 - Voting on an already-voted outfit updates (not duplicates) the stored vote
 - Votes are associated with the authenticated user and persisted in MongoDB
+- After each vote, the user's `styleNote` is asynchronously regenerated from their vote history and saved to their profile; failures are logged but do not surface to the user
 
 ---
 
