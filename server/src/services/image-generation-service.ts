@@ -42,19 +42,27 @@ export class ImageGenerationService {
     clothingImageUrls: string[];
     promptOverride?: string;
     aspectRatio?: string;
+    backgroundContext?: string;
   }): Promise<Buffer> {
     if (!this.ai) {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
 
-    const { bodyImageUrl, headshotImageUrl, clothingImageUrls, promptOverride, aspectRatio = "3:4" } = params;
+    const { bodyImageUrl, headshotImageUrl, clothingImageUrls, promptOverride, aspectRatio = "3:4", backgroundContext } = params;
 
     const bodyImage = await this.fetchImageAsBase64(bodyImageUrl);
     const headshotImage = headshotImageUrl ? await this.fetchImageAsBase64(headshotImageUrl) : null;
     const clothingImages = await Promise.all(clothingImageUrls.map((url) => this.fetchImageAsBase64(url)));
 
+    const backgroundInstruction = backgroundContext
+      ? `Place the person in a background that suits this context: "${backgroundContext}". ` +
+        `Match the setting to the occasion and weather — for example, a gym interior for workout outfits, ` +
+        `a rainy street or covered outdoor area for rainy weather, an office or professional setting for work occasions, ` +
+        `a party or event venue for formal/social occasions. Keep the background realistic and non-distracting.`
+      : "Use a clean, neutral, well-lit background.";
+
     const parts: object[] = [
-      { text: promptOverride ?? DEFAULT_PROMPT },
+      { text: promptOverride ?? `${DEFAULT_PROMPT} ${backgroundInstruction}` },
       { inlineData: { mimeType: bodyImage.mimeType, data: bodyImage.base64 } },
       ...(headshotImage
         ? [{ inlineData: { mimeType: headshotImage.mimeType, data: headshotImage.base64 } }]

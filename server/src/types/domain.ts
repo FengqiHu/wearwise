@@ -135,6 +135,7 @@ export interface GenerateOutfitRequest {
     style?: string;
     prompt?: string;
     aspectRatio?: string;
+    weatherSummary?: string;
   };
 }
 
