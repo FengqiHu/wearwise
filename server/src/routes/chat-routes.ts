@@ -105,7 +105,7 @@ Rules for the JSON:
 
 ## Occasion awareness
 
-Before making an outfit recommendation, call get_current_time${userTimezone ? ` with timezone "${userTimezone}"` : ""} to get the current local date and time.
+Before making an outfit recommendation, ${userTimezone ? `call get_current_time with timezone "${userTimezone}"` : "use get_user_location to get the user's timezone, then call get_current_time with that timezone"} to get the current local date and time.
 
 Each historical message is prefixed with an ISO timestamp. When evaluating schedule or occasion information in the conversation history:
 
