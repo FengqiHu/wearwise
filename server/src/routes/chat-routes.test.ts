@@ -111,6 +111,16 @@ async function stopServer(server: Server): Promise<void> {
   });
 }
 
+async function postChat(baseUrl: string, payload: Record<string, unknown>): Promise<Response> {
+  return fetch(`${baseUrl}/api/chat`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+}
+
 function makeRouteHarness(options: {
   closetItems?: ClosetItemRecord[];
   userRecord?: UserRecord;
@@ -241,14 +251,8 @@ describe("createChatRoutes POST /chat", () => {
     const started = await startServer(harness.dependencies);
     server = started.server;
 
-    const response = await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Build me an outfit for class tomorrow."
-      })
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit for class tomorrow."
     });
 
     expect(response.status).toBe(200);
@@ -295,14 +299,8 @@ describe("createChatRoutes POST /chat", () => {
     const started = await startServer(harness.dependencies);
     server = started.server;
 
-    const response = await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        message: "Recommend some outfits."
-      })
+    const response = await postChat(started.baseUrl, {
+      message: "Recommend some outfits."
     });
 
     expect(response.status).toBe(200);
@@ -321,5 +319,83 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain('Always include exactly 3 outfits in the "outfits" array');
     expect(systemMessage).toContain('Each outfit may contain at most one item per category');
     expect(systemMessage).toContain('Only use items from the wardrobe list above, with their exact IDs');
+  });
+
+  it('excludes accessory items from the wardrobe context when accessoryMode is "exclude"', async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", name: "Ready Shirt", category: "tops" }),
+        makeClosetItem({ id: "ready-accessory", name: "Silver Watch", category: "accessories", tags: ["silver"] }),
+        makeClosetItem({ id: "ready-shoe", name: "Ready Loafers", category: "shoes" })
+      ]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit with no accessories.",
+      accessoryMode: "exclude"
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+
+    expect(systemMessage).toContain("Wardrobe (2 items):");
+    expect(systemMessage).toContain("ID: ready-top | Name: Ready Shirt");
+    expect(systemMessage).toContain("ID: ready-shoe | Name: Ready Loafers");
+    expect(systemMessage).not.toContain("Silver Watch");
+    expect(systemMessage).toContain("Do NOT include any accessories");
+  });
+
+  it('includes accessory items and requires them in outfits when accessoryMode is "include"', async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", name: "Ready Shirt", category: "tops" }),
+        makeClosetItem({ id: "ready-accessory", name: "Silver Watch", category: "accessories", tags: ["silver"] }),
+        makeClosetItem({ id: "ready-shoe", name: "Ready Loafers", category: "shoes" })
+      ]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit with accessories.",
+      accessoryMode: "include"
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+
+    expect(systemMessage).toContain("Wardrobe (3 items):");
+    expect(systemMessage).toContain("ID: ready-accessory | Name: Silver Watch | Category: accessories");
+    expect(systemMessage).toContain("Every outfit MUST include at least one accessory item");
+  });
+
+  it('defaults accessoryMode to "auto" when omitted', async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", name: "Ready Shirt", category: "tops" }),
+        makeClosetItem({ id: "ready-accessory", name: "Silver Watch", category: "accessories", tags: ["silver"] })
+      ]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit and decide on accessories."
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+
+    expect(systemMessage).toContain("Wardrobe (2 items):");
+    expect(systemMessage).toContain("ID: ready-accessory | Name: Silver Watch | Category: accessories");
+    expect(systemMessage).toContain("Use your own judgment on whether to include accessories");
   });
 });
