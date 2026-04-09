@@ -160,7 +160,8 @@ function makeRouteHarness(options: {
       createConversation: (conversationRepository as unknown as { createWithFirstUserMessage: ReturnType<typeof vi.fn> }).createWithFirstUserMessage,
       appendMessage: (conversationRepository as unknown as { appendMessage: ReturnType<typeof vi.fn> }).appendMessage,
       listClosetItems: (closetRepository as unknown as { listByUser: ReturnType<typeof vi.fn> }).listByUser,
-      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById
+      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
+      summarizeStyle: (geminiRecommendationService as unknown as { summarizeStyle: ReturnType<typeof vi.fn> }).summarizeStyle
     }
   };
 }
