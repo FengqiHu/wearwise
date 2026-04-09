@@ -199,6 +199,22 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     expect(systemMessage).toContain("ask the user");
   });
 
+  it("instructs the model to infer IANA timezone from city name when get_user_location fails", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Recommend an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("infer the IANA timezone");
+    expect(systemMessage).toContain("get_current_time");
+  });
+
   it("positions the location-unavailable instruction before the weather and occasion sections", async () => {
     const harness = makeHarness();
     const started = await startServer(harness.dependencies);

@@ -118,7 +118,7 @@ When making outfit recommendations:
 
 ## Occasion awareness
 
-Before making an outfit recommendation, ${userTimezone ? `call get_current_time with timezone "${userTimezone}"` : "use get_user_location to get the user's timezone, then call get_current_time with that timezone"} to get the current local date and time.
+Before making an outfit recommendation, ${userTimezone ? `call get_current_time with timezone "${userTimezone}"` : "use get_user_location to get the user's timezone, then call get_current_time with that timezone. If get_user_location fails but the user has provided their city name in the conversation, infer the IANA timezone from the city name (e.g. \"Asia/Shanghai\" for Shanghai, \"America/New_York\" for New York) and call get_current_time directly with that timezone — do not wait for get_user_location"} to get the current local date and time.
 
 Each historical message is prefixed with an ISO timestamp. When evaluating schedule or occasion information in the conversation history:
 
