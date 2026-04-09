@@ -79,7 +79,7 @@ ${wardrobeSection}
 
 For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
 
-For outfit recommendation requests: if weather data is available, open with a single weather summary line (e.g. "Cool and rainy, 12 °C"), then respond with ONLY a JSON code block in this exact format, no other text before or after the JSON block:
+For outfit recommendation requests: you MUST respond with ONLY a JSON code block in this exact format, no other text before or after:
 
 \`\`\`json
 {
@@ -107,9 +107,9 @@ Rules for the JSON:
 
 When making outfit recommendations:
 1. Use the get_weather tool (with the user's location from get_user_location if not already known) to fetch current weather conditions.
-2. If weather data is available, open your response with a single weather summary line before the JSON block, e.g. "Cool and rainy, 12 °C".
-3. Let weather conditions influence clothing choices — suggest appropriate layers, waterproof items, or light fabrics based on the weather.
-4. If weather data is unavailable, skip the summary and proceed directly to the JSON block.
+2. Let weather conditions influence clothing choices — suggest appropriate layers, waterproof items, or light fabrics based on the weather.
+3. Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining today, so I recommend this waterproof jacket paired with...".
+4. If weather data is unavailable, omit weather from the reason and recommend based on other context.
 
 ## Occasion awareness
 
@@ -123,7 +123,8 @@ Each historical message is prefixed with an ISO timestamp. When evaluating sched
 4. If no occasion or schedule has been identified for today:
    - DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
    - EVENING (18:00–23:59 local time): ask whether the user wants an outfit for today or for tomorrow.
-5. If the user declines or has no specific plans → proceed with a general recommendation and do not ask again.`;
+5. If the user declines or has no specific plans → proceed with a general recommendation and do not ask again.
+6. When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview today, this outfit conveys professionalism...".`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
