@@ -25,6 +25,7 @@ function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord {
       name: "Taylor",
       heightCm: 175,
       weightKg: 68,
+      sex: "other" as const,
       styleNote: "casual",
       avatarUrl: null,
       fullBodyImageUrl: null,
