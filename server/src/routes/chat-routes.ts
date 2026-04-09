@@ -4,9 +4,8 @@ import { ConversationRepository } from "../repositories/conversation-repository.
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { AccessoryMode, ChatRequest, ClosetItemRecord, RecommendationRecord, UserProfile } from "../types/domain.js";
+import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
-import { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
@@ -15,7 +14,6 @@ interface ChatRoutesDependencies {
   recommendationRepository: RecommendationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
-  geminiRecommendationService: GeminiRecommendationService;
 }
 
 interface ParsedOutfit {
@@ -106,7 +104,7 @@ Rules for the JSON:
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}`;
 }
 
-export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository, geminiRecommendationService }: ChatRoutesDependencies): Router {
+export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
   const router = Router();
 
   // get all conversations
@@ -217,69 +215,6 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     } catch (error) {
       console.error("Chat delete error:", error);
       res.status(500).json({ error: "Failed to delete conversation." });
-    }
-  });
-
-  // vote on a recommendation
-  router.patch("/recommendations/:recommendationId/vote", async (req, res): Promise<void> => {
-    try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
-
-      const recommendationId = (req.params.recommendationId ?? "").trim();
-
-      if (!recommendationId) {
-        res.status(400).json({ error: "recommendationId is required." });
-        return;
-      }
-
-      const { vote } = req.body as { vote?: unknown };
-
-      if (vote !== "up" && vote !== "down" && vote !== null) {
-        res.status(400).json({ error: "vote must be 'up', 'down', or null." });
-        return;
-      }
-
-      const updated = await recommendationRepository.updateVote(
-        authResolution.user.id,
-        recommendationId,
-        vote
-      );
-
-      if (!updated) {
-        res.status(404).json({ error: "Recommendation not found." });
-        return;
-      }
-
-      res.json({ recommendation: updated });
-
-      // Fire-and-forget: regenerate styleNote from full vote history
-      const userId = authResolution.user.id;
-      (async () => {
-        try {
-          const user = await userRepository.findById(userId);
-          if (!user?.profile) return;
-          const votedRecs = await recommendationRepository.findVotedByUser(userId);
-          if (votedRecs.length === 0) return;
-          const styleNote = await geminiRecommendationService.summarizeStyle(
-            votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote! }))
-          );
-          if (styleNote) {
-            await userRepository.updateProfile(userId, { ...user.profile, styleNote });
-          }
-        } catch (err) {
-          console.error("Style summary update failed:", err);
-        }
-      })();
-    } catch (error) {
-      console.error("Recommendation vote error:", error);
-      res.status(500).json({ error: "Failed to update vote." });
     }
   });
 
