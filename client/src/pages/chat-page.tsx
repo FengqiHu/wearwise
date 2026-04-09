@@ -187,6 +187,10 @@ function RecommendationCards({
   );
 }
 
+function isRawOutfitJson(content: string): boolean {
+  return /```json[\s\S]*"outfits"/.test(content);
+}
+
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
   return {
     id: crypto.randomUUID(),
@@ -247,6 +251,7 @@ export function ChatPage() {
   const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
   const [voteStates, setVoteStates] = useState<Record<string, "up" | "down" | null>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [accessoryMode, setAccessoryMode] = useState<"include" | "exclude" | "auto">("auto");
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -499,6 +504,7 @@ export function ChatPage() {
         {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
+          accessoryMode,
           userLocation: userLocation ?? undefined
         },
         controller.signal,
@@ -667,18 +673,32 @@ export function ChatPage() {
             <p className="mt-1 text-sm text-boutique-700">Ask for outfit suggestions by weather, occasion, or style preference.</p>
           </div>
 
-          {activeConversationId ? (
-            <Button
-              variant="danger"
-              size="sm"
-              disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
-              onClick={() => {
-                void handleDeleteConversation(activeConversationId);
-              }}
-            >
-              Delete Chat
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
+              <span>Accessories:</span>
+              <select
+                value={accessoryMode}
+                onChange={(e) => setAccessoryMode(e.target.value as "include" | "exclude" | "auto")}
+                className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
+              >
+                <option value="auto">AI decides</option>
+                <option value="include">Include</option>
+                <option value="exclude">Exclude</option>
+              </select>
+            </label>
+            {activeConversationId ? (
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
+                onClick={() => {
+                  void handleDeleteConversation(activeConversationId);
+                }}
+              >
+                Delete Chat
+              </Button>
+            ) : null}
+          </div>
         </header>
 
         <Card className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
@@ -717,6 +737,14 @@ export function ChatPage() {
                               onGenerateTryOn={handleGenerateTryOn}
                               onVote={handleVote}
                             />
+                          );
+                        }
+                        if (isRawOutfitJson(message.content)) {
+                          return (
+                            <span className="inline-flex items-center gap-2 text-boutique-600">
+                              <ThinkingDots />
+                              <span>Building outfit recommendations...</span>
+                            </span>
                           );
                         }
                         return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
