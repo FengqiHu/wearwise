@@ -127,6 +127,86 @@ function makeRouteHarness(options: {
   };
 }
 
+describe("createProfileRoutes GET /profile – sex field", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("returns the sex field when it is set on the user profile", async () => {
+    const harness = makeRouteHarness({
+      currentUser: makeUserRecord({ profile: makeProfile({ sex: "female" }) })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/api/profile`);
+    const body = await response.json() as { profile: { sex?: string } };
+
+    expect(response.status).toBe(200);
+    expect(body.profile.sex).toBe("female");
+  });
+
+  it("returns profile without sex field when sex is not set", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/api/profile`);
+    const body = await response.json() as { profile: { sex?: string } };
+
+    expect(response.status).toBe(200);
+    expect(body.profile.sex).toBeUndefined();
+  });
+
+  it("persists sex via POST and the subsequent GET returns it", async () => {
+    let storedProfile = makeProfile();
+
+    const authService = {
+      resolveAuthenticatedUser: vi.fn().mockImplementation(async () => ({
+        user: { ...makeUserRecord(), profile: storedProfile },
+        error: null
+      })),
+      toPublicUser: vi.fn().mockReturnValue({ id: "user-1", email: "test@example.com", name: "Taylor", picture: null })
+    } as unknown as AuthService;
+
+    const userRepository = {
+      updateProfile: vi.fn().mockImplementation(async (_id: string, profile: UserProfile) => {
+        storedProfile = profile;
+        return { ...makeUserRecord(), profile };
+      })
+    } as unknown as UserRepository;
+
+    const r2StorageService = {
+      isConfigured: vi.fn().mockReturnValue(false),
+      ownsPublicUrl: vi.fn().mockReturnValue(false),
+      deleteObject: vi.fn().mockResolvedValue(undefined)
+    } as unknown as R2StorageService;
+
+    const started = await startServer({ authService, userRepository, r2StorageService });
+    server = started.server;
+
+    const postResponse = await postProfile(started.baseUrl, {
+      name: "Taylor",
+      heightCm: 175,
+      weightKg: 68,
+      styleNote: "casual",
+      sex: "male"
+    });
+    expect(postResponse.status).toBe(200);
+
+    const getResponse = await fetch(`${started.baseUrl}/api/profile`);
+    const body = await getResponse.json() as { profile: { sex?: string } };
+
+    expect(getResponse.status).toBe(200);
+    expect(body.profile.sex).toBe("male");
+  });
+});
+
 describe("createProfileRoutes POST /profile", () => {
   let server: Server | null = null;
 
