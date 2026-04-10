@@ -1,89 +1,21 @@
-import { once } from "node:events";
-import type { AddressInfo } from "node:net";
-import type { Server } from "node:http";
-import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Server } from "node:http";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
-import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
-import type { ClosetItemRecord, ConversationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
 
 type StreamChatInput = Parameters<ChatService["streamChat"]>[0];
 
-function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord {
-  return {
-    id: "user-1",
-    googleSub: "google-sub-1",
-    email: "test@example.com",
-    name: "Taylor",
-    picture: null,
-    profile: {
-      name: "Taylor",
-      heightCm: 175,
-      weightKg: 68,
-      sex: "other" as const,
-      styleNote: "casual",
-      avatarUrl: null,
-      fullBodyImageUrl: null,
-      headshotImageUrl: null
-    },
-    createdAt: "2026-03-24T00:00:00.000Z",
-    updatedAt: "2026-03-24T00:00:00.000Z",
-    ...overrides
-  };
-}
-
-function makeStoredMessage(overrides: Partial<StoredChatMessage> = {}): StoredChatMessage {
-  return {
-    id: "message-1",
-    role: "user",
-    content: "Recommend an outfit.",
-    createdAt: "2026-03-24T00:00:00.000Z",
-    ...overrides
-  };
-}
-
-function makeConversationRecord(overrides: Partial<ConversationRecord> = {}): ConversationRecord {
-  return {
-    id: "conversation-1",
-    userId: "user-1",
-    title: "Recommend an outfit.",
-    createdAt: "2026-03-24T00:00:00.000Z",
-    updatedAt: "2026-03-24T00:00:00.000Z",
-    lastMessageAt: "2026-03-24T00:00:00.000Z",
-    messages: [makeStoredMessage()],
-    ...overrides
-  };
-}
-
-async function startServer(dependencies: {
-  authService: AuthService;
-  chatService: ChatService;
-  conversationRepository: ConversationRepository;
-  recommendationRepository: RecommendationRepository;
-  closetRepository: ClosetRepository;
-  userRepository: UserRepository;
-}): Promise<{ baseUrl: string; server: Server }> {
-  const app = express();
-  app.use(express.json());
-  app.use("/api", createChatRoutes(dependencies));
-
-  const server = app.listen(0, "127.0.0.1");
-  await once(server, "listening");
-
-  const address = server.address() as AddressInfo;
-  return { baseUrl: `http://127.0.0.1:${address.port}`, server };
-}
-
-async function stopServer(server: Server): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => (error ? reject(error) : resolve()));
-  });
-}
+import {
+  makeUserRecord,
+  makeStoredMessage,
+  makeConversationRecord,
+  startServer,
+  stopServer
+} from "./chat-routes-test-helpers.js";
 
 function makeHarness() {
   const userRecord = makeUserRecord();
