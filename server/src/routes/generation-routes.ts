@@ -80,6 +80,7 @@ export function createGenerationRoutes({
       // 3. Resolve clothing item IDs — from recommendation or directly provided
       let clothingItemIds: string[];
       let recommendationOutfitName: string | undefined;
+      let recommendationReason: string | undefined;
 
       if (recommendationId) {
         const recommendation = await recommendationRepository.findById(userId, recommendationId);
@@ -93,6 +94,7 @@ export function createGenerationRoutes({
         }
         clothingItemIds = recommendation.items.map((item) => item.id);
         recommendationOutfitName = recommendation.outfitName;
+        recommendationReason = recommendation.reason;
       } else {
         clothingItemIds = directClothingItemIds;
       }
@@ -130,9 +132,9 @@ export function createGenerationRoutes({
       const clothingImageUrls = clothingItems.map((item) => item!.imageUrl);
 
       // 6. Call Gemini to generate outfit image
-      const backgroundParts = [recommendationOutfitName, options.weatherSummary].filter(Boolean);
+      const backgroundParts = [recommendationOutfitName, recommendationReason].filter(Boolean);
       const backgroundContext = !options.prompt && backgroundParts.length > 0
-        ? backgroundParts.join(", ")
+        ? backgroundParts.join(" — ")
         : undefined;
 
       const generatedImageBuffer = await imageGenerationService.generateOutfitImage({
