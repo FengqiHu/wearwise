@@ -141,7 +141,7 @@ export function createGenerationRoutes({
         clothingImageUrls,
         ...(options.prompt ? { promptOverride: options.prompt } : {}),
         aspectRatio: options.aspectRatio ?? "3:4",
-        backgroundContext
+        ...(backgroundContext ? { backgroundContext } : {})
       });
 
       // 7. Upload generated image to R2
