@@ -2,7 +2,7 @@ import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
@@ -71,9 +71,9 @@ async function stopServer(server: Server): Promise<void> {
   });
 }
 
-/** Flush the microtask/timer queue so fire-and-forget IIFEs can complete. */
-async function flushAsync(): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, 0));
+/** Advance fake timers past the 20 s throttle window and drain all promises. */
+async function advancePastThrottle(): Promise<void> {
+  await vi.advanceTimersByTimeAsync(20_000);
 }
 
 function makeHarness(options: {
@@ -123,7 +123,12 @@ function makeHarness(options: {
 describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vote", () => {
   let server: Server | null = null;
 
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
   afterEach(async () => {
+    vi.useRealTimers();
     if (server) {
       await stopServer(server);
       server = null;
@@ -273,7 +278,7 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ vote: "up" })
     });
-    await flushAsync();
+    await advancePastThrottle();
 
     expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
     expect(harness.spies.updateProfile).toHaveBeenCalledOnce();
@@ -289,7 +294,7 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ vote: "up" })
     });
-    await flushAsync();
+    await advancePastThrottle();
 
     expect(harness.spies.summarizeStyle).not.toHaveBeenCalled();
     expect(harness.spies.updateProfile).not.toHaveBeenCalled();
@@ -308,7 +313,7 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
     });
 
     expect(res.status).toBe(200);
-    await flushAsync();
+    await advancePastThrottle();
     // error is swallowed inside fire-and-forget — no unhandled rejection
   });
 
@@ -322,9 +327,82 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ vote: "up" })
     });
-    await flushAsync();
+    await advancePastThrottle();
 
     expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
     expect(harness.spies.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("coalesces rapid votes within the throttle window into a single summarizeStyle call", async () => {
+    const harness = makeHarness({ votedRecs: [makeRecommendationRecord({ vote: "up" })] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    // Cast three votes back-to-back without advancing time
+    for (const vote of ["up", "down", "up"] as const) {
+      await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote })
+      });
+    }
+
+    // Window is still open — no call yet
+    expect(harness.spies.summarizeStyle).not.toHaveBeenCalled();
+
+    // Advance to the end of the window — fires exactly once
+    await advancePastThrottle();
+    expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
+  });
+
+  it("does not reset the throttle window when a new vote arrives mid-window", async () => {
+    const harness = makeHarness({ votedRecs: [makeRecommendationRecord({ vote: "up" })] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    // First vote opens the 20 s window
+    await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: "up" })
+    });
+
+    // Advance 10 s — halfway through, no call yet
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.spies.summarizeStyle).not.toHaveBeenCalled();
+
+    // Second vote arrives mid-window — must NOT reset the timer
+    await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: "down" })
+    });
+
+    // Advance another 10 s — now 20 s since the FIRST vote; window fires
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
+  });
+
+  it("opens a new throttle window after the previous one expires", async () => {
+    const harness = makeHarness({ votedRecs: [makeRecommendationRecord({ vote: "up" })] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const vote = (v: "up" | "down") =>
+      fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vote: v })
+      });
+
+    // First window: vote → 20 s → 1st request
+    await vote("up");
+    await advancePastThrottle();
+    expect(harness.spies.summarizeStyle).toHaveBeenCalledTimes(1);
+
+    // Second window: vote → 20 s → 2nd request
+    await vote("down");
+    await advancePastThrottle();
+    expect(harness.spies.summarizeStyle).toHaveBeenCalledTimes(2);
   });
 });

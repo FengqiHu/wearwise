@@ -3,6 +3,7 @@ import { RecommendationRepository } from "../repositories/recommendation-reposit
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
+import { StyleSummaryThrottler } from "../services/style-summary-throttler.js";
 import type { RecommendationRecord } from "../types/domain.js";
 
 interface RecommendationRoutesDependencies {
@@ -14,6 +15,7 @@ interface RecommendationRoutesDependencies {
 
 export function createRecommendationRoutes({ authService, recommendationRepository, userRepository, geminiRecommendationService }: RecommendationRoutesDependencies): Router {
   const router = Router();
+  const throttler = new StyleSummaryThrottler(20_000);
 
   // vote on a recommendation
   router.patch("/recommendations/:recommendationId/vote", async (req, res): Promise<void> => {
@@ -54,24 +56,22 @@ export function createRecommendationRoutes({ authService, recommendationReposito
 
       res.json({ recommendation: updated });
 
-      // Fire-and-forget: regenerate styleNote from full vote history
+      // Debounced: regenerate styleNote at most once per 20 s per user.
+      // Rapid votes cancel the previous pending timer so only the final
+      // state triggers a Gemini request.
       const userId = authResolution.user.id;
-      (async () => {
-        try {
-          const user = await userRepository.findById(userId);
-          if (!user?.profile) return;
-          const votedRecs = await recommendationRepository.findVotedByUser(userId);
-          if (votedRecs.length === 0) return;
-          const styleNote = await geminiRecommendationService.summarizeStyle(
-            votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote!, updatedAt: r.updatedAt }))
-          );
-          if (styleNote) {
-            await userRepository.updateProfile(userId, { ...user.profile, styleNote });
-          }
-        } catch (err) {
-          console.error("Style summary update failed:", err);
+      throttler.schedule(userId, async () => {
+        const user = await userRepository.findById(userId);
+        if (!user?.profile) return;
+        const votedRecs = await recommendationRepository.findVotedByUser(userId);
+        if (votedRecs.length === 0) return;
+        const styleNote = await geminiRecommendationService.summarizeStyle(
+          votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote!, updatedAt: r.updatedAt }))
+        );
+        if (styleNote) {
+          await userRepository.updateProfile(userId, { ...user.profile, styleNote });
         }
-      })();
+      });
     } catch (error) {
       console.error("Recommendation vote error:", error);
       res.status(500).json({ error: "Failed to update vote." });
