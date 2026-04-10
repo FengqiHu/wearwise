@@ -40,6 +40,18 @@ interface SampleClosetItem {
   updatedAt?: string;
 }
 
+function buildImportFeedback(importedCount: number, attemptedCount: number): string {
+  if (importedCount === 0) {
+    return "Test data is already in your wardrobe.";
+  }
+
+  if (importedCount < attemptedCount) {
+    return `${importedCount} new test item(s) imported into your wardrobe. Duplicate sample items were skipped.`;
+  }
+
+  return `${importedCount} test item(s) imported into your wardrobe.`;
+}
+
 function getMimeTypeFromPath(filePath: string): string {
   const normalized = filePath.toLowerCase();
 
@@ -56,7 +68,7 @@ function getMimeTypeFromPath(filePath: string): string {
 
 export function WardrobePage() {
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   // Wardrobe list state
   const [items, setItems] = useState<ClothingItem[]>([]);
@@ -295,6 +307,50 @@ export function WardrobePage() {
     }
   };
 
+  const existingImageUrls = useMemo(() => new Set(items.map((item) => item.imageUrl)), [items]);
+
+  const sanitizeSampleFileName = (rawFileName: string, fallbackExtension: string): string => {
+    const fileNameOnly = rawFileName.split(/[/\\]/).pop() ?? "";
+    const trimmed = fileNameOnly.trim();
+
+    if (!trimmed) {
+      return `upload.${fallbackExtension}`;
+    }
+
+    const lastDot = trimmed.lastIndexOf(".");
+    const basePart = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
+    const extPart = lastDot > 0 ? trimmed.slice(lastDot + 1) : fallbackExtension;
+    const safeBase = basePart.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+    const safeExt = extPart.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+    return `${safeBase || "upload"}.${safeExt || fallbackExtension}`;
+  };
+
+  const sampleItemAlreadyExists = (sampleItem: SampleClosetItem): boolean => {
+    if (sampleItem.imageUrl) {
+      return existingImageUrls.has(sampleItem.imageUrl);
+    }
+
+    if (!sampleItem.path || !user?.id) {
+      return false;
+    }
+
+    const normalizedPath = sampleItem.path.startsWith("/") ? sampleItem.path : `/${sampleItem.path}`;
+    const fileName = normalizedPath.split("/").pop() ?? "sample-image";
+    const mimeType = getMimeTypeFromPath(normalizedPath);
+    const fallbackExtension =
+      mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+    const safeFileName = sanitizeSampleFileName(fileName, fallbackExtension);
+
+    for (const imageUrl of existingImageUrls) {
+      if (imageUrl.includes(`/${user.id}/closet/${safeFileName}`)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
   const handleImportTestData = async (): Promise<void> => {
     if (!token || isImporting) {
       return;
@@ -315,6 +371,13 @@ export function WardrobePage() {
         throw new Error("Sample clothes data is empty.");
       }
 
+      const missingSampleItems = sampleItems.filter((sampleItem) => !sampleItemAlreadyExists(sampleItem));
+
+      if (missingSampleItems.length === 0) {
+        setFeedback("Test data is already in your wardrobe.");
+        return;
+      }
+
       const items: Array<{
         imageUrl: string;
         analysisStatus: "pending" | "ready" | "error";
@@ -327,7 +390,7 @@ export function WardrobePage() {
         updatedAt?: string;
       }> = [];
 
-      for (const sampleItem of sampleItems) {
+      for (const sampleItem of missingSampleItems) {
         if (sampleItem.path) {
           const normalizedPath = sampleItem.path.startsWith("/") ? sampleItem.path : `/${sampleItem.path}`;
           const imageResponse = await fetch(normalizedPath);
@@ -386,9 +449,9 @@ export function WardrobePage() {
         throw new Error("Each sample item must include either path or imageUrl.");
       }
 
-      await importTestClosetItems(token, { items });
+      const importedItems = await importTestClosetItems(token, { items });
       await reloadItems();
-      setFeedback(`${items.length} test item(s) imported into your wardrobe.`);
+      setFeedback(buildImportFeedback(importedItems.length, missingSampleItems.length));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to import test data.");
     } finally {

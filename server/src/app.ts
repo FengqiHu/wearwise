@@ -98,7 +98,8 @@ export function createApp() {
     "/api",
     createProfileRoutes({
       authService,
-      userRepository
+      userRepository,
+      r2StorageService
     })
   );
 

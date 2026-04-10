@@ -401,7 +401,7 @@ export async function replaceClosetItemImage(
 export async function importTestClosetItems(
   token: string,
   payload: ImportTestClosetItemsPayload
-): Promise<void> {
+): Promise<ClosetItemRecord[]> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
     method: "POST",
     headers: createAuthHeaders(token),
@@ -412,6 +412,9 @@ export async function importTestClosetItems(
     const message = await parseResponseError(response, "Failed to import test closet items.");
     throw new Error(message);
   }
+
+  const data = (await response.json()) as { items?: ClosetItemRecord[] };
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
