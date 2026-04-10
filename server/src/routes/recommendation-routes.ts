@@ -63,7 +63,7 @@ export function createRecommendationRoutes({ authService, recommendationReposito
           const votedRecs = await recommendationRepository.findVotedByUser(userId);
           if (votedRecs.length === 0) return;
           const styleNote = await geminiRecommendationService.summarizeStyle(
-            votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote! }))
+            votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote!, updatedAt: r.updatedAt }))
           );
           if (styleNote) {
             await userRepository.updateProfile(userId, { ...user.profile, styleNote });
