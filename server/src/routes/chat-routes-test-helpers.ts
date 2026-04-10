@@ -20,10 +20,10 @@ export function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord 
     picture: null,
     profile: {
       name: "Taylor",
-      heightCm: 175,
-      weightKg: 68,
+      heightCm: 180,
+      weightKg: 75,
       sex: "other" as const,
-      styleNote: "casual",
+      styleNote: "minimal streetwear",
       avatarUrl: null,
       fullBodyImageUrl: null,
       headshotImageUrl: null
