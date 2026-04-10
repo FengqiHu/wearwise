@@ -73,7 +73,7 @@ async function stopServer(server: Server): Promise<void> {
 
 /** Advance fake timers past the 20 s throttle window and drain all promises. */
 async function advancePastThrottle(): Promise<void> {
-  await vi.advanceTimersByTimeAsync(20_000);
+  await vi.advanceTimersByTimeAsync(10_000);
 }
 
 function makeHarness(options: {
@@ -360,7 +360,7 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
     const started = await startServer(harness.dependencies);
     server = started.server;
 
-    // First vote opens the 20 s window
+    // First vote opens the 10 s window
     await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -395,12 +395,12 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
         body: JSON.stringify({ vote: v })
       });
 
-    // First window: vote → 20 s → 1st request
+    // First window: vote → 10 s → 1st request
     await vote("up");
     await advancePastThrottle();
     expect(harness.spies.summarizeStyle).toHaveBeenCalledTimes(1);
 
-    // Second window: vote → 20 s → 2nd request
+    // Second window: vote → 10 s → 2nd request
     await vote("down");
     await advancePastThrottle();
     expect(harness.spies.summarizeStyle).toHaveBeenCalledTimes(2);

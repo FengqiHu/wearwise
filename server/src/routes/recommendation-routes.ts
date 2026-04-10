@@ -15,7 +15,7 @@ interface RecommendationRoutesDependencies {
 
 export function createRecommendationRoutes({ authService, recommendationRepository, userRepository, geminiRecommendationService }: RecommendationRoutesDependencies): Router {
   const router = Router();
-  const throttler = new StyleSummaryThrottler(20_000);
+  const throttler = new StyleSummaryThrottler(10_000);
 
   // vote on a recommendation
   router.patch("/recommendations/:recommendationId/vote", async (req, res): Promise<void> => {
@@ -56,7 +56,7 @@ export function createRecommendationRoutes({ authService, recommendationReposito
 
       res.json({ recommendation: updated });
 
-      // Debounced: regenerate styleNote at most once per 20 s per user.
+      // Debounced: regenerate styleNote at most once per 10 s per user.
       // Rapid votes cancel the previous pending timer so only the final
       // state triggers a Gemini request.
       const userId = authResolution.user.id;
