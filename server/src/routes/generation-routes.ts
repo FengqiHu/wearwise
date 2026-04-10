@@ -133,9 +133,10 @@ export function createGenerationRoutes({
 
       // 6. Call Gemini to generate outfit image
       const backgroundParts = [recommendationOutfitName, recommendationReason].filter(Boolean);
-      const backgroundContext = !options.prompt && backgroundParts.length > 0
+      const rawBackground = !options.prompt && backgroundParts.length > 0
         ? backgroundParts.join(" — ")
         : undefined;
+      const backgroundContext = rawBackground?.slice(0, 300);
 
       const generatedImageBuffer = await imageGenerationService.generateOutfitImage({
         bodyImageUrl,
