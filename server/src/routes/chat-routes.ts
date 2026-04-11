@@ -237,7 +237,7 @@ ${userTimezone
 ### Step 3 — Check occasion
 
 Each historical message is prefixed with an ISO timestamp. When evaluating schedule information in the conversation history:
-1. Resolve relative time references ("tomorrow", "next week", "明天", "下周") relative to THAT MESSAGE's own timestamp, not today's date.
+1. Resolve relative time references ("tomorrow", "next week") relative to THAT MESSAGE's own timestamp, not today's date.
 2. If the resolved date matches today → treat the information as current.
 3. If the resolved date does not match today → treat it as outdated and do not rely on it.
 
