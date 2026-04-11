@@ -6,6 +6,7 @@ import type { RecommendationRepository } from "../repositories/recommendation-re
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
+import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 
 type StreamChatInput = Parameters<ChatService["streamChat"]>[0];
 
@@ -59,6 +60,10 @@ function makeHarness() {
     findById: vi.fn().mockResolvedValue(userRecord)
   } as unknown as UserRepository;
 
+  const geminiRecommendationService = {
+    summarizeStyle: vi.fn().mockResolvedValue("")
+  } as unknown as GeminiRecommendationService;
+
   return {
     dependencies: {
       authService,
@@ -66,7 +71,8 @@ function makeHarness() {
       conversationRepository,
       recommendationRepository,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiRecommendationService
     },
     getCapturedStreamInput: () => capturedStreamInput
   };
