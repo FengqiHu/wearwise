@@ -83,6 +83,7 @@ export interface Recommendation {
   reason: string;
   items: Array<{ id: string; name: string }>;
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;
