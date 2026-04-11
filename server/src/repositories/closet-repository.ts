@@ -145,6 +145,22 @@ export class ClosetRepository {
     return document ? toClosetItemRecord(document) : null;
   }
 
+  async findByIds(userId: string, itemIds: string[]): Promise<ClosetItemRecord[]> {
+    if (itemIds.length === 0) {
+      return [];
+    }
+
+    const uniqueItemIds = [...new Set(itemIds)];
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({
+        _id: { $in: uniqueItemIds },
+        userId
+      })
+      .toArray();
+    return documents.map(toClosetItemRecord);
+  }
+
   async listByUser(userId: string, limit = 150): Promise<ClosetItemRecord[]> {
     const collection = await this.getCollection();
     const documents = await collection.find({ userId }).sort({ createdAt: -1 }).limit(limit).toArray();
