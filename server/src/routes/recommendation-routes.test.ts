@@ -3,6 +3,8 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { ClosetRepository } from "../repositories/closet-repository.js";
+import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
@@ -55,6 +57,8 @@ async function startServer(dependencies: {
   recommendationRepository: RecommendationRepository;
   userRepository: UserRepository;
   geminiRecommendationService: GeminiRecommendationService;
+  conversationRepository: ConversationRepository;
+  closetRepository: ClosetRepository;
 }): Promise<{ baseUrl: string; server: Server }> {
   const app = express();
   app.use(express.json());
@@ -94,9 +98,18 @@ function makeHarness(options: {
   } as unknown as AuthService;
 
   const recommendationRepository = {
+    listByUser: vi.fn().mockResolvedValue([]),
     updateVote: vi.fn().mockResolvedValue(updatedRec),
     findVotedByUser: vi.fn().mockResolvedValue(votedRecs)
   } as unknown as RecommendationRepository;
+
+  const conversationRepository = {
+    findById: vi.fn().mockResolvedValue(null)
+  } as unknown as ConversationRepository;
+
+  const closetRepository = {
+    findByIds: vi.fn().mockResolvedValue([])
+  } as unknown as ClosetRepository;
 
   const userRepository = {
     findById: vi.fn().mockResolvedValue(userRecord),
@@ -108,7 +121,14 @@ function makeHarness(options: {
   } as unknown as GeminiRecommendationService;
 
   return {
-    dependencies: { authService, recommendationRepository, userRepository, geminiRecommendationService },
+    dependencies: {
+      authService,
+      recommendationRepository,
+      userRepository,
+      geminiRecommendationService,
+      conversationRepository,
+      closetRepository
+    },
     spies: {
       authResolve: authService.resolveAuthenticatedUser as ReturnType<typeof vi.fn>,
       updateVote: recommendationRepository.updateVote as ReturnType<typeof vi.fn>,

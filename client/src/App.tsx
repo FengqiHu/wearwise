@@ -9,6 +9,7 @@ import { seedWardrobeIfEmpty } from "./lib/storage";
 import { AddPage } from "./pages/add-page";
 import { ChatPage } from "./pages/chat-page";
 import { ClothDetailPage } from "./pages/cloth-detail-page";
+import { HistoryPage } from "./pages/history-page";
 import { NotFoundPage } from "./pages/not-found-page";
 import { OAuthCallbackPage } from "./pages/oauth-callback-page";
 import { ProfilePage } from "./pages/profile-page";
@@ -95,6 +96,15 @@ export default function App() {
           element={
             <RequireOnboarded>
               <AddPage />
+            </RequireOnboarded>
+          }
+        />
+
+        <Route
+          path="/history"
+          element={
+            <RequireOnboarded>
+              <HistoryPage />
             </RequireOnboarded>
           }
         />

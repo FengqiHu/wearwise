@@ -92,6 +92,28 @@ export interface Recommendation {
   updatedAt: string;
 }
 
+export interface RecommendationHistoryItem {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface RecommendationHistoryEntry {
+  id: string;
+  userId: string;
+  outfitName: string;
+  reason: string;
+  items: RecommendationHistoryItem[];
+  occasions: string[];
+  generation: RecommendationGeneration | null;
+  vote: RecommendationVote | null;
+  conversationId: string;
+  messageId: string;
+  conversationTitle: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";
