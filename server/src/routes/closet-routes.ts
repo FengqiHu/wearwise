@@ -331,7 +331,7 @@ export function createClosetRoutes({
 
       await closetRepository.deleteById(authResolution.user.id, itemId);
 
-      if (r2StorageService.isConfigured()) {
+      if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(item.imageUrl)) {
         await r2StorageService.deleteObject(item.imageUrl);
       }
 
