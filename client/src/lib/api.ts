@@ -507,6 +507,23 @@ export async function streamChatResponse(
   }
 }
 
+export async function voteRecommendation(
+  token: string,
+  recommendationId: string,
+  vote: "up" | "down" | null
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/${encodeURIComponent(recommendationId)}/vote`, {
+    method: "PATCH",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ vote })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to submit vote.");
+    throw new Error(message);
+  }
+}
+
 export async function generateOutfitByItems(
   token: string,
   clothingItemIds: string[]

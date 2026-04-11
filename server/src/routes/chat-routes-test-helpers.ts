@@ -9,6 +9,7 @@ import type { UserRepository } from "../repositories/user-repository.js";
 import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
+import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { ConversationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
 
 export function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord {
@@ -64,6 +65,7 @@ export async function startServer(dependencies: {
   recommendationRepository: RecommendationRepository;
   closetRepository: ClosetRepository;
   userRepository: UserRepository;
+  geminiRecommendationService: GeminiRecommendationService;
 }): Promise<{ baseUrl: string; server: Server }> {
   const app = express();
   app.use(express.json());

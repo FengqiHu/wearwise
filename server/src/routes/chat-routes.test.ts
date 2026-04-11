@@ -6,6 +6,7 @@ import type { RecommendationRepository } from "../repositories/recommendation-re
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
+import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { ClosetItemRecord, UserRecord } from "../types/domain.js";
 import {
   makeUserRecord,
@@ -137,6 +138,10 @@ function makeRouteHarness(options: {
     findById: vi.fn().mockResolvedValue(userRecord)
   } as unknown as UserRepository;
 
+  const geminiRecommendationService = {
+    summarizeStyle: vi.fn().mockResolvedValue("")
+  } as unknown as GeminiRecommendationService;
+
   return {
     dependencies: {
       authService,
@@ -144,7 +149,8 @@ function makeRouteHarness(options: {
       conversationRepository,
       recommendationRepository,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiRecommendationService
     },
     getCapturedStreamInput: () => capturedStreamInput,
     spies: {
@@ -154,7 +160,8 @@ function makeRouteHarness(options: {
       createConversation: (conversationRepository as unknown as { createWithFirstUserMessage: ReturnType<typeof vi.fn> }).createWithFirstUserMessage,
       appendMessage: (conversationRepository as unknown as { appendMessage: ReturnType<typeof vi.fn> }).appendMessage,
       listClosetItems: (closetRepository as unknown as { listByUser: ReturnType<typeof vi.fn> }).listByUser,
-      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById
+      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
+      summarizeStyle: (geminiRecommendationService as unknown as { summarizeStyle: ReturnType<typeof vi.fn> }).summarizeStyle
     }
   };
 }
