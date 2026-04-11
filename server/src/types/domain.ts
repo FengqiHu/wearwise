@@ -174,6 +174,7 @@ export interface RecommendationRecord {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;

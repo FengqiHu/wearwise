@@ -16,30 +16,133 @@ interface ChatRoutesDependencies {
   userRepository: UserRepository;
 }
 
+interface ParsedRecommendationContext {
+  weatherSummary: string | null;
+}
+
 interface ParsedOutfit {
   outfitName: string;
   reason: string;
+  occasions: string[];
   items: Array<{ id: string; name: string }>;
 }
 
 interface ParsedOutfitResponse {
+  context: ParsedRecommendationContext;
   outfits: ParsedOutfit[];
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === "object";
+}
+
+function parseOptionalString(value: unknown): string | null {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : null;
+}
+
+function parseOccasions(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const seen = new Set<string>();
+  const occasions: string[] = [];
+
+  for (const entry of value) {
+    if (typeof entry !== "string") {
+      continue;
+    }
+
+    const normalized = entry.trim();
+
+    if (!normalized || seen.has(normalized)) {
+      continue;
+    }
+
+    seen.add(normalized);
+    occasions.push(normalized);
+  }
+
+  return occasions;
+}
+
+function resolveRecommendationWeatherSummary(
+  toolWeatherSummary: string | null,
+  weatherSummary: string | null
+): string | null {
+  return weatherSummary ?? toolWeatherSummary;
+}
+
+function normalizeParsedOutfitResponse(parsed: unknown): ParsedOutfitResponse | null {
+  if (!isRecord(parsed) || !Array.isArray(parsed.outfits)) {
+    return null;
+  }
+
+  const context = isRecord(parsed.context)
+    ? {
+        weatherSummary: parseOptionalString(parsed.context.weatherSummary)
+      }
+    : {
+        weatherSummary: null
+      };
+
+  const outfits: ParsedOutfit[] = [];
+
+  for (const entry of parsed.outfits) {
+    if (!isRecord(entry)) {
+      continue;
+    }
+
+    const outfitName = parseOptionalString(entry.outfitName);
+    const reason = parseOptionalString(entry.reason);
+
+    if (!outfitName || !reason || !Array.isArray(entry.items)) {
+      continue;
+    }
+
+    const items = entry.items.flatMap((item) => {
+      if (!isRecord(item)) {
+        return [];
+      }
+
+      const id = parseOptionalString(item.id);
+      const name = parseOptionalString(item.name);
+
+      return id && name ? [{ id, name }] : [];
+    });
+
+    if (items.length === 0) {
+      continue;
+    }
+
+    outfits.push({
+      outfitName,
+      reason,
+      occasions: parseOccasions(entry.occasions),
+      items
+    });
+  }
+
+  if (outfits.length === 0) {
+    return null;
+  }
+
+  return {
+    context,
+    outfits
+  };
 }
 
 function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   const match = content.match(/```json\s*([\s\S]*?)\s*```/);
   if (!match?.[1]) return null;
   try {
-    const parsed = JSON.parse(match[1]) as unknown;
-    if (
-      parsed !== null &&
-      typeof parsed === "object" &&
-      "outfits" in parsed &&
-      Array.isArray((parsed as ParsedOutfitResponse).outfits)
-    ) {
-      return parsed as ParsedOutfitResponse;
-    }
-    return null;
+    return normalizeParsedOutfitResponse(JSON.parse(match[1]) as unknown);
   } catch {
     return null;
   }
@@ -84,10 +187,14 @@ For outfit recommendation requests: you MUST respond with ONLY a JSON code block
 
 \`\`\`json
 {
+  "context": {
+    "weatherSummary": "Short weather summary used for these outfits, or null if none"
+  },
   "outfits": [
     {
       "outfitName": "Outfit name here",
       "reason": "Why this outfit suits the occasion and user",
+      "occasions": ["Short occasion labels used for this outfit, or []"],
       "items": [
         { "id": "<exact item ID>", "name": "<item name>" }
       ]
@@ -100,6 +207,8 @@ Rules for the JSON:
 - Always include exactly 3 outfits in the "outfits" array
 - Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
+- Each outfit must include an "occasions" array. Use [] when no occasion context applies.
+- "context.weatherSummary" must be a short factual weather summary when weather influenced the recommendation, otherwise use null
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
@@ -128,7 +237,7 @@ ${userTimezone
 ### Step 3 — Check occasion
 
 Each historical message is prefixed with an ISO timestamp. When evaluating schedule information in the conversation history:
-1. Resolve relative time references ("tomorrow", "next week", "明天", "下周") relative to THAT MESSAGE's own timestamp, not today's date.
+1. Resolve relative time references ("tomorrow", "next week") relative to THAT MESSAGE's own timestamp, not today's date.
 2. If the resolved date matches today → treat the information as current.
 3. If the resolved date does not match today → treat it as outdated and do not rely on it.
 
@@ -322,11 +431,12 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       let assistantText = "";
       let assistantSaved = false;
+      let recommendationWeatherSummary: string | null = null;
 
       try {
         // stream the chat response from the chat service
         // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
-        await chatService.streamChat({
+        const chatResult = await chatService.streamChat({
           messages: [
             { role: "system", content: wardrobeSystemMessage },
             ...conversation.messages.map((entry) => ({
@@ -344,6 +454,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             res.write(chunk);
           }
         });
+        assistantText = chatResult.assistantText;
+        recommendationWeatherSummary = chatResult.recommendationWeatherSummary;
 
         // save the msg to database and create recommendations if outfits were generated
         if (assistantText.trim().length > 0) {
@@ -362,13 +474,18 @@ export function createChatRoutes({ authService, chatService, conversationReposit
               const assistantMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
               if (assistantMessage) {
                 try {
+                  const savedWeather = resolveRecommendationWeatherSummary(
+                    recommendationWeatherSummary,
+                    outfitData.context.weatherSummary
+                  );
                   const recommendations = await recommendationRepository.createMany(
                     outfitData.outfits.map((outfit) => ({
                       userId,
                       outfitName: outfit.outfitName,
                       reason: outfit.reason,
                       items: outfit.items.map((item) => ({ id: item.id, name: item.name })),
-                      occasions: [],
+                      occasions: outfit.occasions,
+                      weather: savedWeather,
                       conversationId: conversationIdForSave,
                       messageId: assistantMessage.id
                     }))

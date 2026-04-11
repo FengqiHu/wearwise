@@ -103,7 +103,10 @@ function makeRouteHarness(options: {
     streamChat: vi.fn(async (input: StreamChatInput) => {
       capturedStreamInput = input;
       input.onChunk(assistantReply);
-      return assistantReply;
+      return {
+        assistantText: assistantReply,
+        recommendationWeatherSummary: null
+      };
     })
   } as unknown as ChatService;
 

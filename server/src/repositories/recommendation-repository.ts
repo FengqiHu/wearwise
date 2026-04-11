@@ -14,6 +14,7 @@ interface RecommendationDocument {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;
@@ -34,6 +35,7 @@ interface CreateRecommendationInput {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather: string | null;
   conversationId: string;
   messageId: string;
 }
@@ -46,6 +48,7 @@ function toRecommendationRecord(document: RecommendationDocument): Recommendatio
     reason: document.reason,
     items: document.items,
     occasions: document.occasions,
+    weather: document.weather ?? null,
     generation: document.generation,
     vote: document.vote,
     conversationId: document.conversationId,
@@ -91,6 +94,7 @@ export class RecommendationRepository {
       reason: input.reason,
       items: input.items,
       occasions: input.occasions,
+      weather: input.weather,
       generation: null,
       vote: null,
       conversationId: input.conversationId,
@@ -114,6 +118,7 @@ export class RecommendationRepository {
       reason: input.reason,
       items: input.items,
       occasions: input.occasions,
+      weather: input.weather,
       generation: null,
       vote: null,
       conversationId: input.conversationId,

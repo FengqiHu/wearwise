@@ -31,7 +31,10 @@ function makeHarness() {
     streamChat: vi.fn(async (input: StreamChatInput) => {
       capturedStreamInput = input;
       input.onChunk('```json\n{"outfits":[]}\n```');
-      return '```json\n{"outfits":[]}\n```';
+      return {
+        assistantText: '```json\n{"outfits":[]}\n```',
+        recommendationWeatherSummary: null
+      };
     })
   } as unknown as ChatService;
 
