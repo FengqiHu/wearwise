@@ -169,4 +169,13 @@ export class RecommendationRepository {
     );
     return updated ? toRecommendationRecord(updated) : null;
   }
+
+  async findVotedByUser(userId: string): Promise<RecommendationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId, vote: { $in: ["up", "down"] } })
+      .sort({ updatedAt: -1 })
+      .toArray();
+    return documents.map(toRecommendationRecord);
+  }
 }

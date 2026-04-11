@@ -45,12 +45,13 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
 - Height: ${profile.heightCm} cm
 - Weight: ${profile.weightKg} kg
+- Sex: ${profile.sex ?? "not specified"}
 - Style preferences: ${profile.styleNote || "not specified"}`
     : "User profile: not set up yet.";
 
@@ -101,7 +102,45 @@ Rules for the JSON:
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
-- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}`;
+- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
+
+## Pre-recommendation checklist
+
+Before generating any outfit recommendation, complete ALL of the following steps in order. Do not skip ahead.
+
+### Step 1 — Resolve location and weather
+
+${userTimezone
+  ? `Location is available. Call get_weather with the user's location to fetch current conditions.`
+  : `Location is not available from the browser. Follow this sequence:
+a. Call get_user_location.
+b. If it returns ok: false AND the user has already provided a city name in the conversation, call get_weather with that city name AND infer its IANA timezone (e.g. "Asia/Shanghai" for Shanghai, "America/New_York" for New York) — then proceed to Step 2.
+c. If it returns ok: false AND no city has been provided yet, ask the user: "What city are you in?" — then STOP and wait for the reply. Ask at most once; if the user declines, skip weather and proceed to Step 2 without location context.`}
+
+Use weather conditions to influence clothing choices (layers, waterproof items, light fabrics). Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining, so I chose this waterproof jacket…". If weather data is unavailable, omit it from the reason.
+
+### Step 2 — Get current local time
+
+${userTimezone
+  ? `Call get_current_time with timezone "${userTimezone}".`
+  : `If you obtained a timezone in Step 1, call get_current_time with that timezone. Otherwise skip this step.`}
+
+### Step 3 — Check occasion
+
+Each historical message is prefixed with an ISO timestamp. When evaluating schedule information in the conversation history:
+1. Resolve relative time references ("tomorrow", "next week", "明天", "下周") relative to THAT MESSAGE's own timestamp, not today's date.
+2. If the resolved date matches today → treat the information as current.
+3. If the resolved date does not match today → treat it as outdated and do not rely on it.
+
+If no occasion has been identified for the relevant day, and you obtained local time in Step 2:
+- DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
+- EVENING (18:00–23:59 local time): ask once, e.g. "Do you have anything planned for tomorrow?"
+
+Wait for the user's reply before generating outfits. If the user declines or has no plans, proceed with a general recommendation and do not ask again.
+
+### Step 4 — Generate outfits
+
+When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".`;
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
@@ -267,7 +306,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       ]);
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -292,7 +331,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             { role: "system", content: wardrobeSystemMessage },
             ...conversation.messages.map((entry) => ({
               role: entry.role,
-              content: entry.content
+              content: `[${entry.createdAt}] ${entry.content}`
             }))
           ],
           ...(userLocation

@@ -175,4 +175,62 @@ describe("parseProfileFromRequest", () => {
       expect(result.error).toBe("Weight must be a positive number.");
     });
   });
+
+  describe("sex field", () => {
+    it("accepts 'male' as a valid sex value", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: "male" }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBe("male");
+    });
+
+    it("accepts 'female' as a valid sex value", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: "female" }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBe("female");
+    });
+
+    it("accepts 'other' as a valid sex value", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: "other" }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBe("other");
+    });
+
+    it("omits sex from profile when sex is not provided", () => {
+      const result = parseProfileFromRequest(validPayload());
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBeUndefined();
+    });
+
+    it("ignores an invalid sex value and omits sex from profile", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: "unknown" }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBeUndefined();
+    });
+
+    it("ignores a numeric sex value and omits sex from profile", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: 1 }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBeUndefined();
+    });
+
+    it("ignores null sex value and omits sex from profile", () => {
+      const result = parseProfileFromRequest(validPayload({ sex: null }));
+
+      expect(result.error).toBeUndefined();
+      expect(result.profile?.sex).toBeUndefined();
+    });
+
+    it("still validates other required fields when sex is valid", () => {
+      const result = parseProfileFromRequest(validPayload({ name: "", sex: "male" }));
+
+      expect(result.error).toBe("Name is required.");
+      expect(result.profile).toBeUndefined();
+    });
+  });
 });

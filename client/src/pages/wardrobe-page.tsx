@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
@@ -66,6 +66,87 @@ function getMimeTypeFromPath(filePath: string): string {
   return "image/jpeg";
 }
 
+function normalizeSamplePath(filePath: string): string {
+  return filePath.startsWith("/") ? filePath : `/${filePath}`;
+}
+
+function getFallbackExtension(mimeType: string): string {
+  if (mimeType === "image/png") {
+    return "png";
+  }
+
+  if (mimeType === "image/webp") {
+    return "webp";
+  }
+
+  return "jpg";
+}
+
+function sanitizeSampleFileName(rawFileName: string, fallbackExtension: string): string {
+  const fileNameOnly = rawFileName.split(/[/\\]/).pop() ?? "";
+  const trimmed = fileNameOnly.trim();
+
+  if (!trimmed) {
+    return `upload.${fallbackExtension}`;
+  }
+
+  const lastDot = trimmed.lastIndexOf(".");
+  const basePart = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
+  const extPart = lastDot > 0 ? trimmed.slice(lastDot + 1) : fallbackExtension;
+  const safeBase = basePart.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  const safeExt = extPart.toLowerCase().replace(/[^a-z0-9]/g, "");
+
+  return `${safeBase || "upload"}.${safeExt || fallbackExtension}`;
+}
+
+function getExpectedSampleCategory(sampleItem: SampleClosetItem): ClothingCategory {
+  if (sampleItem.category && (CLOTHING_CATEGORIES as readonly string[]).includes(sampleItem.category)) {
+    return sampleItem.category as ClothingCategory;
+  }
+
+  return "tops";
+}
+
+function areTagsEqual(left: string[], right: string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function matchesSampleMetadata(item: ClothingItem, sampleItem: SampleClosetItem): boolean {
+  const expectedTitle = sampleItem.name ?? "Processing...";
+  const expectedStatus = sampleItem.analysisStatus === "ready" ? "finished" : "unfinished";
+  const expectedDescription = sampleItem.description ?? "";
+  const expectedCategory = getExpectedSampleCategory(sampleItem);
+
+  return (
+    item.title === expectedTitle &&
+    item.status === expectedStatus &&
+    item.description === expectedDescription &&
+    item.category === expectedCategory &&
+    areTagsEqual(item.tags, sampleItem.tags)
+  );
+}
+
+function matchesSampleClosetItem(item: ClothingItem, sampleItem: SampleClosetItem, userId?: string | null): boolean {
+  if (!matchesSampleMetadata(item, sampleItem)) {
+    return false;
+  }
+
+  if (sampleItem.imageUrl) {
+    return item.imageUrl === sampleItem.imageUrl;
+  }
+
+  if (!sampleItem.path || !userId) {
+    return false;
+  }
+
+  const normalizedPath = normalizeSamplePath(sampleItem.path);
+  const fileName = normalizedPath.split("/").pop() ?? "sample-image";
+  const mimeType = getMimeTypeFromPath(normalizedPath);
+  const safeFileName = sanitizeSampleFileName(fileName, getFallbackExtension(mimeType));
+
+  return item.imageUrl.includes(`/${userId}/closet/${safeFileName}`);
+}
+
 export function WardrobePage() {
   const navigate = useNavigate();
   const { token, user } = useAuth();
@@ -76,10 +157,12 @@ export function WardrobePage() {
   const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [isDeletingTestData, setIsDeletingTestData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [brokenImageIds, setBrokenImageIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
+  const [sampleClosetItems, setSampleClosetItems] = useState<SampleClosetItem[] | null>(null);
 
   // Selection mode state (Issue #45)
   const [selectionMode, setSelectionMode] = useState(false);
@@ -292,6 +375,25 @@ export function WardrobePage() {
     }
   };
 
+  const loadSampleClosetItems = useCallback(async (): Promise<SampleClosetItem[]> => {
+    if (sampleClosetItems) {
+      return sampleClosetItems;
+    }
+
+    const response = await fetch("/sample-data/sample-clothes-data.json");
+    if (!response.ok) {
+      throw new Error("Failed to read sample clothes data.");
+    }
+
+    const parsed = (await response.json()) as SampleClosetItem[];
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error("Sample clothes data is empty.");
+    }
+
+    setSampleClosetItems(parsed);
+    return parsed;
+  }, [sampleClosetItems]);
+
   const reloadItems = async (): Promise<void> => {
     if (!token) {
       return;
@@ -307,48 +409,8 @@ export function WardrobePage() {
     }
   };
 
-  const existingImageUrls = useMemo(() => new Set(items.map((item) => item.imageUrl)), [items]);
-
-  const sanitizeSampleFileName = (rawFileName: string, fallbackExtension: string): string => {
-    const fileNameOnly = rawFileName.split(/[/\\]/).pop() ?? "";
-    const trimmed = fileNameOnly.trim();
-
-    if (!trimmed) {
-      return `upload.${fallbackExtension}`;
-    }
-
-    const lastDot = trimmed.lastIndexOf(".");
-    const basePart = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
-    const extPart = lastDot > 0 ? trimmed.slice(lastDot + 1) : fallbackExtension;
-    const safeBase = basePart.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-    const safeExt = extPart.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-    return `${safeBase || "upload"}.${safeExt || fallbackExtension}`;
-  };
-
   const sampleItemAlreadyExists = (sampleItem: SampleClosetItem): boolean => {
-    if (sampleItem.imageUrl) {
-      return existingImageUrls.has(sampleItem.imageUrl);
-    }
-
-    if (!sampleItem.path || !user?.id) {
-      return false;
-    }
-
-    const normalizedPath = sampleItem.path.startsWith("/") ? sampleItem.path : `/${sampleItem.path}`;
-    const fileName = normalizedPath.split("/").pop() ?? "sample-image";
-    const mimeType = getMimeTypeFromPath(normalizedPath);
-    const fallbackExtension =
-      mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
-    const safeFileName = sanitizeSampleFileName(fileName, fallbackExtension);
-
-    for (const imageUrl of existingImageUrls) {
-      if (imageUrl.includes(`/${user.id}/closet/${safeFileName}`)) {
-        return true;
-      }
-    }
-
-    return false;
+    return items.some((item) => matchesSampleClosetItem(item, sampleItem, user?.id));
   };
 
   const handleImportTestData = async (): Promise<void> => {
@@ -361,15 +423,7 @@ export function WardrobePage() {
       setError(null);
       setFeedback(null);
 
-      const response = await fetch("/sample-data/sample-clothes-data.json");
-      if (!response.ok) {
-        throw new Error("Failed to read sample clothes data.");
-      }
-
-      const sampleItems = (await response.json()) as SampleClosetItem[];
-      if (!Array.isArray(sampleItems) || sampleItems.length === 0) {
-        throw new Error("Sample clothes data is empty.");
-      }
+      const sampleItems = await loadSampleClosetItems();
 
       const missingSampleItems = sampleItems.filter((sampleItem) => !sampleItemAlreadyExists(sampleItem));
 
@@ -392,7 +446,7 @@ export function WardrobePage() {
 
       for (const sampleItem of missingSampleItems) {
         if (sampleItem.path) {
-          const normalizedPath = sampleItem.path.startsWith("/") ? sampleItem.path : `/${sampleItem.path}`;
+          const normalizedPath = normalizeSamplePath(sampleItem.path);
           const imageResponse = await fetch(normalizedPath);
 
           if (!imageResponse.ok) {
@@ -459,6 +513,108 @@ export function WardrobePage() {
     }
   };
 
+  useEffect(() => {
+    void loadSampleClosetItems().catch(() => undefined);
+  }, [loadSampleClosetItems]);
+
+  const matchedTestDataItems = useMemo(
+    () =>
+      sampleClosetItems
+        ? items.filter((item) => sampleClosetItems.some((sampleItem) => matchesSampleClosetItem(item, sampleItem, user?.id)))
+        : [],
+    [items, sampleClosetItems, user?.id]
+  );
+
+  const handleDeleteTestData = async (): Promise<void> => {
+    if (!token || isDeletingTestData || isImporting || isLoading) {
+      return;
+    }
+
+    try {
+      const sampleItems = await loadSampleClosetItems();
+      const testDataItems = items.filter((item) =>
+        sampleItems.some((sampleItem) => matchesSampleClosetItem(item, sampleItem, user?.id))
+      );
+
+      if (testDataItems.length === 0) {
+        setFeedback("No test data found in your wardrobe.");
+        return;
+      }
+
+      const itemLabel = `${testDataItems.length} test data item${testDataItems.length === 1 ? "" : "s"}`;
+      if (!window.confirm(`Delete ${itemLabel} from your wardrobe? This cannot be undone.`)) {
+        return;
+      }
+
+      setIsDeletingTestData(true);
+      setError(null);
+      setFeedback(null);
+
+      const deletionResults = await Promise.allSettled(
+        testDataItems.map(async (item) => {
+          await deleteClosetItem(token, item.id);
+          return item.id;
+        })
+      );
+
+      const deletedIds = new Set<string>();
+      let failedCount = 0;
+
+      for (const result of deletionResults) {
+        if (result.status === "fulfilled") {
+          deletedIds.add(result.value);
+        } else {
+          failedCount += 1;
+        }
+      }
+
+      if (deletedIds.size > 0) {
+        setSelectedItems((previous) => {
+          const next = new Map(previous);
+          for (const [category, item] of next) {
+            if (deletedIds.has(item.id)) {
+              next.delete(category);
+            }
+          }
+          return next;
+        });
+
+        setBrokenImageIds((previous) => {
+          const next = new Set(previous);
+          for (const deletedId of deletedIds) {
+            next.delete(deletedId);
+          }
+          return next;
+        });
+
+        if (recommendation?.outfit.some((item) => deletedIds.has(item.id))) {
+          setRecommendation(null);
+          setRecommendError(null);
+          setTryOnImageUrl(null);
+          setTryOnError(null);
+        }
+      }
+
+      await reloadItems();
+
+      if (deletedIds.size > 0) {
+        setFeedback(`${deletedIds.size} test item(s) deleted from your wardrobe.`);
+      }
+
+      if (failedCount > 0) {
+        setError(
+          deletedIds.size > 0
+            ? `Deleted ${deletedIds.size} test item(s), but failed to delete ${failedCount} item(s). Please try again.`
+            : "Failed to delete test data."
+        );
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete test data.");
+    } finally {
+      setIsDeletingTestData(false);
+    }
+  };
+
   // ── Filter + pagination ─────────────────────────────────────────────────
 
   const filteredItems = useMemo(() => {
@@ -503,6 +659,15 @@ export function WardrobePage() {
           <Button variant="outline" onClick={() => void handleImportTestData()} disabled={isImporting || isLoading}>
             {isImporting ? "Importing..." : "Add test data"}
           </Button>
+          {matchedTestDataItems.length > 0 ? (
+            <Button
+              variant="danger"
+              onClick={() => void handleDeleteTestData()}
+              disabled={isDeletingTestData || isImporting || isLoading}
+            >
+              {isDeletingTestData ? "Deleting test data..." : "Delete test data"}
+            </Button>
+          ) : null}
           <Button variant="outline" onClick={() => navigate("/add")}>
             Add more clothes
           </Button>

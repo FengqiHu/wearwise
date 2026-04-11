@@ -1,40 +1,22 @@
-import { once } from "node:events";
-import type { AddressInfo } from "node:net";
-import type { Server } from "node:http";
-import express from "express";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import type { Server } from "node:http";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
-import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
-import type { ClosetItemRecord, ConversationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
+import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
+import type { ClosetItemRecord, UserRecord } from "../types/domain.js";
+import {
+  makeUserRecord,
+  makeStoredMessage,
+  makeConversationRecord,
+  startServer,
+  stopServer
+} from "./chat-routes-test-helpers.js";
 
 type StreamChatInput = Parameters<ChatService["streamChat"]>[0];
-
-function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord {
-  return {
-    id: "user-1",
-    googleSub: "google-sub-1",
-    email: "test@example.com",
-    name: "Taylor",
-    picture: null,
-    profile: {
-      name: "Taylor",
-      heightCm: 180,
-      weightKg: 75,
-      styleNote: "minimal streetwear",
-      avatarUrl: null,
-      fullBodyImageUrl: null,
-      headshotImageUrl: null
-    },
-    createdAt: "2026-03-24T00:00:00.000Z",
-    updatedAt: "2026-03-24T00:00:00.000Z",
-    ...overrides
-  };
-}
 
 function makeClosetItem(overrides: Partial<ClosetItemRecord> = {}): ClosetItemRecord {
   return {
@@ -51,64 +33,6 @@ function makeClosetItem(overrides: Partial<ClosetItemRecord> = {}): ClosetItemRe
     updatedAt: "2026-03-24T00:00:00.000Z",
     ...overrides
   };
-}
-
-function makeStoredMessage(overrides: Partial<StoredChatMessage> = {}): StoredChatMessage {
-  return {
-    id: "message-1",
-    role: "user",
-    content: "Build me an outfit for class tomorrow.",
-    createdAt: "2026-03-24T00:00:00.000Z",
-    ...overrides
-  };
-}
-
-function makeConversationRecord(overrides: Partial<ConversationRecord> = {}): ConversationRecord {
-  return {
-    id: "conversation-1",
-    userId: "user-1",
-    title: "Build me an outfit for class tomorrow.",
-    createdAt: "2026-03-24T00:00:00.000Z",
-    updatedAt: "2026-03-24T00:00:00.000Z",
-    lastMessageAt: "2026-03-24T00:00:00.000Z",
-    messages: [makeStoredMessage()],
-    ...overrides
-  };
-}
-
-async function startServer(dependencies: {
-  authService: AuthService;
-  chatService: ChatService;
-  conversationRepository: ConversationRepository;
-  recommendationRepository: RecommendationRepository;
-  closetRepository: ClosetRepository;
-  userRepository: UserRepository;
-}): Promise<{ baseUrl: string; server: Server }> {
-  const app = express();
-  app.use(express.json());
-  app.use("/api", createChatRoutes(dependencies));
-
-  const server = app.listen(0, "127.0.0.1");
-  await once(server, "listening");
-
-  const address = server.address() as AddressInfo;
-  return {
-    baseUrl: `http://127.0.0.1:${address.port}`,
-    server
-  };
-}
-
-async function stopServer(server: Server): Promise<void> {
-  await new Promise<void>((resolve, reject) => {
-    server.close((error) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve();
-    });
-  });
 }
 
 async function postChat(baseUrl: string, payload: Record<string, unknown>): Promise<Response> {
@@ -214,6 +138,10 @@ function makeRouteHarness(options: {
     findById: vi.fn().mockResolvedValue(userRecord)
   } as unknown as UserRepository;
 
+  const geminiRecommendationService = {
+    summarizeStyle: vi.fn().mockResolvedValue("")
+  } as unknown as GeminiRecommendationService;
+
   return {
     dependencies: {
       authService,
@@ -221,7 +149,8 @@ function makeRouteHarness(options: {
       conversationRepository,
       recommendationRepository,
       closetRepository,
-      userRepository
+      userRepository,
+      geminiRecommendationService
     },
     getCapturedStreamInput: () => capturedStreamInput,
     spies: {
@@ -231,10 +160,229 @@ function makeRouteHarness(options: {
       createConversation: (conversationRepository as unknown as { createWithFirstUserMessage: ReturnType<typeof vi.fn> }).createWithFirstUserMessage,
       appendMessage: (conversationRepository as unknown as { appendMessage: ReturnType<typeof vi.fn> }).appendMessage,
       listClosetItems: (closetRepository as unknown as { listByUser: ReturnType<typeof vi.fn> }).listByUser,
-      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById
+      findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
+      summarizeStyle: (geminiRecommendationService as unknown as { summarizeStyle: ReturnType<typeof vi.fn> }).summarizeStyle
     }
   };
 }
+
+describe("createChatRoutes POST /chat – sex in system prompt", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("includes the user's sex in the system message when set on the profile", async () => {
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord({
+        profile: {
+          name: "Taylor",
+          heightCm: 180,
+          weightKg: 75,
+          styleNote: "minimal streetwear",
+          avatarUrl: null,
+          fullBodyImageUrl: null,
+          headshotImageUrl: null,
+          sex: "female"
+        }
+      })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Recommend an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("- Sex: female");
+  });
+
+  it("shows 'not specified' for sex when the profile has no sex set", async () => {
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord({
+        profile: {
+          name: "Taylor",
+          heightCm: 180,
+          weightKg: 75,
+          styleNote: "minimal streetwear",
+          avatarUrl: null,
+          fullBodyImageUrl: null,
+          headshotImageUrl: null
+        }
+      })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Recommend an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("- Sex: not specified");
+  });
+});
+
+describe("createChatRoutes POST /chat – ISO timestamp prefixes on historical messages", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("prefixes each historical message with its ISO createdAt timestamp", async () => {
+    const timestamp = "2026-03-31T09:00:00.000Z";
+    const messageContent = "I need an outfit for my interview";
+
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord()
+    });
+
+    // Override conversation repo to return a conversation with a known message timestamp
+    (harness.dependencies.conversationRepository as unknown as {
+      createWithFirstUserMessage: ReturnType<typeof vi.fn>;
+    }).createWithFirstUserMessage.mockResolvedValue(
+      makeConversationRecord({
+        messages: [
+          makeStoredMessage({
+            id: "message-1",
+            role: "user",
+            content: messageContent,
+            createdAt: timestamp
+          })
+        ]
+      })
+    );
+
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: messageContent })
+    });
+
+    const streamInput = harness.getCapturedStreamInput();
+    // First message after system is the historical user message
+    const firstUserMessage = streamInput?.messages[1];
+    expect(firstUserMessage?.content).toBe(`[${timestamp}] ${messageContent}`);
+  });
+
+  it("prefixes multiple historical messages each with their own ISO timestamp", async () => {
+    const userTimestamp = "2026-03-31T09:00:00.000Z";
+    const assistantTimestamp = "2026-03-31T09:01:00.000Z";
+
+    const harness = makeRouteHarness();
+
+    (harness.dependencies.conversationRepository as unknown as {
+      createWithFirstUserMessage: ReturnType<typeof vi.fn>;
+    }).createWithFirstUserMessage.mockResolvedValue(
+      makeConversationRecord({
+        messages: [
+          makeStoredMessage({
+            id: "msg-1",
+            role: "user",
+            content: "What outfit for a casual lunch?",
+            createdAt: userTimestamp
+          }),
+          makeStoredMessage({
+            id: "msg-2",
+            role: "assistant",
+            content: "Here are some options...",
+            createdAt: assistantTimestamp
+          })
+        ]
+      })
+    );
+
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "What outfit for a casual lunch?" })
+    });
+
+    const streamInput = harness.getCapturedStreamInput();
+    expect(streamInput?.messages[1]?.content).toBe(`[${userTimestamp}] What outfit for a casual lunch?`);
+    expect(streamInput?.messages[2]?.content).toBe(`[${assistantTimestamp}] Here are some options...`);
+  });
+});
+
+describe("createChatRoutes POST /chat – weather and occasion instructions in system message", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("includes weather-aware recommendation instructions in the system message", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("get_weather");
+    expect(systemMessage).toContain("weather");
+  });
+
+  it("includes occasion-awareness instructions in the system message", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Pre-recommendation checklist");
+    expect(systemMessage).toContain("get_current_time");
+  });
+
+  it("includes the user's timezone in the occasion instruction when provided", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Suggest an outfit.",
+        userLocation: { lat: 40.7128, lon: -74.006, timezone: "America/New_York" }
+      })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("America/New_York");
+  });
+});
 
 describe("createChatRoutes POST /chat", () => {
   let server: Server | null = null;

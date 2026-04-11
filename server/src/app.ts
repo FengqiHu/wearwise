@@ -8,6 +8,7 @@ import { RecommendationRepository } from "./repositories/recommendation-reposito
 import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
+import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
@@ -119,6 +120,16 @@ export function createApp() {
       chatService,
       closetRepository,
       userRepository
+    })
+  );
+
+  app.use(
+    "/api",
+    createRecommendationRoutes({
+      authService,
+      recommendationRepository,
+      userRepository,
+      geminiRecommendationService
     })
   );
 

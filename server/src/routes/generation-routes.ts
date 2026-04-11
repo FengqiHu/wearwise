@@ -79,6 +79,8 @@ export function createGenerationRoutes({
 
       // 3. Resolve clothing item IDs — from recommendation or directly provided
       let clothingItemIds: string[];
+      let recommendationOutfitName: string | undefined;
+      let recommendationReason: string | undefined;
 
       if (recommendationId) {
         const recommendation = await recommendationRepository.findById(userId, recommendationId);
@@ -91,6 +93,8 @@ export function createGenerationRoutes({
           return;
         }
         clothingItemIds = recommendation.items.map((item) => item.id);
+        recommendationOutfitName = recommendation.outfitName;
+        recommendationReason = recommendation.reason;
       } else {
         clothingItemIds = directClothingItemIds;
       }
@@ -128,12 +132,19 @@ export function createGenerationRoutes({
       const clothingImageUrls = clothingItems.map((item) => item!.imageUrl);
 
       // 6. Call Gemini to generate outfit image
+      const backgroundParts = [recommendationOutfitName, recommendationReason].filter(Boolean);
+      const rawBackground = !options.prompt && backgroundParts.length > 0
+        ? backgroundParts.join(" — ")
+        : undefined;
+      const backgroundContext = rawBackground?.slice(0, 300);
+
       const generatedImageBuffer = await imageGenerationService.generateOutfitImage({
         bodyImageUrl,
         ...(headshotImageUrl ? { headshotImageUrl } : {}),
         clothingImageUrls,
         ...(options.prompt ? { promptOverride: options.prompt } : {}),
-        aspectRatio: options.aspectRatio ?? "3:4"
+        aspectRatio: options.aspectRatio ?? "3:4",
+        ...(backgroundContext ? { backgroundContext } : {})
       });
 
       // 7. Upload generated image to R2

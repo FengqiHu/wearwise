@@ -62,7 +62,8 @@ export function ProfilePage() {
       styleNote: profile?.styleNote ?? "",
       avatarUrl: profile?.avatarUrl ?? "",
       fullBodyImageUrl: profile?.fullBodyImageUrl ?? "",
-      headshotImageUrl: profile?.headshotImageUrl ?? ""
+      headshotImageUrl: profile?.headshotImageUrl ?? "",
+      sex: profile?.sex ?? ""
     }),
     [profile]
   );
@@ -164,7 +165,8 @@ export function ProfilePage() {
       styleNote: form.styleNote.trim(),
       avatarUrl: trimmedAvatarUrl || undefined,
       fullBodyImageUrl: trimmedFullBodyImageUrl || undefined,
-      headshotImageUrl: trimmedHeadshotImageUrl || undefined
+      headshotImageUrl: trimmedHeadshotImageUrl || undefined,
+      ...(form.sex && { sex: form.sex as "male" | "female" | "other" })
     };
 
     setIsSaving(true);
@@ -269,6 +271,20 @@ export function ProfilePage() {
                     placeholder="60"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-sm font-medium text-boutique-700">Sex (optional)</label>
+                <select
+                  className="h-11 w-full rounded-2xl border border-boutique-300 bg-boutique-50 px-4 text-sm text-boutique-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-boutique-400"
+                  value={form.sex}
+                  onChange={(event) => updateField("sex", event.target.value)}
+                >
+                  <option value="">Prefer not to say</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
 
               <div>
