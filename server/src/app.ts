@@ -12,6 +12,7 @@ import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
+import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
@@ -119,6 +120,16 @@ export function createApp() {
       chatService,
       closetRepository,
       userRepository
+    })
+  );
+
+  app.use(
+    "/api",
+    createRecommendationRoutes({
+      authService,
+      recommendationRepository,
+      conversationRepository,
+      closetRepository
     })
   );
 

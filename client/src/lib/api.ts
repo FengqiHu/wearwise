@@ -5,6 +5,7 @@ import type {
   ClothingItem,
   ClosetItemRecord,
   OutfitRecommendation,
+  RecommendationHistoryEntry,
   UserProfile
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
@@ -571,4 +572,19 @@ export async function generateOutfit(
   }
 
   return data.result.imageUrl;
+}
+
+export async function fetchRecommendationHistory(token: string): Promise<RecommendationHistoryEntry[]> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/history`, {
+    method: "GET",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to load recommendation history.");
+    throw new Error(message);
+  }
+
+  const payload = (await response.json()) as { recommendations?: RecommendationHistoryEntry[] };
+  return Array.isArray(payload.recommendations) ? payload.recommendations : [];
 }
