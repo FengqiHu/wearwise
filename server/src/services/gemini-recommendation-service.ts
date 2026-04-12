@@ -96,7 +96,7 @@ function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
     return Math.exp(-DECAY_LAMBDA * Math.max(0, ageDays));
   });
   const maxWeight = rawWeights.length > 0 ? Math.max(...rawWeights) : 1;
-  const weighted = recent.map((o, i) => ({ outfit: o, weight: rawWeights[i] / maxWeight }));
+  const weighted = recent.map((o, i) => ({ outfit: o, weight: rawWeights[i]! / maxWeight }));
 
   const liked = weighted.filter((w) => w.outfit.vote === "up");
   const disliked = weighted.filter((w) => w.outfit.vote === "down");
