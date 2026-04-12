@@ -149,7 +149,7 @@ describe("RecommendationRepository", () => {
     });
   });
 
-  describe("deleteByConversation", () => {
+   describe("deleteByConversation", () => {
     it("deletes recommendations for the given user and conversation", async () => {
       const repo = makeRepo();
       mockCollection.deleteMany.mockResolvedValue({ deletedCount: 3 });
@@ -170,6 +170,9 @@ describe("RecommendationRepository", () => {
       const deletedCount = await repo.deleteByConversation("user-1", "missing-conv");
 
       expect(deletedCount).toBe(0);
+    });
+  });
+
   describe("listByUser", () => {
     it("returns recommendations for the given userId", async () => {
       const repo = makeRepo();
