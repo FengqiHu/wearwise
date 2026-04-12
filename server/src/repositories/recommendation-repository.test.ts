@@ -5,6 +5,7 @@ const { mockCollection, mockClient } = vi.hoisted(() => {
   const mockCollection = {
     insertOne: vi.fn(),
     insertMany: vi.fn(),
+    deleteMany: vi.fn(),
     findOne: vi.fn(),
     find: vi.fn(),
     findOneAndUpdate: vi.fn(),
@@ -144,6 +145,30 @@ describe("RecommendationRepository", () => {
       const result = await repo.findVotedByUser("user-1");
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("deleteByConversation", () => {
+    it("deletes recommendations for the given user and conversation", async () => {
+      const repo = makeRepo();
+      mockCollection.deleteMany.mockResolvedValue({ deletedCount: 3 });
+
+      const deletedCount = await repo.deleteByConversation("user-1", "conv-1");
+
+      expect(deletedCount).toBe(3);
+      expect(mockCollection.deleteMany).toHaveBeenCalledWith({
+        userId: "user-1",
+        conversationId: "conv-1"
+      });
+    });
+
+    it("returns 0 when no recommendations match the conversation", async () => {
+      const repo = makeRepo();
+      mockCollection.deleteMany.mockResolvedValue({ deletedCount: 0 });
+
+      const deletedCount = await repo.deleteByConversation("user-1", "missing-conv");
+
+      expect(deletedCount).toBe(0);
     });
   });
 });

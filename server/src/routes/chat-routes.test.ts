@@ -112,6 +112,8 @@ function makeRouteHarness(options: {
 
   const conversationRepository = {
     createWithFirstUserMessage: vi.fn().mockResolvedValue(makeConversationRecord()),
+    findById: vi.fn().mockResolvedValue(makeConversationRecord()),
+    deleteById: vi.fn().mockResolvedValue(true),
     appendMessage: vi.fn().mockImplementation(async (_userId: string, conversationId: string, role: "user" | "assistant", content: string) =>
       makeConversationRecord({
         id: conversationId,
@@ -129,6 +131,7 @@ function makeRouteHarness(options: {
 
   const recommendationRepository = {
     createMany: vi.fn().mockResolvedValue([]),
+    deleteByConversation: vi.fn().mockResolvedValue(0),
     findById: vi.fn().mockResolvedValue(null),
     findByMessage: vi.fn().mockResolvedValue([])
   } as unknown as RecommendationRepository;
@@ -161,7 +164,10 @@ function makeRouteHarness(options: {
       chatConfigured: (chatService as unknown as { isConfigured: ReturnType<typeof vi.fn> }).isConfigured,
       streamChat: (chatService as unknown as { streamChat: ReturnType<typeof vi.fn> }).streamChat,
       createConversation: (conversationRepository as unknown as { createWithFirstUserMessage: ReturnType<typeof vi.fn> }).createWithFirstUserMessage,
+      findConversation: (conversationRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
+      deleteConversation: (conversationRepository as unknown as { deleteById: ReturnType<typeof vi.fn> }).deleteById,
       appendMessage: (conversationRepository as unknown as { appendMessage: ReturnType<typeof vi.fn> }).appendMessage,
+      deleteRecommendationsByConversation: (recommendationRepository as unknown as { deleteByConversation: ReturnType<typeof vi.fn> }).deleteByConversation,
       listClosetItems: (closetRepository as unknown as { listByUser: ReturnType<typeof vi.fn> }).listByUser,
       findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
       summarizeStyle: (geminiRecommendationService as unknown as { summarizeStyle: ReturnType<typeof vi.fn> }).summarizeStyle
@@ -548,5 +554,49 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain("Wardrobe (2 items):");
     expect(systemMessage).toContain("ID: ready-accessory | Name: Silver Watch | Category: accessories");
     expect(systemMessage).toContain("Use your own judgment on whether to include accessories");
+  });
+});
+
+describe("createChatRoutes DELETE /chat/conversations/:conversationId", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("returns 404 and does not delete recommendations when the conversation does not exist", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.findConversation.mockResolvedValue(null);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/api/chat/conversations/missing-conversation`, {
+      method: "DELETE"
+    });
+
+    expect(response.status).toBe(404);
+    expect(harness.spies.deleteConversation).not.toHaveBeenCalled();
+    expect(harness.spies.deleteRecommendationsByConversation).not.toHaveBeenCalled();
+  });
+
+  it("deletes the conversation and cascades recommendation deletion for that user and conversation", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.findConversation.mockResolvedValue(makeConversationRecord({ id: "conversation-1" }));
+    harness.spies.deleteConversation.mockResolvedValue(true);
+    harness.spies.deleteRecommendationsByConversation.mockResolvedValue(2);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await fetch(`${started.baseUrl}/api/chat/conversations/conversation-1`, {
+      method: "DELETE"
+    });
+
+    expect(response.status).toBe(204);
+    expect(harness.spies.findConversation).toHaveBeenCalledWith("user-1", "conversation-1");
+    expect(harness.spies.deleteConversation).toHaveBeenCalledWith("user-1", "conversation-1");
+    expect(harness.spies.deleteRecommendationsByConversation).toHaveBeenCalledWith("user-1", "conversation-1");
   });
 });
