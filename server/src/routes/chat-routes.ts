@@ -352,12 +352,22 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const deleted = await conversationRepository.deleteById(authResolution.user.id, conversationId);
+      const userId = authResolution.user.id;
+      const conversation = await conversationRepository.findById(userId, conversationId);
+
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found." });
+        return;
+      }
+
+      const deleted = await conversationRepository.deleteById(userId, conversationId);
 
       if (!deleted) {
         res.status(404).json({ error: "Conversation not found." });
         return;
       }
+
+      await recommendationRepository.deleteByConversation(userId, conversationId);
 
       res.status(204).send();
     } catch (error) {
