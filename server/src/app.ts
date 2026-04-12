@@ -129,9 +129,13 @@ export function createApp() {
       authService,
       recommendationRepository,
       userRepository,
-      geminiRecommendationService
+      geminiRecommendationService,
+      conversationRepository,
+      closetRepository
     })
   );
+
+
 
   app.use(
     "/api",

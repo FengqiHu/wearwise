@@ -139,6 +139,16 @@ export class RecommendationRepository {
     return document ? toRecommendationRecord(document) : null;
   }
 
+  async listByUser(userId: string, limit = 100): Promise<RecommendationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    return documents.map(toRecommendationRecord);
+  }
+
   async findByMessage(conversationId: string, messageId: string): Promise<RecommendationRecord[]> {
     const collection = await this.getCollection();
     const documents = await collection
