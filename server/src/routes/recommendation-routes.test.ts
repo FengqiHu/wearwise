@@ -390,8 +390,8 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
       body: JSON.stringify({ vote: "up" })
     });
 
-    // Advance 10 s — halfway through, no call yet
-    await vi.advanceTimersByTimeAsync(10_000);
+    // Advance 5 s — halfway through the 10 s window, no call yet
+    await vi.advanceTimersByTimeAsync(5_000);
     expect(harness.spies.summarizeStyle).not.toHaveBeenCalled();
 
     // Second vote arrives mid-window — must NOT reset the timer
@@ -401,8 +401,8 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
       body: JSON.stringify({ vote: "down" })
     });
 
-    // Advance another 10 s — now 20 s since the FIRST vote; window fires
-    await vi.advanceTimersByTimeAsync(10_000);
+    // Advance another 5 s — now 10 s since the FIRST vote; window fires
+    await vi.advanceTimersByTimeAsync(5_000);
     expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
   });
 
