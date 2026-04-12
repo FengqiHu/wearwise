@@ -357,7 +357,7 @@ function makeClosetItem(overrides: Partial<ClosetItemRecord> = {}): ClosetItemRe
     id: "item-1",
     userId: "user-1",
     imageUrl: "https://cdn.example.com/item-1.jpg",
-    analysisStatus: "completed",
+    analysisStatus: "ready",
     analysisError: null,
     name: "Blue Shirt",
     category: "tops",
