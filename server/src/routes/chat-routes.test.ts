@@ -7,7 +7,7 @@ import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
-import type { ClosetItemRecord, UserRecord } from "../types/domain.js";
+import type { ClosetItemRecord, RecommendationRecord, UserRecord } from "../types/domain.js";
 import {
   makeUserRecord,
   makeStoredMessage,

@@ -275,7 +275,7 @@ describe("createGenerationRoutes POST /generate/outfit – recommendationId flow
   });
 
   it("returns 422 when a clothing item has no image", async () => {
-    const harness = makeHarness({ closetItem: makeClosetItem({ imageUrl: null }) });
+    const harness = makeHarness({ closetItem: makeClosetItem({ imageUrl: null as unknown as string }) });
     const started = await startServer(harness.dependencies);
     server = started.server;
 
