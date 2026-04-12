@@ -106,14 +106,19 @@ export class ClosetRepository {
     }
 
     const collection = await this.getCollection();
-    const documents: ClosetItemDocument[] = items.map((item) => {
+    const documents = items.reduce<ClosetItemDocument[]>((accumulator, item) => {
+      const imageUrl = item.imageUrl.trim();
+      if (!imageUrl) {
+        return accumulator;
+      }
+
       const createdAt = item.createdAt?.trim() ? item.createdAt : nowIsoString();
       const updatedAt = item.updatedAt?.trim() ? item.updatedAt : createdAt;
 
-      return {
+      accumulator.push({
         _id: crypto.randomUUID(),
         userId,
-        imageUrl: item.imageUrl,
+        imageUrl,
         analysisStatus: item.analysisStatus,
         analysisError: item.analysisError ?? null,
         name: item.name ?? null,
@@ -122,8 +127,13 @@ export class ClosetRepository {
         description: item.description ?? null,
         createdAt,
         updatedAt
-      };
-    });
+      });
+      return accumulator;
+    }, []);
+
+    if (documents.length === 0) {
+      return [];
+    }
 
     await collection.insertMany(documents);
     return documents.map(toClosetItemRecord);
@@ -133,6 +143,22 @@ export class ClosetRepository {
     const collection = await this.getCollection();
     const document = await collection.findOne({ _id: itemId, userId });
     return document ? toClosetItemRecord(document) : null;
+  }
+
+  async findByIds(userId: string, itemIds: string[]): Promise<ClosetItemRecord[]> {
+    if (itemIds.length === 0) {
+      return [];
+    }
+
+    const uniqueItemIds = [...new Set(itemIds)];
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({
+        _id: { $in: uniqueItemIds },
+        userId
+      })
+      .toArray();
+    return documents.map(toClosetItemRecord);
   }
 
   async listByUser(userId: string, limit = 150): Promise<ClosetItemRecord[]> {

@@ -1,3 +1,4 @@
+import type { Request, Response } from "express";
 import { Router } from "express";
 import { z } from "zod";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
@@ -89,6 +90,17 @@ export function createClosetRoutes({
 }: ClosetRoutesDependencies): Router {
   const router = Router();
 
+  async function requireAuth(req: Request, res: Response) {
+    const authResolution = await authService.resolveAuthenticatedUser(req);
+    if (!authResolution.user || authResolution.error) {
+      res.status(authResolution.error?.status ?? 401).json({
+        error: authResolution.error?.message ?? "Unauthorized."
+      });
+      return null;
+    }
+    return authResolution.user;
+  }
+
   /**
    * GET /api/closet/items
    *
@@ -96,15 +108,10 @@ export function createClosetRoutes({
    */
   router.get("/closet/items", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
-      const items = await closetRepository.listByUser(authResolution.user.id);
+      const items = await closetRepository.listByUser(user.id);
       res.json({ items });
     } catch (error) {
       console.error("Closet list error:", error);
@@ -128,13 +135,8 @@ export function createClosetRoutes({
   router.post("/closet/items", async (req, res): Promise<void> => {
     try {
       // 1. Authenticate
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       // 2. Guard: storage must be configured
       if (!r2StorageService.isConfigured()) {
@@ -160,12 +162,12 @@ export function createClosetRoutes({
 
       // 4. Generate presigned upload URL and target public URL
       const { uploadUrl, publicUrl } = await r2StorageService.presignClosetImageUpload(
-        authResolution.user.id,
+        user.id,
         contentType
       );
 
       // 5. Persist ClosetItem record in MongoDB (imageUrl points to where the file will be)
-      const item = await closetRepository.create(authResolution.user.id, publicUrl);
+      const item = await closetRepository.create(user.id, publicUrl);
 
       res.status(201).json({ item, uploadUrl });
     } catch (error) {
@@ -182,13 +184,8 @@ export function createClosetRoutes({
    */
   router.post("/closet/items/import-test-data", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       const parsed = importClosetItemsRequestSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -196,7 +193,7 @@ export function createClosetRoutes({
         return;
       }
 
-      const imported = await closetRepository.importMany(authResolution.user.id, parsed.data.items);
+      const imported = await closetRepository.importMany(user.id, parsed.data.items);
       res.status(201).json({ items: imported });
     } catch (error) {
       console.error("Closet test data import error:", error);
@@ -214,13 +211,8 @@ export function createClosetRoutes({
    */
   router.get("/closet/items/:id", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       const itemId = (req.params.id ?? "").trim();
       if (!itemId) {
@@ -228,7 +220,7 @@ export function createClosetRoutes({
         return;
       }
 
-      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      const item = await closetRepository.findById(user.id, itemId);
       if (!item) {
         res.status(404).json({ error: "Closet item not found." });
         return;
@@ -252,13 +244,8 @@ export function createClosetRoutes({
    */
   router.patch("/closet/items/:id", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       const itemId = (req.params.id ?? "").trim();
       if (!itemId) {
@@ -266,7 +253,7 @@ export function createClosetRoutes({
         return;
       }
 
-      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      const item = await closetRepository.findById(user.id, itemId);
       if (!item) {
         res.status(404).json({ error: "Closet item not found." });
         return;
@@ -293,7 +280,7 @@ export function createClosetRoutes({
         return;
       }
 
-      const updated = await closetRepository.updateMetadata(authResolution.user.id, itemId, update);
+      const updated = await closetRepository.updateMetadata(user.id, itemId, update);
       res.json({ item: updated });
     } catch (error) {
       console.error("Closet item metadata update error:", error);
@@ -309,13 +296,8 @@ export function createClosetRoutes({
    */
   router.delete("/closet/items/:id", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       const itemId = (req.params.id ?? "").trim();
       if (!itemId) {
@@ -323,15 +305,15 @@ export function createClosetRoutes({
         return;
       }
 
-      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      const item = await closetRepository.findById(user.id, itemId);
       if (!item) {
         res.status(404).json({ error: "Closet item not found." });
         return;
       }
 
-      await closetRepository.deleteById(authResolution.user.id, itemId);
+      await closetRepository.deleteById(user.id, itemId);
 
-      if (r2StorageService.isConfigured()) {
+      if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(item.imageUrl)) {
         await r2StorageService.deleteObject(item.imageUrl);
       }
 
@@ -353,13 +335,8 @@ export function createClosetRoutes({
    */
   router.put("/closet/items/:id/image", async (req, res): Promise<void> => {
     try {
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       if (!r2StorageService.isConfigured()) {
         res.status(503).json({ error: "Storage service is not configured." });
@@ -372,7 +349,7 @@ export function createClosetRoutes({
         return;
       }
 
-      const item = await closetRepository.findById(authResolution.user.id, itemId);
+      const item = await closetRepository.findById(user.id, itemId);
       if (!item) {
         res.status(404).json({ error: "Closet item not found." });
         return;
@@ -396,11 +373,11 @@ export function createClosetRoutes({
       await r2StorageService.deleteObject(item.imageUrl);
 
       const { uploadUrl, publicUrl } = await r2StorageService.presignClosetImageUpload(
-        authResolution.user.id,
+        user.id,
         contentType
       );
 
-      const updated = await closetRepository.updateImage(authResolution.user.id, itemId, publicUrl);
+      const updated = await closetRepository.updateImage(user.id, itemId, publicUrl);
 
       res.json({ item: updated, uploadUrl });
     } catch (error) {
@@ -419,13 +396,8 @@ export function createClosetRoutes({
    * Response 200: { item: ClosetItemRecord }
    */
   router.post("/closet/items/:id/analyze", async (req, res): Promise<void> => {
-    const authResolution = await authService.resolveAuthenticatedUser(req);
-    if (!authResolution.user || authResolution.error) {
-      res.status(authResolution.error?.status ?? 401).json({
-        error: authResolution.error?.message ?? "Unauthorized."
-      });
-      return;
-    }
+    const user = await requireAuth(req, res);
+    if (!user) return;
 
     if (!geminiExtractionService.isConfigured()) {
       res.status(503).json({ error: "Gemini extraction service is not configured." });
@@ -438,7 +410,7 @@ export function createClosetRoutes({
       return;
     }
 
-    const item = await closetRepository.findById(authResolution.user.id, itemId);
+    const item = await closetRepository.findById(user.id, itemId);
     if (!item) {
       res.status(404).json({ error: "Closet item not found." });
       return;
@@ -452,7 +424,7 @@ export function createClosetRoutes({
 
     try {
       const extraction = await geminiExtractionService.analyzeClothingImage(item.imageUrl, mimeType);
-      const updated = await closetRepository.updateExtraction(authResolution.user.id, itemId, {
+      const updated = await closetRepository.updateExtraction(user.id, itemId, {
         analysisStatus: "ready",
         analysisError: null,
         name: extraction.name,
@@ -465,7 +437,7 @@ export function createClosetRoutes({
       console.error("Gemini analyze error:", extractionError);
       const errorMessage =
         extractionError instanceof Error ? extractionError.message : "Unknown extraction error.";
-      await closetRepository.updateExtraction(authResolution.user.id, itemId, {
+      await closetRepository.updateExtraction(user.id, itemId, {
         analysisStatus: "error",
         analysisError: errorMessage
       });
@@ -486,15 +458,8 @@ export function createClosetRoutes({
   router.post("/closet/recommend", async (req, res): Promise<void> => {
     try {
       // 1. Authenticate
-      const authResolution = await authService.resolveAuthenticatedUser(req);
-      if (!authResolution.user || authResolution.error) {
-        res.status(authResolution.error?.status ?? 401).json({
-          error: authResolution.error?.message ?? "Unauthorized."
-        });
-        return;
-      }
-
-      const { user } = authResolution;
+      const user = await requireAuth(req, res);
+      if (!user) return;
 
       // 2. Validate request body
       const body = (req.body as { selectedItemIds?: unknown } | undefined) ?? {};

@@ -59,6 +59,7 @@ export interface UserProfile {
   avatarUrl?: string | null;
   fullBodyImageUrl?: string | null;
   headshotImageUrl?: string | null;
+  sex?: 'male' | 'female' | 'other';
 }
 
 export interface AuthenticatedUser {
@@ -82,10 +83,34 @@ export interface Recommendation {
   reason: string;
   items: Array<{ id: string; name: string }>;
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;
   messageId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecommendationHistoryItem {
+  id: string;
+  name: string;
+  imageUrl: string | null;
+}
+
+export interface RecommendationHistoryEntry {
+  id: string;
+  userId: string;
+  outfitName: string;
+  reason: string;
+  items: RecommendationHistoryItem[];
+  occasions: string[];
+  weather?: string | null;
+  generation: RecommendationGeneration | null;
+  vote: RecommendationVote | null;
+  conversationId: string;
+  messageId: string;
+  conversationTitle: string | null;
   createdAt: string;
   updatedAt: string;
 }

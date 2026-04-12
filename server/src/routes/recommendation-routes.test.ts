@@ -3,12 +3,14 @@ import type { AddressInfo } from "node:net";
 import type { Server } from "node:http";
 import express from "express";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { ClosetRepository } from "../repositories/closet-repository.js";
+import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import { createRecommendationRoutes } from "./recommendation-routes.js";
-import type { RecommendationRecord, UserRecord } from "../types/domain.js";
+import type { ClosetItemRecord, ConversationRecord, RecommendationRecord, UserRecord } from "../types/domain.js";
 
 function makeUserRecord(overrides: Partial<UserRecord> = {}): UserRecord {
   return {
@@ -55,6 +57,8 @@ async function startServer(dependencies: {
   recommendationRepository: RecommendationRepository;
   userRepository: UserRepository;
   geminiRecommendationService: GeminiRecommendationService;
+  conversationRepository: ConversationRepository;
+  closetRepository: ClosetRepository;
 }): Promise<{ baseUrl: string; server: Server }> {
   const app = express();
   app.use(express.json());
@@ -71,7 +75,7 @@ async function stopServer(server: Server): Promise<void> {
   });
 }
 
-/** Advance fake timers past the 20 s throttle window and drain all promises. */
+/** Advance fake timers past the 10 s throttle window and drain all promises. */
 async function advancePastThrottle(): Promise<void> {
   await vi.advanceTimersByTimeAsync(10_000);
 }
@@ -94,9 +98,18 @@ function makeHarness(options: {
   } as unknown as AuthService;
 
   const recommendationRepository = {
+    listByUser: vi.fn().mockResolvedValue([]),
     updateVote: vi.fn().mockResolvedValue(updatedRec),
     findVotedByUser: vi.fn().mockResolvedValue(votedRecs)
   } as unknown as RecommendationRepository;
+
+  const conversationRepository = {
+    findById: vi.fn().mockResolvedValue(null)
+  } as unknown as ConversationRepository;
+
+  const closetRepository = {
+    findByIds: vi.fn().mockResolvedValue([])
+  } as unknown as ClosetRepository;
 
   const userRepository = {
     findById: vi.fn().mockResolvedValue(userRecord),
@@ -108,11 +121,21 @@ function makeHarness(options: {
   } as unknown as GeminiRecommendationService;
 
   return {
-    dependencies: { authService, recommendationRepository, userRepository, geminiRecommendationService },
+    dependencies: {
+      authService,
+      recommendationRepository,
+      userRepository,
+      geminiRecommendationService,
+      conversationRepository,
+      closetRepository
+    },
     spies: {
       authResolve: authService.resolveAuthenticatedUser as ReturnType<typeof vi.fn>,
+      listByUser: recommendationRepository.listByUser as ReturnType<typeof vi.fn>,
       updateVote: recommendationRepository.updateVote as ReturnType<typeof vi.fn>,
       findVotedByUser: recommendationRepository.findVotedByUser as ReturnType<typeof vi.fn>,
+      findByIds: closetRepository.findByIds as ReturnType<typeof vi.fn>,
+      conversationFindById: conversationRepository.findById as ReturnType<typeof vi.fn>,
       findUser: userRepository.findById as ReturnType<typeof vi.fn>,
       updateProfile: userRepository.updateProfile as ReturnType<typeof vi.fn>,
       summarizeStyle: geminiRecommendationService.summarizeStyle as ReturnType<typeof vi.fn>
@@ -404,5 +427,149 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
     await vote("down");
     await advancePastThrottle();
     expect(harness.spies.summarizeStyle).toHaveBeenCalledTimes(2);
+  });
+});
+
+function makeClosetItem(overrides: Partial<ClosetItemRecord> = {}): ClosetItemRecord {
+  return {
+    id: "item-1",
+    userId: "user-1",
+    imageUrl: "https://cdn.example.com/item-1.jpg",
+    analysisStatus: "ready",
+    analysisError: null,
+    name: "Blue Shirt",
+    category: "tops",
+    tags: [],
+    description: null,
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    ...overrides
+  };
+}
+
+function makeConversation(overrides: Partial<ConversationRecord> = {}): ConversationRecord {
+  return {
+    id: "conv-1",
+    userId: "user-1",
+    title: "Weekend brunch outfit",
+    createdAt: "2026-01-01T00:00:00.000Z",
+    updatedAt: "2026-01-01T00:00:00.000Z",
+    lastMessageAt: "2026-01-01T00:00:00.000Z",
+    messages: [],
+    ...overrides
+  };
+}
+
+describe("createRecommendationRoutes GET /recommendations/history", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+    vi.clearAllMocks();
+  });
+
+  it("returns 401 when unauthenticated", async () => {
+    const harness = makeHarness();
+    harness.spies.authResolve.mockResolvedValue({
+      user: null,
+      error: { status: 401, message: "Unauthorized." }
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns empty array when user has no recommendations", async () => {
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([]);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { recommendations: unknown[] };
+    expect(body.recommendations).toEqual([]);
+  });
+
+  it("returns recommendations with enriched items, occasions, conversationTitle, and vote", async () => {
+    const rec = makeRecommendationRecord({
+      items: [{ id: "item-1", name: "Blue Shirt" }],
+      occasions: ["casual"],
+      vote: "up"
+    });
+    const closetItem = makeClosetItem({ id: "item-1", imageUrl: "https://cdn.example.com/item-1.jpg" });
+    const conversation = makeConversation({ id: "conv-1", title: "Weekend brunch outfit" });
+
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([rec]);
+    harness.spies.findByIds.mockResolvedValue([closetItem]);
+    harness.spies.conversationFindById.mockResolvedValue(conversation);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { recommendations: Record<string, unknown>[] };
+    const entry = body.recommendations[0]!;
+    expect(entry.vote).toBe("up");
+    expect(entry.conversationTitle).toBe("Weekend brunch outfit");
+    expect(entry.occasions).toContain("casual");
+    const items = entry.items as { id: string; imageUrl: string | null }[];
+    expect(items[0]!.imageUrl).toBe("https://cdn.example.com/item-1.jpg");
+  });
+
+  it("sorts results by updatedAt descending", async () => {
+    const older = makeRecommendationRecord({ id: "rec-old", updatedAt: "2026-01-01T00:00:00.000Z" });
+    const newer = makeRecommendationRecord({ id: "rec-new", updatedAt: "2026-02-01T00:00:00.000Z" });
+
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([older, newer]);
+    harness.spies.findByIds.mockResolvedValue([]);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { recommendations: { id: string }[] };
+    expect(body.recommendations[0]!.id).toBe("rec-new");
+    expect(body.recommendations[1]!.id).toBe("rec-old");
+  });
+
+  it("normalizes occasions by falling back to conversationTitle when occasions array is empty", async () => {
+    const rec = makeRecommendationRecord({ occasions: [], conversationId: "conv-1" });
+    const conversation = makeConversation({ id: "conv-1", title: "Date night look" });
+
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([rec]);
+    harness.spies.findByIds.mockResolvedValue([]);
+    harness.spies.conversationFindById.mockResolvedValue(conversation);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { recommendations: { occasions: string[] }[] };
+    expect(body.recommendations[0]!.occasions).toEqual(["Date night look"]);
+  });
+
+  it("scopes results to the authenticated user", async () => {
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([]);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(harness.spies.listByUser).toHaveBeenCalledWith("user-1");
   });
 });

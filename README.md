@@ -59,16 +59,52 @@ npm run server
 npm run client
 ```
 
-The client runs at `http://localhost:5173` and the server at `http://localhost:3000` by default.
+The client runs at `http://localhost:5173` and the server at `http://localhost:3001` by default.
 
-## Server Environment
+## Environment Variables
 
-Add your keys in `server/.env` before starting the backend:
+Copy the example files and fill in your values before starting the application.
+
+### Server (`server/.env`)
 
 ```bash
-OPENAI_API_KEY=...
-OPENWEATHER_API_KEY=...
+cp server/.env.example server/.env
 ```
+
+| Variable | Description |
+|---|---|
+| `PORT` | Port the server listens on (default `3001`) |
+| `CLIENT_ORIGIN` | Frontend origin for CORS (e.g. `http://localhost:5173`) |
+| `OPENAI_API_KEY` | OpenAI API key for LLM reasoning |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret |
+| `GOOGLE_REDIRECT_URI` | OAuth redirect URI (e.g. `http://localhost:5173/auth/callback`) |
+| `AUTH_SESSION_SECRET` | Secret used to sign session tokens |
+| `AUTH_SESSION_TTL_SECONDS` | Session lifetime in seconds (e.g. `604800` = 7 days) |
+| `MONGODB_URI` | MongoDB connection string |
+| `MONGODB_DB_NAME` | Database name (e.g. `wearwise`) |
+| `MONGODB_USERS_COLLECTION` | Users collection name |
+| `MONGODB_CONVERSATIONS_COLLECTION` | Conversations collection name |
+| `S3_BUCKET` | Cloudflare R2 bucket name |
+| `S3_ENDPOINT` | R2 endpoint URL |
+| `S3_ACCESS_KEY_ID` | R2 access key ID |
+| `S3_SECRET_ACCESS_KEY` | R2 secret access key |
+| `S3_REGION` | R2 region (typically `auto`) |
+| `S3_PUBLIC_BASE_URL` | Public base URL for serving stored images |
+| `GEMINI_API_KEY` | Gemini API key for outfit reasoning |
+| `OPENWEATHER_API_KEY` | OpenWeather API key for weather data |
+
+### Client (`client/.env`)
+
+```bash
+cp client/.env.example client/.env
+```
+
+| Variable | Description |
+|---|---|
+| `VITE_API_BASE_URL` | Backend URL (e.g. `http://localhost:3001`) |
+| `VITE_GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID (same as server) |
+| `VITE_GOOGLE_REDIRECT_URI` | OAuth redirect URI (same as server) |
 
 ## Running Tests
 

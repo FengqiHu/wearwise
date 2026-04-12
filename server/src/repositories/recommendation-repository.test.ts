@@ -5,6 +5,7 @@ const { mockCollection, mockClient } = vi.hoisted(() => {
   const mockCollection = {
     insertOne: vi.fn(),
     insertMany: vi.fn(),
+    deleteMany: vi.fn(),
     findOne: vi.fn(),
     find: vi.fn(),
     findOneAndUpdate: vi.fn(),
@@ -50,6 +51,7 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
 function makeFindChain(docs: unknown[]) {
   return {
     sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     toArray: vi.fn().mockResolvedValue(docs)
   };
 }
@@ -142,6 +144,75 @@ describe("RecommendationRepository", () => {
       mockCollection.find.mockReturnValue(makeFindChain([]));
 
       const result = await repo.findVotedByUser("user-1");
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("deleteByConversation", () => {
+    it("deletes recommendations for the given user and conversation", async () => {
+      const repo = makeRepo();
+      mockCollection.deleteMany.mockResolvedValue({ deletedCount: 3 });
+
+      const deletedCount = await repo.deleteByConversation("user-1", "conv-1");
+
+      expect(deletedCount).toBe(3);
+      expect(mockCollection.deleteMany).toHaveBeenCalledWith({
+        userId: "user-1",
+        conversationId: "conv-1"
+      });
+    });
+
+    it("returns 0 when no recommendations match the conversation", async () => {
+      const repo = makeRepo();
+      mockCollection.deleteMany.mockResolvedValue({ deletedCount: 0 });
+
+      const deletedCount = await repo.deleteByConversation("user-1", "missing-conv");
+
+      expect(deletedCount).toBe(0);
+    });
+  });
+
+  describe("listByUser", () => {
+    it("returns recommendations for the given userId", async () => {
+      const repo = makeRepo();
+      const docs = [
+        makeDoc({ _id: "rec-1" }),
+        makeDoc({ _id: "rec-2" })
+      ];
+      mockCollection.find.mockReturnValue(makeFindChain(docs));
+
+      const result = await repo.listByUser("user-1");
+
+      expect(result).toHaveLength(2);
+      expect(result[0]!.id).toBe("rec-1");
+      expect(result[1]!.id).toBe("rec-2");
+    });
+
+    it("scopes query to the given userId", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      await repo.listByUser("user-42");
+
+      expect(mockCollection.find).toHaveBeenCalledWith({ userId: "user-42" });
+    });
+
+    it("respects the limit parameter", async () => {
+      const repo = makeRepo();
+      const chain = makeFindChain([]);
+      mockCollection.find.mockReturnValue(chain);
+
+      await repo.listByUser("user-1", 25);
+
+      expect(chain.limit).toHaveBeenCalledWith(25);
+    });
+
+    it("returns empty array when no recommendations exist", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      const result = await repo.listByUser("user-1");
 
       expect(result).toEqual([]);
     });

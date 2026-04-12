@@ -77,6 +77,10 @@ export class R2StorageService {
     return { uploadUrl, publicUrl };
   }
 
+  ownsPublicUrl(publicUrl: string): boolean {
+    return publicUrl.startsWith(`${this.publicBaseUrl}/`);
+  }
+
   async deleteObject(publicUrl: string): Promise<void> {
     const prefix = `${this.publicBaseUrl}/`;
     const key = publicUrl.startsWith(prefix) ? publicUrl.slice(prefix.length) : publicUrl;

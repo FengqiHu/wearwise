@@ -19,6 +19,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   fullBodyImageUrl: string | null;
   headshotImageUrl: string | null;
+  sex?: 'male' | 'female' | 'other';
 }
 
 export interface UserRecord {
@@ -173,6 +174,7 @@ export interface RecommendationRecord {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;

@@ -99,7 +99,8 @@ export function createApp() {
     "/api",
     createProfileRoutes({
       authService,
-      userRepository
+      userRepository,
+      r2StorageService
     })
   );
 
@@ -128,9 +129,12 @@ export function createApp() {
       authService,
       recommendationRepository,
       userRepository,
-      geminiRecommendationService
+      geminiRecommendationService,
+      conversationRepository,
+      closetRepository
     })
   );
+
 
   app.use(
     "/api",

@@ -5,6 +5,7 @@ import type {
   ClothingItem,
   ClosetItemRecord,
   OutfitRecommendation,
+  RecommendationHistoryEntry,
   UserProfile
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
@@ -401,7 +402,7 @@ export async function replaceClosetItemImage(
 export async function importTestClosetItems(
   token: string,
   payload: ImportTestClosetItemsPayload
-): Promise<void> {
+): Promise<ClosetItemRecord[]> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
     method: "POST",
     headers: createAuthHeaders(token),
@@ -412,6 +413,9 @@ export async function importTestClosetItems(
     const message = await parseResponseError(response, "Failed to import test closet items.");
     throw new Error(message);
   }
+
+  const data = (await response.json()) as { items?: ClosetItemRecord[] };
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
@@ -585,4 +589,19 @@ export async function generateOutfit(
   }
 
   return data.result.imageUrl;
+}
+
+export async function fetchRecommendationHistory(token: string): Promise<RecommendationHistoryEntry[]> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/history`, {
+    method: "GET",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to load recommendation history.");
+    throw new Error(message);
+  }
+
+  const payload = (await response.json()) as { recommendations?: RecommendationHistoryEntry[] };
+  return Array.isArray(payload.recommendations) ? payload.recommendations : [];
 }
