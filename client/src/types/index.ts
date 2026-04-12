@@ -105,6 +105,7 @@ export interface RecommendationHistoryEntry {
   reason: string;
   items: RecommendationHistoryItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;

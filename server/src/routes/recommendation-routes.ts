@@ -171,7 +171,7 @@ export function createRecommendationRoutes({
             conversationTitle
           };
         })
-        .sort((left, right) => right.createdAt.localeCompare(left.createdAt));
+        .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt));
 
       res.json({ recommendations: history });
     } catch (error) {
