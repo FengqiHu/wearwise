@@ -149,7 +149,7 @@ describe("RecommendationRepository", () => {
     });
   });
 
-   describe("deleteByConversation", () => {
+  describe("deleteByConversation", () => {
     it("deletes recommendations for the given user and conversation", async () => {
       const repo = makeRepo();
       mockCollection.deleteMany.mockResolvedValue({ deletedCount: 3 });
