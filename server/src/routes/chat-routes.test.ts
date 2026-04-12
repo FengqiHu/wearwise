@@ -10,7 +10,8 @@ import type { UserRepository } from "../repositories/user-repository.js";
 import { createChatRoutes } from "./chat-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ChatService } from "../services/chat-service.js";
-import type { ClosetItemRecord, ConversationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
+import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
+import type { ClosetItemRecord, ConversationRecord, RecommendationRecord, StoredChatMessage, UserRecord } from "../types/domain.js";
 
 type StreamChatInput = Parameters<ChatService["streamChat"]>[0];
 
@@ -321,5 +322,170 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain('Always include exactly 3 outfits in the "outfits" array');
     expect(systemMessage).toContain('Each outfit may contain at most one item per category');
     expect(systemMessage).toContain('Only use items from the wardrobe list above, with their exact IDs');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GET /chat/conversations/:conversationId – recommendation hydration (#158)
+// ---------------------------------------------------------------------------
+
+describe("createChatRoutes GET /chat/conversations/:conversationId – recommendation hydration", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+    vi.clearAllMocks();
+  });
+
+  function makeGetHarness(options: {
+    conversation?: ReturnType<typeof makeConversationRecord> | null;
+    recommendations?: (RecommendationRecord | null)[];
+  } = {}) {
+    const conversation = options.conversation !== undefined
+      ? options.conversation
+      : makeConversationRecord();
+    const recommendations = options.recommendations ?? [];
+
+    const authService = {
+      resolveAuthenticatedUser: vi.fn().mockResolvedValue({ user: makeUserRecord(), error: null })
+    } as unknown as AuthService;
+
+    const conversationRepository = {
+      findById: vi.fn().mockResolvedValue(conversation)
+    } as unknown as ConversationRepository;
+
+    let callIndex = 0;
+    const recommendationRepository = {
+      findById: vi.fn().mockImplementation(() => {
+        const rec = recommendations[callIndex] ?? null;
+        callIndex++;
+        return Promise.resolve(rec);
+      })
+    } as unknown as RecommendationRepository;
+
+    const chatService = {
+      isConfigured: vi.fn().mockReturnValue(true),
+      streamChat: vi.fn()
+    } as unknown as ChatService;
+
+    const closetRepository = {
+      listByUser: vi.fn().mockResolvedValue([])
+    } as unknown as ClosetRepository;
+
+    const userRepository = {
+      findById: vi.fn().mockResolvedValue(makeUserRecord())
+    } as unknown as UserRepository;
+
+    const geminiRecommendationService = {
+      summarizeStyle: vi.fn().mockResolvedValue("")
+    } as unknown as GeminiRecommendationService;
+
+    return {
+      dependencies: { authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository, geminiRecommendationService },
+      spies: {
+        authResolve: authService.resolveAuthenticatedUser as ReturnType<typeof vi.fn>,
+        findConversation: conversationRepository.findById as ReturnType<typeof vi.fn>,
+        findRecommendation: recommendationRepository.findById as ReturnType<typeof vi.fn>
+      }
+    };
+  }
+
+  it("returns 401 when unauthenticated", async () => {
+    const harness = makeGetHarness();
+    harness.spies.authResolve.mockResolvedValue({ user: null, error: { status: 401, message: "Unauthorized." } });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(401);
+  });
+
+  it("returns 404 when the conversation does not exist", async () => {
+    const harness = makeGetHarness({ conversation: null });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/missing`);
+
+    expect(res.status).toBe(404);
+  });
+
+  it("returns messages without recommendations when no recommendationIds are set", async () => {
+    const message = makeStoredMessage({ id: "msg-1", role: "assistant", content: "Hello" });
+    const conversation = makeConversationRecord({ messages: [message] });
+    const harness = makeGetHarness({ conversation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { messages: Array<{ id: string; recommendations?: unknown }> };
+    expect(harness.spies.findRecommendation).not.toHaveBeenCalled();
+    expect(body.messages[0]?.recommendations).toBeUndefined();
+  });
+
+  it("hydrates recommendations onto a message that has recommendationIds", async () => {
+    const rec: RecommendationRecord = {
+      id: "rec-1",
+      userId: "user-1",
+      outfitName: "Smart Casual",
+      reason: "Great for work",
+      items: [{ id: "item-1", name: "Oxford Shirt" }],
+      occasions: ["work"],
+      generation: null,
+      vote: null,
+      conversationId: "conv-1",
+      messageId: "msg-2",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    };
+    const message = makeStoredMessage({ id: "msg-2", role: "assistant", recommendationIds: ["rec-1"] });
+    const conversation = makeConversationRecord({ messages: [message] });
+    const harness = makeGetHarness({ conversation, recommendations: [rec] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { messages: Array<{ id: string; recommendations: RecommendationRecord[] }> };
+    const hydratedMessage = body.messages[0];
+    expect(hydratedMessage?.recommendations).toHaveLength(1);
+    expect(hydratedMessage?.recommendations[0]?.id).toBe("rec-1");
+    expect(hydratedMessage?.recommendations[0]?.outfitName).toBe("Smart Casual");
+  });
+
+  it("filters out null recommendation lookups from hydrated message", async () => {
+    const message = makeStoredMessage({ id: "msg-2", role: "assistant", recommendationIds: ["rec-exists", "rec-deleted"] });
+    const conversation = makeConversationRecord({ messages: [message] });
+    const existingRec: RecommendationRecord = {
+      id: "rec-exists",
+      userId: "user-1",
+      outfitName: "Outfit A",
+      reason: "Nice",
+      items: [],
+      occasions: [],
+      generation: null,
+      vote: null,
+      conversationId: "conv-1",
+      messageId: "msg-2",
+      createdAt: "2026-01-01T00:00:00.000Z",
+      updatedAt: "2026-01-01T00:00:00.000Z"
+    };
+    const harness = makeGetHarness({ conversation, recommendations: [existingRec, null] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { messages: Array<{ recommendations: RecommendationRecord[] }> };
+    expect(body.messages[0]?.recommendations).toHaveLength(1);
+    expect(body.messages[0]?.recommendations[0]?.id).toBe("rec-exists");
   });
 });
