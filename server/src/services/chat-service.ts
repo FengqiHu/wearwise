@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { z } from "zod";
 import type { ChatRole } from "../types/domain.js";
 import { CurrentTimeService } from "./current-time-service.js";
-import { OpenWeatherService } from "./openweather-service.js";
+import { OpenWeatherService, type OpenWeatherToolResult } from "./openweather-service.js";
 import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
 
 interface ModelInputMessage {
@@ -72,6 +72,26 @@ const weatherToolInputSchema = z
 
 type WeatherToolArgs = z.infer<typeof weatherToolInputSchema>;
 
+interface RunnerToolCall {
+  id?: string;
+  type?: string;
+  function?: {
+    name?: string;
+  };
+}
+
+interface RunnerMessage {
+  role: string;
+  content?: unknown;
+  tool_call_id?: string;
+  tool_calls?: RunnerToolCall[];
+}
+
+export interface StreamChatResult {
+  assistantText: string;
+  recommendationWeatherSummary: string | null;
+}
+
 function toIsoLocalDate(date: Date): string {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     year: "numeric",
@@ -85,6 +105,7 @@ function toIsoLocalDate(date: Date): string {
 function buildDeveloperInstructions(todayIsoDate: string): string {
   return [
     "You are the WearWise assistant.",
+    `Today's date is ${todayIsoDate}.`,
     "When the user asks for live weather, current conditions, rain, snow, temperature, or any forecast, use the get_weather tool instead of answering from memory.",
     "If the user uses a relative date such as today or tomorrow, convert it to an exact YYYY-MM-DD date before calling the tool.",
     "Use mode=current for current conditions and mode=forecast for future dates.",
@@ -93,6 +114,94 @@ function buildDeveloperInstructions(todayIsoDate: string): string {
     "If the tool returns ok=false, explain the tool error plainly. If candidates are included, ask the user to pick one of them.",
     "Never say that you do not have live internet access when the weather tool can answer the request.",
   ].join(" ");
+}
+
+function buildLocationLabel(location: OpenWeatherToolResult["location"]): string | null {
+  if (!location) {
+    return null;
+  }
+
+  return [location.name, location.state, location.country]
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .join(", ") || null;
+}
+
+function buildWeatherSummary(result: OpenWeatherToolResult): string | null {
+  const description = result.weather?.description?.trim() || result.weather?.condition?.trim() || "";
+  const temperature = typeof result.weather?.temperatureC === "number" ? `${result.weather.temperatureC} C` : "";
+  const locationLabel = buildLocationLabel(result.location);
+  const fragments = [locationLabel, temperature, description].filter(
+    (value): value is string => typeof value === "string" && value.length > 0
+  );
+
+  if (fragments.length > 0) {
+    return fragments.join(" - ");
+  }
+
+  const requestLocation = result.request?.location?.trim();
+  return requestLocation && requestLocation.length > 0 ? requestLocation : null;
+}
+
+function parseWeatherToolResult(rawContent: string): string | null {
+  try {
+    const parsed = JSON.parse(rawContent) as OpenWeatherToolResult;
+
+    if (!parsed.ok || !parsed.weather) {
+      return null;
+    }
+
+    const summary = buildWeatherSummary(parsed);
+
+    if (!summary) {
+      return null;
+    }
+
+    return summary;
+  } catch {
+    return null;
+  }
+}
+
+function findToolName(messages: RunnerMessage[], toolCallId: string): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (!message || !Array.isArray(message.tool_calls)) {
+      continue;
+    }
+
+    const match = message.tool_calls.find(
+      (toolCall) => toolCall.id === toolCallId && toolCall.type === "function" && typeof toolCall.function?.name === "string"
+    );
+
+    if (match?.function?.name) {
+      return match.function.name;
+    }
+  }
+
+  return null;
+}
+
+function extractRecommendationWeather(messages: RunnerMessage[]): string | null {
+  for (let index = messages.length - 1; index >= 0; index -= 1) {
+    const message = messages[index];
+
+    if (!message || message.role !== "tool" || typeof message.content !== "string" || typeof message.tool_call_id !== "string") {
+      continue;
+    }
+
+    if (findToolName(messages.slice(0, index), message.tool_call_id) !== "get_weather") {
+      continue;
+    }
+
+    const weather = parseWeatherToolResult(message.content);
+
+    if (weather) {
+      return weather;
+    }
+  }
+
+  return null;
 }
 
 export class ChatService {
@@ -112,7 +221,7 @@ export class ChatService {
     return this.client !== null;
   }
 
-  async streamChat(input: StreamChatInput): Promise<string> {
+  async streamChat(input: StreamChatInput): Promise<StreamChatResult> {
     if (!this.client) {
       throw new Error("OPENAI_API_KEY is not configured on server.");
     }
@@ -214,11 +323,6 @@ export class ChatService {
           }
         ]
       });
-    const requestOptions = input.signal
-      ? {
-          signal: input.signal
-        }
-      : undefined;
 
     runner.on("content", (content) => {
       assistantText += content;
@@ -227,6 +331,9 @@ export class ChatService {
 
     await runner.done();
 
-    return assistantText;
+    return {
+      assistantText,
+      recommendationWeatherSummary: extractRecommendationWeather(runner.messages as RunnerMessage[])
+    };
   }
 }

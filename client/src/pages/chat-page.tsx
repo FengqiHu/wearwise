@@ -18,6 +18,7 @@ import {
   fetchClosetItems,
   generateOutfit,
   streamChatResponse,
+  voteRecommendation,
   type UserLocation
 } from "../lib/api";
 import { cn } from "../lib/cn";
@@ -51,12 +52,16 @@ function RecommendationCards({
   recommendations,
   closetItems,
   generationStates,
-  onGenerateTryOn
+  voteStates,
+  onGenerateTryOn,
+  onVote
 }: {
   recommendations: Recommendation[];
   closetItems: ClothingItem[];
   generationStates: Record<string, OutfitGenerationState>;
+  voteStates: Record<string, "up" | "down" | null>;
   onGenerateTryOn: (recommendationId: string) => Promise<void>;
+  onVote: (recommendationId: string, vote: "up" | "down" | null) => Promise<void>;
 }) {
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
@@ -74,6 +79,8 @@ function RecommendationCards({
             error: null,
             isLoading: false
           };
+
+          const currentVote = voteStates[rec.id] ?? rec.vote ?? null;
 
           return (
             <div
@@ -106,6 +113,35 @@ function RecommendationCards({
               </div>
 
               <p className="text-xs leading-relaxed text-boutique-700">{rec.reason}</p>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label="Thumbs up"
+                  onClick={() => { void onVote(rec.id, currentVote === "up" ? null : "up"); }}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-base transition",
+                    currentVote === "up"
+                      ? "border-green-400 bg-green-100 text-green-700"
+                      : "border-boutique-200 bg-white text-boutique-500 hover:border-green-300 hover:bg-green-50 hover:text-green-600"
+                  )}
+                >
+                  👍
+                </button>
+                <button
+                  type="button"
+                  aria-label="Thumbs down"
+                  onClick={() => { void onVote(rec.id, currentVote === "down" ? null : "down"); }}
+                  className={cn(
+                    "flex h-8 w-8 items-center justify-center rounded-full border text-base transition",
+                    currentVote === "down"
+                      ? "border-red-400 bg-red-100 text-red-700"
+                      : "border-boutique-200 bg-white text-boutique-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                  )}
+                >
+                  👎
+                </button>
+              </div>
 
               {generationState.generatedImageUrl ? (
                 <div className="overflow-hidden rounded-2xl border border-boutique-200 bg-white/80">
@@ -149,6 +185,10 @@ function RecommendationCards({
       </div>
     </div>
   );
+}
+
+function isRawOutfitJson(content: string): boolean {
+  return /```json[\s\S]*"outfits"/.test(content);
 }
 
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
@@ -209,7 +249,9 @@ export function ChatPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
   const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
+  const [voteStates, setVoteStates] = useState<Record<string, "up" | "down" | null>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [accessoryMode, setAccessoryMode] = useState<"include" | "exclude" | "auto">("auto");
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -250,6 +292,7 @@ export function ChatPage() {
       setActiveConversationId(null);
       setMessages([greeting]);
       setOutfitGenerationStates({});
+      setVoteStates({});
       setIsLoadingHistory(false);
       return;
     }
@@ -273,6 +316,7 @@ export function ChatPage() {
           setActiveConversationId(null);
           setMessages([greeting]);
           setOutfitGenerationStates({});
+          setVoteStates({});
           return;
         }
 
@@ -296,6 +340,7 @@ export function ChatPage() {
         setActiveConversationId(null);
         setMessages([greeting]);
         setOutfitGenerationStates({});
+        setVoteStates({});
       } finally {
         if (active) {
           setIsLoadingHistory(false);
@@ -362,6 +407,7 @@ export function ChatPage() {
     setActiveConversationId(null);
     setMessages([greeting]);
     setOutfitGenerationStates({});
+    setVoteStates({});
     setInput("");
     setHistoryError(null);
   }, [greeting, isGenerating]);
@@ -405,6 +451,7 @@ export function ChatPage() {
           } else {
             setMessages([greeting]);
             setOutfitGenerationStates({});
+            setVoteStates({});
           }
         }
       } catch (error) {
@@ -457,6 +504,7 @@ export function ChatPage() {
         {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
+          accessoryMode,
           userLocation: userLocation ?? undefined
         },
         controller.signal,
@@ -540,6 +588,23 @@ export function ChatPage() {
     [token]
   );
 
+  const handleVote = useCallback(
+    async (recommendationId: string, vote: "up" | "down" | null): Promise<void> => {
+      if (!token) {
+        return;
+      }
+
+      setVoteStates((previous) => ({ ...previous, [recommendationId]: vote }));
+
+      try {
+        await voteRecommendation(token, recommendationId, vote);
+      } catch {
+        setVoteStates((previous) => ({ ...previous, [recommendationId]: null }));
+      }
+    },
+    [token]
+  );
+
   return (
     <section className="grid h-[calc(100vh-9.5rem)] w-full max-w-none gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
       <Card className="flex flex-col overflow-hidden p-3">
@@ -608,18 +673,32 @@ export function ChatPage() {
             <p className="mt-1 text-sm text-boutique-700">Ask for outfit suggestions by weather, occasion, or style preference.</p>
           </div>
 
-          {activeConversationId ? (
-            <Button
-              variant="danger"
-              size="sm"
-              disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
-              onClick={() => {
-                void handleDeleteConversation(activeConversationId);
-              }}
-            >
-              Delete Chat
-            </Button>
-          ) : null}
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
+              <span>Accessories:</span>
+              <select
+                value={accessoryMode}
+                onChange={(e) => setAccessoryMode(e.target.value as "include" | "exclude" | "auto")}
+                className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
+              >
+                <option value="auto">AI decides</option>
+                <option value="include">Include</option>
+                <option value="exclude">Exclude</option>
+              </select>
+            </label>
+            {activeConversationId ? (
+              <Button
+                variant="danger"
+                size="sm"
+                disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
+                onClick={() => {
+                  void handleDeleteConversation(activeConversationId);
+                }}
+              >
+                Delete Chat
+              </Button>
+            ) : null}
+          </div>
         </header>
 
         <Card className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
@@ -654,8 +733,18 @@ export function ChatPage() {
                               recommendations={recommendations}
                               closetItems={closetItems}
                               generationStates={outfitGenerationStates}
+                              voteStates={voteStates}
                               onGenerateTryOn={handleGenerateTryOn}
+                              onVote={handleVote}
                             />
+                          );
+                        }
+                        if (isRawOutfitJson(message.content)) {
+                          return (
+                            <span className="inline-flex items-center gap-2 text-boutique-600">
+                              <ThinkingDots />
+                              <span>Building outfit recommendations...</span>
+                            </span>
                           );
                         }
                         return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;

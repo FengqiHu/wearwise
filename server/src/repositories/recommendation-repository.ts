@@ -14,6 +14,7 @@ interface RecommendationDocument {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;
@@ -34,6 +35,7 @@ interface CreateRecommendationInput {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather: string | null;
   conversationId: string;
   messageId: string;
 }
@@ -46,6 +48,7 @@ function toRecommendationRecord(document: RecommendationDocument): Recommendatio
     reason: document.reason,
     items: document.items,
     occasions: document.occasions,
+    weather: document.weather ?? null,
     generation: document.generation,
     vote: document.vote,
     conversationId: document.conversationId,
@@ -78,6 +81,7 @@ export class RecommendationRepository {
       .db(this.options.databaseName)
       .collection<RecommendationDocument>(this.options.collectionName);
     await collection.createIndex({ userId: 1, createdAt: -1 }, { name: "user_created_at" });
+    await collection.createIndex({ userId: 1, conversationId: 1 }, { name: "user_conversation" });
     await collection.createIndex({ conversationId: 1, messageId: 1 }, { name: "conversation_message" });
     return collection;
   }
@@ -91,6 +95,7 @@ export class RecommendationRepository {
       reason: input.reason,
       items: input.items,
       occasions: input.occasions,
+      weather: input.weather,
       generation: null,
       vote: null,
       conversationId: input.conversationId,
@@ -114,6 +119,7 @@ export class RecommendationRepository {
       reason: input.reason,
       items: input.items,
       occasions: input.occasions,
+      weather: input.weather,
       generation: null,
       vote: null,
       conversationId: input.conversationId,
@@ -133,6 +139,16 @@ export class RecommendationRepository {
     return document ? toRecommendationRecord(document) : null;
   }
 
+  async listByUser(userId: string, limit = 100): Promise<RecommendationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .toArray();
+    return documents.map(toRecommendationRecord);
+  }
+
   async findByMessage(conversationId: string, messageId: string): Promise<RecommendationRecord[]> {
     const collection = await this.getCollection();
     const documents = await collection
@@ -140,6 +156,12 @@ export class RecommendationRepository {
       .sort({ createdAt: 1 })
       .toArray();
     return documents.map(toRecommendationRecord);
+  }
+
+  async deleteByConversation(userId: string, conversationId: string): Promise<number> {
+    const collection = await this.getCollection();
+    const result = await collection.deleteMany({ userId, conversationId });
+    return result.deletedCount ?? 0;
   }
 
   async updateGeneration(
@@ -168,5 +190,14 @@ export class RecommendationRepository {
       { returnDocument: "after" }
     );
     return updated ? toRecommendationRecord(updated) : null;
+  }
+
+  async findVotedByUser(userId: string): Promise<RecommendationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId, vote: { $in: ["up", "down"] } })
+      .sort({ updatedAt: -1 })
+      .toArray();
+    return documents.map(toRecommendationRecord);
   }
 }

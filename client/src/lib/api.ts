@@ -5,6 +5,7 @@ import type {
   ClothingItem,
   ClosetItemRecord,
   OutfitRecommendation,
+  RecommendationHistoryEntry,
   UserProfile
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
@@ -17,9 +18,12 @@ export interface UserLocation {
   timezone: string;
 }
 
+export type AccessoryMode = "include" | "exclude" | "auto";
+
 interface ChatStreamPayload {
   message: string;
   conversationId?: string;
+  accessoryMode?: AccessoryMode;
   userLocation?: UserLocation;
 }
 
@@ -398,7 +402,7 @@ export async function replaceClosetItemImage(
 export async function importTestClosetItems(
   token: string,
   payload: ImportTestClosetItemsPayload
-): Promise<void> {
+): Promise<ClosetItemRecord[]> {
   const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
     method: "POST",
     headers: createAuthHeaders(token),
@@ -409,6 +413,9 @@ export async function importTestClosetItems(
     const message = await parseResponseError(response, "Failed to import test closet items.");
     throw new Error(message);
   }
+
+  const data = (await response.json()) as { items?: ClosetItemRecord[] };
+  return Array.isArray(data.items) ? data.items : [];
 }
 
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
@@ -501,6 +508,23 @@ export async function streamChatResponse(
   }
 }
 
+export async function voteRecommendation(
+  token: string,
+  recommendationId: string,
+  vote: "up" | "down" | null
+): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/${encodeURIComponent(recommendationId)}/vote`, {
+    method: "PATCH",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ vote })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to submit vote.");
+    throw new Error(message);
+  }
+}
+
 export async function generateOutfitByItems(
   token: string,
   clothingItemIds: string[]
@@ -565,4 +589,19 @@ export async function generateOutfit(
   }
 
   return data.result.imageUrl;
+}
+
+export async function fetchRecommendationHistory(token: string): Promise<RecommendationHistoryEntry[]> {
+  const response = await fetch(`${API_BASE_URL}/api/recommendations/history`, {
+    method: "GET",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to load recommendation history.");
+    throw new Error(message);
+  }
+
+  const payload = (await response.json()) as { recommendations?: RecommendationHistoryEntry[] };
+  return Array.isArray(payload.recommendations) ? payload.recommendations : [];
 }

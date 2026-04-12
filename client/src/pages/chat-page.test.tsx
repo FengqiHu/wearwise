@@ -17,7 +17,8 @@ const apiMocks = vi.hoisted(() => ({
   fetchChatConversation: vi.fn(),
   deleteChatConversation: vi.fn(),
   fetchClosetItems: vi.fn(),
-  streamChatResponse: vi.fn()
+  streamChatResponse: vi.fn(),
+  generateOutfit: vi.fn()
 }));
 
 vi.mock("../lib/api", () => apiMocks);
@@ -55,6 +56,17 @@ describe("ChatPage", () => {
       await screen.findByText(/smart-casual outfit/i);
       expect(screen.getByText(/formal dinner/i)).toBeDefined();
       expect(screen.getByText(/weekend travel/i)).toBeDefined();
+    });
+
+    it('renders the accessory mode dropdown with three options and defaults to "AI decides"', async () => {
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+
+      expect(accessoryModeSelect).toHaveValue("auto");
+      expect(screen.getByRole("option", { name: "AI decides" })).toBeDefined();
+      expect(screen.getByRole("option", { name: "Include" })).toBeDefined();
+      expect(screen.getByRole("option", { name: "Exclude" })).toBeDefined();
     });
   });
 
@@ -112,6 +124,31 @@ describe("ChatPage", () => {
       const [calledToken, calledPayload] = apiMocks.streamChatResponse.mock.calls[0] as [string, { message: string }];
       expect(calledToken).toBe("test-token");
       expect(calledPayload.message).toBe("Outfit for rainy day");
+    });
+
+    it("sends the selected accessory mode in the request payload", async () => {
+      const user = userEvent.setup();
+      apiMocks.streamChatResponse.mockResolvedValue(undefined);
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await user.selectOptions(accessoryModeSelect, "include");
+
+      const textarea = await screen.findByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "Plan an outfit with accessories");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(apiMocks.streamChatResponse).toHaveBeenCalledOnce();
+      });
+
+      const [, calledPayload] = apiMocks.streamChatResponse.mock.calls[0] as [
+        string,
+        { message: string; accessoryMode: "include" | "exclude" | "auto" }
+      ];
+
+      expect(calledPayload.message).toBe("Plan an outfit with accessories");
+      expect(calledPayload.accessoryMode).toBe("include");
     });
 
     it("clears the input after sending", async () => {

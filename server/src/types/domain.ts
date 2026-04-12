@@ -1,6 +1,9 @@
+export type AccessoryMode = "include" | "exclude" | "auto";
+
 export interface ChatRequest {
   message: string;
   conversationId?: string;
+  accessoryMode?: AccessoryMode;
   userLocation?: {
     lat: number;
     lon: number;
@@ -16,6 +19,7 @@ export interface UserProfile {
   avatarUrl: string | null;
   fullBodyImageUrl: string | null;
   headshotImageUrl: string | null;
+  sex?: 'male' | 'female' | 'other';
 }
 
 export interface UserRecord {
@@ -170,6 +174,7 @@ export interface RecommendationRecord {
   reason: string;
   items: RecommendationItem[];
   occasions: string[];
+  weather?: string | null;
   generation: RecommendationGeneration | null;
   vote: RecommendationVote | null;
   conversationId: string;
