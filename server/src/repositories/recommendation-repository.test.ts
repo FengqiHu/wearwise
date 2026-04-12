@@ -50,6 +50,7 @@ function makeDoc(overrides: Record<string, unknown> = {}) {
 function makeFindChain(docs: unknown[]) {
   return {
     sort: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
     toArray: vi.fn().mockResolvedValue(docs)
   };
 }
@@ -142,6 +143,51 @@ describe("RecommendationRepository", () => {
       mockCollection.find.mockReturnValue(makeFindChain([]));
 
       const result = await repo.findVotedByUser("user-1");
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe("listByUser", () => {
+    it("returns recommendations for the given userId", async () => {
+      const repo = makeRepo();
+      const docs = [
+        makeDoc({ _id: "rec-1" }),
+        makeDoc({ _id: "rec-2" })
+      ];
+      mockCollection.find.mockReturnValue(makeFindChain(docs));
+
+      const result = await repo.listByUser("user-1");
+
+      expect(result).toHaveLength(2);
+      expect(result[0]!.id).toBe("rec-1");
+      expect(result[1]!.id).toBe("rec-2");
+    });
+
+    it("scopes query to the given userId", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      await repo.listByUser("user-42");
+
+      expect(mockCollection.find).toHaveBeenCalledWith({ userId: "user-42" });
+    });
+
+    it("respects the limit parameter", async () => {
+      const repo = makeRepo();
+      const chain = makeFindChain([]);
+      mockCollection.find.mockReturnValue(chain);
+
+      await repo.listByUser("user-1", 25);
+
+      expect(chain.limit).toHaveBeenCalledWith(25);
+    });
+
+    it("returns empty array when no recommendations exist", async () => {
+      const repo = makeRepo();
+      mockCollection.find.mockReturnValue(makeFindChain([]));
+
+      const result = await repo.listByUser("user-1");
 
       expect(result).toEqual([]);
     });
