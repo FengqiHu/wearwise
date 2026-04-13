@@ -31,7 +31,7 @@ export function RecommendationVoteControls({
           disabled && "cursor-not-allowed opacity-60",
           vote === "up"
             ? "border-green-400 bg-green-100 text-green-700"
-            : "border-boutique-200 bg-white text-boutique-500 hover:border-green-300 hover:bg-green-50 hover:text-green-600"
+            : "border-pebble bg-cream text-dim hover:border-green-300 hover:bg-green-50 hover:text-green-600"
         )}
       >
         <span aria-hidden="true">{THUMBS_UP_ICON}</span>
@@ -48,7 +48,7 @@ export function RecommendationVoteControls({
           disabled && "cursor-not-allowed opacity-60",
           vote === "down"
             ? "border-red-400 bg-red-100 text-red-700"
-            : "border-boutique-200 bg-white text-boutique-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+            : "border-pebble bg-cream text-dim hover:border-red-300 hover:bg-red-50 hover:text-red-600"
         )}
       >
         <span aria-hidden="true">{THUMBS_DOWN_ICON}</span>

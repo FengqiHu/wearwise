@@ -120,13 +120,10 @@ export function HistoryPage() {
   return (
     <section className="space-y-6">
       <header>
-        <h1
-          className="text-5xl font-normal leading-tight tracking-tight text-boutique-900"
-          style={{ fontFamily: '"Palatino Linotype", "Book Antiqua", Georgia, serif' }}
-        >
+        <h1 className="text-5xl font-semibold leading-tight tracking-tight text-charcoal">
           Try-On History
         </h1>
-        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-boutique-700">
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-dim">
           Review your generated try-on images, weather, occasions, vote status, and the exact items.
         </p>
       </header>
@@ -136,7 +133,7 @@ export function HistoryPage() {
       ) : null}
 
       {isLoading ? (
-        <Card className="flex items-center gap-3 p-6 text-boutique-700">
+        <Card className="flex items-center gap-3 p-6 text-dim">
           <ThinkingDots />
           <span>Loading recommendation history...</span>
         </Card>
@@ -144,8 +141,8 @@ export function HistoryPage() {
         <Card className="border-red-200 bg-red-50 p-6 text-red-700">{error}</Card>
       ) : entries.length === 0 ? (
         <Card className="p-6">
-          <h2 className="font-display text-2xl text-boutique-900">No saved recommendations yet</h2>
-          <p className="mt-2 text-sm leading-relaxed text-boutique-700">
+          <h2 className="text-2xl font-semibold text-charcoal">No saved recommendations yet</h2>
+          <p className="mt-2 text-sm leading-relaxed text-dim">
             Ask the AI stylist for outfit ideas in chat, then come back here to review your most recent recommendations.
           </p>
         </Card>
@@ -163,10 +160,10 @@ export function HistoryPage() {
             return (
               <Card key={entry.id} className="overflow-hidden p-0">
                 <div className="grid gap-0 lg:grid-cols-[340px_minmax(0,1fr)]">
-                  <div className="border-b border-boutique-200 bg-boutique-100/40 p-4 lg:border-b-0 lg:border-r">
-                    <p className="font-sans text-xs font-medium uppercase tracking-wide text-boutique-600">Try-On Image</p>
+                  <div className="border-b border-pebble bg-[rgba(28,28,28,0.02)] p-4 lg:border-b-0 lg:border-r">
+                    <p className="font-sans text-xs font-medium uppercase tracking-wide text-dim">Try-On Image</p>
 
-                    <div className="mt-3 overflow-hidden rounded-3xl border border-boutique-200 bg-white/80">
+                    <div className="mt-3 overflow-hidden rounded-xl border border-pebble bg-cream">
                       <img
                         src={entry.generation.imageUrl}
                         alt={`${entry.outfitName} try-on`}
@@ -174,7 +171,7 @@ export function HistoryPage() {
                       />
                     </div>
 
-                    <div className="mt-4 flex justify-center rounded-2xl border border-boutique-200 bg-white/80 px-4 py-3">
+                    <div className="mt-4 flex justify-center rounded-xl border border-pebble bg-cream px-4 py-3">
                       <RecommendationVoteControls
                         vote={currentVote}
                         disabled={isVoteLoading}
@@ -188,20 +185,20 @@ export function HistoryPage() {
                   <div className="flex flex-col gap-5 p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <p className="text-xs font-medium uppercase tracking-wide text-boutique-600">Outfit Recommendation</p>
-                        <h2 className="mt-2 font-display text-3xl leading-tight text-boutique-900">{entry.outfitName}</h2>
+                        <p className="text-xs font-medium uppercase tracking-wide text-dim">Outfit Recommendation</p>
+                        <h2 className="mt-2 text-3xl font-semibold leading-tight text-charcoal">{entry.outfitName}</h2>
                         {entry.conversationTitle ? (
-                          <p className="mt-2 text-sm text-boutique-600">Session: {entry.conversationTitle}</p>
+                          <p className="mt-2 text-sm text-dim">Session: {entry.conversationTitle}</p>
                         ) : null}
                       </div>
 
                       {(hasOccasion || hasWeather) ? (
                         <div className={`min-w-[220px] space-y-2 ${hasOccasion && hasWeather ? "sm:min-w-[360px]" : ""}`}>
-                          <div className={`grid gap-x-6 text-[11px] font-medium uppercase tracking-wide text-boutique-500 ${contextColumnClassName}`}>
+                          <div className={`grid gap-x-6 text-[11px] font-medium uppercase tracking-wide text-dim ${contextColumnClassName}`}>
                             {hasOccasion ? <p>Occasion</p> : null}
                             {hasWeather ? <p>Weather</p> : null}
                           </div>
-                          <div className={`grid gap-x-6 text-sm text-boutique-700 ${contextColumnClassName}`}>
+                          <div className={`grid gap-x-6 text-sm text-charcoal ${contextColumnClassName}`}>
                             {hasOccasion ? (
                               <p className="truncate whitespace-nowrap" title={occasionText}>
                                 {occasionText}
@@ -218,21 +215,21 @@ export function HistoryPage() {
                     </div>
 
                     <div>
-                      <p className="text-xs font-medium uppercase tracking-wide text-boutique-600">Why This Works</p>
-                      <p className="mt-2 text-sm leading-relaxed text-boutique-800">{entry.reason}</p>
+                      <p className="text-xs font-medium uppercase tracking-wide text-dim">Why This Works</p>
+                      <p className="mt-2 text-sm leading-relaxed text-charcoal">{entry.reason}</p>
                     </div>
 
                     <div>
                       <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-medium uppercase tracking-wide text-boutique-600">Items In This Outfit</p>
-                        <p className="text-xs text-boutique-500">{entry.items.length} item{entry.items.length === 1 ? "" : "s"}</p>
+                        <p className="text-xs font-medium uppercase tracking-wide text-dim">Items In This Outfit</p>
+                        <p className="text-xs text-dim">{entry.items.length} item{entry.items.length === 1 ? "" : "s"}</p>
                       </div>
 
                       <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
                         {entry.items.map((item) => (
                           <div
                             key={`${entry.id}-${item.id}`}
-                            className="overflow-hidden rounded-2xl border border-boutique-200 bg-boutique-50/80"
+                            className="overflow-hidden rounded-xl border border-pebble bg-cream"
                           >
                             {item.imageUrl ? (
                               <img
@@ -241,12 +238,12 @@ export function HistoryPage() {
                                 className="aspect-square w-full object-cover"
                               />
                             ) : (
-                              <div className="flex aspect-square items-center justify-center bg-boutique-100 px-4 text-center text-xs leading-relaxed text-boutique-600">
+                              <div className="flex aspect-square items-center justify-center bg-[rgba(28,28,28,0.04)] px-4 text-center text-xs leading-relaxed text-dim">
                                 Item photo unavailable
                               </div>
                             )}
                             <div className="p-3">
-                              <p className="text-sm font-medium text-boutique-900">{item.name}</p>
+                              <p className="text-sm font-medium text-charcoal">{item.name}</p>
                             </div>
                           </div>
                         ))}

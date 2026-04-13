@@ -7,18 +7,20 @@ export function AppShell() {
   const isChatRoute = location.pathname.startsWith("/chat");
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-boutique-atmosphere">
-      <div className="pointer-events-none fixed inset-0 opacity-60">
-        <div className="absolute -left-28 top-14 h-72 w-72 rounded-full bg-boutique-200/35 blur-3xl" />
-        <div className="absolute -right-24 bottom-20 h-96 w-96 rounded-full bg-boutique-300/35 blur-3xl" />
+    <div className={cn("relative overflow-hidden bg-cream", isChatRoute ? "h-screen" : "min-h-screen")}>
+      <div className="pointer-events-none fixed inset-0 opacity-50">
+        <div className="absolute -left-28 top-14 h-80 w-80 rounded-full bg-orange-100/50 blur-3xl" />
+        <div className="absolute -right-24 bottom-20 h-96 w-96 rounded-full bg-pink-100/30 blur-3xl" />
+        <div className="absolute left-1/2 top-1/3 h-64 w-64 -translate-x-1/2 rounded-full bg-blue-50/20 blur-3xl" />
       </div>
 
-      <div className="relative z-10">
+      <div className={cn("relative z-10", isChatRoute ? "flex h-full flex-col" : "")}>
         <Navbar />
         <main
           className={cn(
-            "mx-auto w-full px-4 pb-10 pt-6 md:px-8",
-            isChatRoute ? "max-w-[96rem]" : "max-w-6xl"
+            isChatRoute
+              ? "flex flex-1 overflow-hidden"
+              : "mx-auto w-full max-w-6xl px-4 pb-10 pt-6 md:px-8"
           )}
         >
           <Outlet />
