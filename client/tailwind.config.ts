@@ -20,7 +20,7 @@ export default {
         // Design system colors
         cream: "#f7f4ed",
         chalk: "#fcfbf8",
-        pebble: "#eceae4",
+        pebble: "#e2dfd6",
         charcoal: "#1c1c1c",
         dim: "#5f5f5d"
       },

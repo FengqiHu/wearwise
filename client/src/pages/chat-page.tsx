@@ -725,7 +725,7 @@ export function ChatPage() {
         )}
 
         {/* Input bar */}
-        <div className="flex-shrink-0 border-t border-pebble px-4 py-3 md:px-6">
+        <div className="flex-shrink-0 px-4 pb-16 pt-3 md:px-6">
           <div className="mx-auto max-w-3xl">
             <PromptInput
               value={input}
