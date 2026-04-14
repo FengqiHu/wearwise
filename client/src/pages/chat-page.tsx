@@ -528,10 +528,10 @@ export function ChatPage() {
       <aside
         className={cn(
           "flex-shrink-0 overflow-hidden border-r border-pebble bg-cream transition-[width] duration-200",
-          sidebarOpen ? "w-60" : "w-0"
+          sidebarOpen ? "w-72" : "w-0"
         )}
       >
-        <div className="flex h-full w-60 flex-col px-2 py-3">
+        <div className="flex h-full w-72 flex-col px-2 py-3">
           {/* Header */}
           <div className="mb-1 flex items-center justify-between px-1">
             <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Conversations</span>
