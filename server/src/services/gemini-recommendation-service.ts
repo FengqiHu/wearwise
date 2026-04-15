@@ -76,23 +76,43 @@ export interface VotedOutfit {
   outfitName: string;
   items: RecommendationItem[];
   vote: RecommendationVote;
+  updatedAt: string;
 }
 
-function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
-  const liked = votedOutfits.filter((o) => o.vote === "up");
-  const disliked = votedOutfits.filter((o) => o.vote === "down");
+const MAX_VOTE_HISTORY = 20;
+// Exponential decay half-life: a vote from 60 days ago counts as half as important
+const DECAY_HALF_LIFE_DAYS = 60;
+const DECAY_LAMBDA = Math.LN2 / DECAY_HALF_LIFE_DAYS;
 
-  const formatOutfit = (o: VotedOutfit) =>
-    `- ${o.outfitName}: ${o.items.map((i) => i.name).join(", ")}`;
+function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
+  // Take the most recent MAX_VOTE_HISTORY votes (already sorted by updatedAt desc from DB)
+  const recent = votedOutfits.slice(0, MAX_VOTE_HISTORY);
+
+  const now = Date.now();
+
+  // Compute exponential decay weights then normalize so the most recent vote = 1.00
+  const rawWeights = recent.map((o) => {
+    const ageDays = (now - new Date(o.updatedAt).getTime()) / 86_400_000;
+    return Math.exp(-DECAY_LAMBDA * Math.max(0, ageDays));
+  });
+  const maxWeight = rawWeights.length > 0 ? Math.max(...rawWeights) : 1;
+  const weighted = recent.map((o, i) => ({ outfit: o, weight: rawWeights[i]! / maxWeight }));
+
+  const liked = weighted.filter((w) => w.outfit.vote === "up");
+  const disliked = weighted.filter((w) => w.outfit.vote === "down");
+
+  const formatOutfit = ({ outfit, weight }: { outfit: VotedOutfit; weight: number }) =>
+    `- ${outfit.outfitName} [recency: ${weight.toFixed(2)}]: ${outfit.items.map((i) => i.name).join(", ")}`;
 
   console.log("generate style summary");
 
   return [
     "You are a fashion analyst. Based on a user's outfit vote history, write a concise style preference note (3-4 sentences max).",
+    "Each outfit is labeled with a recency score from 0.00 to 1.00 (1.00 = most recent vote). Give more weight to outfits with higher recency scores — they better reflect current preferences.",
     "Focus on patterns: colors, styles, formality, or item types they consistently like or dislike.",
-    "Be specific but brief. Do not list outfits — summarize the underlying preference. ",
+    "Be specific but brief. Do not list outfits — summarize the underlying preference.",
     "Write in the first person (I like ...), keeping the text straightforward—avoid introductory or concluding remarks.",
-    "Do not judge the preference, such as ' Your style effectively bridges the gap between...'",
+    "Do not judge the preference, such as 'Your style effectively bridges the gap between...'",
     liked.length > 0 ? `Liked outfits:\n${liked.map(formatOutfit).join("\n")}` : "No liked outfits.",
     "",
     disliked.length > 0 ? `Disliked outfits:\n${disliked.map(formatOutfit).join("\n")}` : "No disliked outfits.",
@@ -115,9 +135,11 @@ export class GeminiRecommendationService {
     if (!this.ai) {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
+    const prompt = buildStyleSummaryPrompt(votedOutfits);
+    console.log("[summarizeStyle] prompt sent to Gemini:\n", prompt);
     const response = await this.ai.models.generateContent({
       model: GEMINI_MODEL,
-      contents: [{ parts: [{ text: buildStyleSummaryPrompt(votedOutfits) }] }]
+      contents: [{ parts: [{ text: prompt }] }]
     });
     return (response.text ?? "").trim();
   }
