@@ -7,7 +7,8 @@ const navItems = [
   { to: "/chat", label: "Chat" },
   { to: "/history", label: "History" },
   { to: "/wardrobe", label: "My Wardrobe" },
-  { to: "/add", label: "Add Cloth" }
+  { to: "/add", label: "Add Cloth" },
+  { to: "/shop", label: "Shop New Item" }
 ];
 
 function normalizeAvatarUrl(rawUrl: string | null | undefined): string | null {

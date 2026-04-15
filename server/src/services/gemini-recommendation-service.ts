@@ -31,6 +31,35 @@ const recommendationSchema = z.object({
   )
 });
 
+const shopOutfitsSchema = z.object({
+  outfits: z
+    .array(
+      z.object({
+        styleNote: z
+          .string()
+          .describe("A concise one-sentence note describing the overall vibe of this outfit."),
+        selections: z.array(
+          z.object({
+            category: z
+              .enum(OUTFIT_CATEGORIES)
+              .describe("The category of the selected wardrobe item."),
+            itemId: z
+              .string()
+              .describe("The exact ID of the selected wardrobe item. Must be from the wardrobe lists."),
+            reason: z
+              .string()
+              .describe("One short sentence explaining why this wardrobe item pairs with the product.")
+          })
+        ).describe("The wardrobe items selected for this outfit (one per category, not the product's category).")
+      })
+    )
+    .min(1)
+    .max(3)
+    .describe("1 to 3 distinct outfit suggestions built around the product item.")
+});
+
+export type ShopOutfitsResult = z.infer<typeof shopOutfitsSchema>;
+
 export type RecommendOutfitResult = z.infer<typeof recommendationSchema>;
 
 export interface RecommendationItemContext {
@@ -142,6 +171,52 @@ export class GeminiRecommendationService {
       contents: [{ parts: [{ text: prompt }] }]
     });
     return (response.text ?? "").trim();
+  }
+
+  async recommendShopOutfits(input: {
+    productItem: RecommendationItemContext;
+    wardrobeByCategory: Partial<Record<OutfitCategory, RecommendationItemContext[]>>;
+  }): Promise<ShopOutfitsResult> {
+    if (!this.ai) {
+      throw new Error("GEMINI_API_KEY is not configured on server.");
+    }
+
+    const prompt = [
+      "You are a professional fashion stylist assistant.",
+      "The user is considering buying a new product item. Suggest 1-3 distinct outfit combinations",
+      "from their existing wardrobe that pair well with it.",
+      "",
+      "Product (the new item the user may buy):",
+      JSON.stringify(input.productItem, null, 2),
+      "",
+      "Available wardrobe items by category (only use itemIds from these lists):",
+      JSON.stringify(input.wardrobeByCategory, null, 2),
+      "",
+      "Rules:",
+      "  - Select at most one item per category per outfit.",
+      `  - The product's category is '${input.productItem.category}' — do NOT add wardrobe items in the same category.`,
+      "  - Each outfit suggestion must be distinct (use different wardrobe item combinations).",
+      "  - Only use itemIds from the wardrobeByCategory lists provided. Never invent IDs.",
+      "  - Provide 1-3 outfit suggestions that best complement the product.",
+      "  - Each selection must include a one-sentence reason explaining the pairing.",
+      "  - Each outfit must include a one-sentence styleNote describing the overall vibe.",
+    ].join("\n");
+
+    const response = await this.ai.models.generateContent({
+      model: GEMINI_MODEL,
+      contents: [{ parts: [{ text: prompt }] }],
+      config: {
+        responseMimeType: "application/json",
+        responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
+      }
+    });
+
+    const raw = response.text ?? "";
+    if (!raw.trim()) {
+      throw new Error("Gemini returned an empty shop recommendation response.");
+    }
+
+    return shopOutfitsSchema.parse(JSON.parse(raw));
   }
 
   async recommendOutfit(input: RecommendOutfitInput): Promise<RecommendOutfitResult> {

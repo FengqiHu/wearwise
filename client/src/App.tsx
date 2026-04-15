@@ -13,6 +13,7 @@ import { HistoryPage } from "./pages/history-page";
 import { NotFoundPage } from "./pages/not-found-page";
 import { OAuthCallbackPage } from "./pages/oauth-callback-page";
 import { ProfilePage } from "./pages/profile-page";
+import { ShopPage } from "./pages/shop-page";
 import { WardrobePage } from "./pages/wardrobe-page";
 import { WelcomePage } from "./pages/welcome-page";
 
@@ -123,6 +124,15 @@ export default function App() {
           element={
             <RequireOnboarded>
               <ClothDetailPage />
+            </RequireOnboarded>
+          }
+        />
+
+        <Route
+          path="/shop"
+          element={
+            <RequireOnboarded>
+              <ShopPage />
             </RequireOnboarded>
           }
         />
