@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
-import { createPresignedImageUpload, shopRecommend, uploadFileToPresignedUrl } from "../lib/api";
+import { shopRecommend } from "../lib/api";
 import type { ShopOutfit, ShopRecommendResponse } from "../types";
 
 function BrokenImagePlaceholder({ label }: { label: string }) {
@@ -124,16 +124,7 @@ export function ShopPage() {
     setResult(null);
 
     try {
-      const mimeType = selectedFile.type || "image/jpeg";
-      const { uploadUrl, publicUrl } = await createPresignedImageUpload(token, {
-        contentType: mimeType,
-        folder: "closet",
-        fileName: selectedFile.name
-      });
-
-      await uploadFileToPresignedUrl(uploadUrl, selectedFile);
-
-      const recommendations = await shopRecommend(token, publicUrl, mimeType);
+      const recommendations = await shopRecommend(token, selectedFile);
       setResult(recommendations);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");

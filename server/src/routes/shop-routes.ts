@@ -1,3 +1,4 @@
+import multer from "multer";
 import { Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
@@ -8,7 +9,7 @@ import {
   type OutfitCategory,
   type RecommendationItemContext
 } from "../services/gemini-recommendation-service.js";
-import { isAllowedMimeType } from "../services/r2-storage-service.js";
+import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
 import type { OutfitItem } from "../types/domain.js";
 
 interface ShopRoutesDependencies {
@@ -16,34 +17,61 @@ interface ShopRoutesDependencies {
   closetRepository: ClosetRepository;
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
+  r2StorageService: R2StorageService;
+}
+
+interface ShopProductItem {
+  /** R2 key — used by the try-on endpoint to locate the image */
+  key: string;
+  /** Public R2 URL */
+  imageUrl: string;
+  name: string;
+  category: string;
+  tags: string[];
+  description: string;
 }
 
 interface ShopRecommendResponse {
-  product: OutfitItem;
+  product: ShopProductItem;
   outfits: Array<{
     styleNote: string;
     items: OutfitItem[];
   }>;
 }
 
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (isAllowedMimeType(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`Unsupported image type '${file.mimetype}'. Allowed: image/jpeg, image/png, image/webp.`));
+    }
+  }
+});
+
 export function createShopRoutes({
   authService,
   closetRepository,
   geminiExtractionService,
-  geminiRecommendationService
+  geminiRecommendationService,
+  r2StorageService
 }: ShopRoutesDependencies): Router {
   const router = Router();
 
   /**
    * POST /api/shop/recommend
    *
-   * Analyzes an uploaded product image and suggests outfits from the user's
-   * existing wardrobe that pair well with it. Nothing is persisted.
+   * Accepts a multipart image upload of a product the user is considering buying.
+   * Stores the image in R2 under a `shop/` prefix (not added to the wardrobe),
+   * runs Gemini extraction to identify the item, and returns outfit recommendations
+   * pairing it with the user's existing closet.
    *
-   * Request body: { imageUrl: string, mimeType: string }
-   * Response 200: { product: OutfitItem, outfits: Array<{ styleNote, items }> }
+   * Request: multipart/form-data  { image: <file> }
+   * Response 200: { product: ShopProductItem, outfits: Array<{ styleNote, items }> }
    */
-  router.post("/shop/recommend", async (req, res): Promise<void> => {
+  router.post("/shop/recommend", upload.single("image"), async (req, res): Promise<void> => {
     try {
       // 1. Authenticate
       const authResolution = await authService.resolveAuthenticatedUser(req);
@@ -55,27 +83,26 @@ export function createShopRoutes({
       }
       const user = authResolution.user;
 
-      // 2. Validate body
-      const body = (req.body as { imageUrl?: unknown; mimeType?: unknown }) ?? {};
-      const imageUrl = typeof body.imageUrl === "string" ? body.imageUrl.trim() : "";
-      const mimeType =
-        typeof body.mimeType === "string" && body.mimeType.trim()
-          ? body.mimeType.trim().toLowerCase()
-          : "image/jpeg";
-
-      if (!imageUrl) {
-        res.status(400).json({ error: "imageUrl is required." });
+      // 2. Validate uploaded file
+      if (!req.file) {
+        res.status(400).json({ error: "An image file is required (field name: image)." });
         return;
       }
 
+      const mimeType = req.file.mimetype;
+
       if (!isAllowedMimeType(mimeType)) {
         res.status(400).json({
-          error: "Invalid mimeType. Allowed: image/jpeg, image/png, image/webp."
+          error: `Unsupported image type '${mimeType}'. Allowed: image/jpeg, image/png, image/webp.`
         });
         return;
       }
 
       // 3. Check service availability
+      if (!r2StorageService.isConfigured()) {
+        res.status(503).json({ error: "Storage service is not configured." });
+        return;
+      }
       if (!geminiExtractionService.isConfigured()) {
         res.status(503).json({ error: "Gemini extraction service is not configured." });
         return;
@@ -85,30 +112,35 @@ export function createShopRoutes({
         return;
       }
 
-      // 4. Analyze the product image
+      // 4. Upload image to R2 under `shop/` prefix (not the closet collection)
+      const { publicUrl: imageUrl, key } = await r2StorageService.uploadShopImage(
+        user.id,
+        req.file.buffer,
+        mimeType
+      );
+
+      // 5. Analyze the product image with Gemini
       const extraction = await geminiExtractionService.analyzeClothingImage(imageUrl, mimeType);
 
       const productCategory = extraction.category as OutfitCategory;
-      const product: OutfitItem = {
-        id: "product",
-        category: productCategory,
-        name: extraction.name,
+      const product: ShopProductItem = {
+        key,
         imageUrl,
+        name: extraction.name,
+        category: productCategory,
         tags: extraction.tags,
-        description: extraction.description,
-        isUserSelected: true,
-        reason: null
+        description: extraction.description
       };
 
       const productContext: RecommendationItemContext = {
-        id: "product",
+        id: key,
         category: productCategory,
         name: extraction.name,
         tags: extraction.tags,
         description: extraction.description
       };
 
-      // 5. Fetch user's wardrobe and build candidate pool (excluding product's category)
+      // 6. Fetch the user's wardrobe and group ready items by category (skip product's category)
       const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
 
       const wardrobeByCategory: Partial<Record<OutfitCategory, RecommendationItemContext[]>> = {};
@@ -136,14 +168,24 @@ export function createShopRoutes({
         }
       }
 
-      // 6. If wardrobe is empty, return the product with a helpful note
+      // 7. If wardrobe is empty, return product-only outfit with a helpful note
       if (Object.keys(wardrobeByCategory).length === 0) {
+        const outfitProductItem: OutfitItem = {
+          id: key,
+          category: productCategory,
+          name: extraction.name,
+          imageUrl,
+          tags: extraction.tags,
+          description: extraction.description,
+          isUserSelected: true,
+          reason: null
+        };
         const response: ShopRecommendResponse = {
           product,
           outfits: [
             {
-              styleNote: "Add analyzed items to your wardrobe to get outfit recommendations.",
-              items: [product]
+              styleNote: "Add analyzed items to your wardrobe to see outfit pairings.",
+              items: [outfitProductItem]
             }
           ]
         };
@@ -151,17 +193,28 @@ export function createShopRoutes({
         return;
       }
 
-      // 7. Ask Gemini for shop outfit suggestions
+      // 8. Ask Gemini for 1–3 distinct outfit suggestions
       const geminiResult = await geminiRecommendationService.recommendShopOutfits({
         productItem: productContext,
         wardrobeByCategory
       });
 
-      // 8. Map Gemini result back to OutfitItem arrays (with hallucination guard)
+      // 9. Map Gemini selections back to OutfitItem arrays (hallucination guard)
       const wardrobeMap = new Map(allWardrobe.map((item) => [item.id, item]));
 
+      const productOutfitItem: OutfitItem = {
+        id: key,
+        category: productCategory,
+        name: extraction.name,
+        imageUrl,
+        tags: extraction.tags,
+        description: extraction.description,
+        isUserSelected: true,
+        reason: null
+      };
+
       const outfits = geminiResult.outfits.map((geminiOutfit) => {
-        const items: OutfitItem[] = [product];
+        const items: OutfitItem[] = [productOutfitItem];
 
         for (const selection of geminiOutfit.selections) {
           const wardrobeItem = wardrobeMap.get(selection.itemId);
@@ -179,10 +232,7 @@ export function createShopRoutes({
           });
         }
 
-        return {
-          styleNote: geminiOutfit.styleNote,
-          items
-        };
+        return { styleNote: geminiOutfit.styleNote, items };
       });
 
       const response: ShopRecommendResponse = { product, outfits };

@@ -100,6 +100,17 @@ export class R2StorageService {
     return `${this.publicBaseUrl}/${key}`;
   }
 
+  async uploadShopImage(
+    userId: string,
+    buffer: Buffer,
+    contentType: string
+  ): Promise<{ publicUrl: string; key: string }> {
+    const ext = MIME_TYPE_TO_EXT[contentType] ?? "bin";
+    const key = `${userId}/shop/${crypto.randomUUID()}.${ext}`;
+    const publicUrl = await this.uploadBuffer(key, buffer, contentType);
+    return { publicUrl, key };
+  }
+
   buildGeneratedImageKey(userId: string, filename: string): string {
     return `users/${userId}/generated_images/${filename}`;
   }

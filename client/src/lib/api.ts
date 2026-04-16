@@ -594,13 +594,16 @@ export async function generateOutfit(
 
 export async function shopRecommend(
   token: string,
-  imageUrl: string,
-  mimeType: string
+  imageFile: File
 ): Promise<ShopRecommendResponse> {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
   const response = await fetch(`${API_BASE_URL}/api/shop/recommend`, {
     method: "POST",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify({ imageUrl, mimeType })
+    // Do NOT set Content-Type — the browser sets it with the correct multipart boundary
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
   });
 
   if (!response.ok) {
