@@ -114,4 +114,8 @@ export class R2StorageService {
   buildGeneratedImageKey(userId: string, filename: string): string {
     return `users/${userId}/generated_images/${filename}`;
   }
+
+  publicUrlForKey(key: string): string {
+    return `${this.publicBaseUrl}/${key}`;
+  }
 }

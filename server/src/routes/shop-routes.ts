@@ -1,6 +1,8 @@
 import multer from "multer";
 import { Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
+import type { GenerationRepository } from "../repositories/generation-repository.js";
+import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import {
@@ -9,8 +11,9 @@ import {
   type OutfitCategory,
   type RecommendationItemContext
 } from "../services/gemini-recommendation-service.js";
+import type { ImageGenerationService } from "../services/image-generation-service.js";
 import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
-import type { OutfitItem } from "../types/domain.js";
+import type { GenerateOutfitResponse, OutfitItem } from "../types/domain.js";
 
 interface ShopRoutesDependencies {
   authService: AuthService;
@@ -18,6 +21,9 @@ interface ShopRoutesDependencies {
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
   r2StorageService: R2StorageService;
+  userRepository: UserRepository;
+  imageGenerationService: ImageGenerationService;
+  generationRepository: GenerationRepository;
 }
 
 interface ShopProductItem {
@@ -56,7 +62,10 @@ export function createShopRoutes({
   closetRepository,
   geminiExtractionService,
   geminiRecommendationService,
-  r2StorageService
+  r2StorageService,
+  userRepository,
+  imageGenerationService,
+  generationRepository
 }: ShopRoutesDependencies): Router {
   const router = Router();
 
@@ -240,6 +249,124 @@ export function createShopRoutes({
     } catch (error) {
       console.error("Shop recommend error:", error);
       res.status(500).json({ error: "Failed to generate shop recommendations." });
+    }
+  });
+
+  /**
+   * POST /api/shop/try-on
+   *
+   * Generates a try-on image combining the user's body photo, a shop product image
+   * (identified by its R2 key), and optional wardrobe items.
+   *
+   * Request body: { productKey: string, clothingItemIds?: string[] }
+   * Response 200: { success: true, result: { imageUrl, generatedAt } }
+   */
+  router.post("/shop/try-on", async (req, res): Promise<void> => {
+    try {
+      // 1. Authenticate
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          success: false,
+          result: null,
+          message: authResolution.error?.message ?? "Unauthorized."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+      const userId = authResolution.user.id;
+
+      // 2. Check service availability
+      if (!imageGenerationService.isConfigured()) {
+        res.status(503).json({
+          success: false,
+          result: null,
+          message: "Image generation service is not configured."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+
+      // 3. Parse and validate request body
+      const body = req.body as { productKey?: unknown; clothingItemIds?: unknown };
+      const productKey = typeof body.productKey === "string" ? body.productKey.trim() : "";
+      const clothingItemIds = Array.isArray(body.clothingItemIds)
+        ? (body.clothingItemIds as unknown[]).filter((id): id is string => typeof id === "string")
+        : [];
+
+      if (!productKey) {
+        res.status(400).json({
+          success: false,
+          result: null,
+          message: "productKey is required."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+
+      // 4. Fetch user profile for body image
+      const user = await userRepository.findById(userId);
+      const bodyImageUrl = user?.profile?.fullBodyImageUrl ?? null;
+      const headshotImageUrl = user?.profile?.headshotImageUrl ?? null;
+
+      if (!bodyImageUrl) {
+        res.status(422).json({
+          success: false,
+          result: null,
+          message: "You need to upload a full-body photo in your profile before generating a try-on image."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+
+      // 5. Build product image URL from key
+      const productImageUrl = r2StorageService.publicUrlForKey(productKey);
+
+      // 6. Fetch wardrobe clothing images (if any)
+      const clothingImageUrls: string[] = [productImageUrl];
+
+      if (clothingItemIds.length > 0) {
+        const clothingItems = await Promise.all(
+          clothingItemIds.map((id) => closetRepository.findById(userId, id))
+        );
+
+        for (const item of clothingItems) {
+          if (!item || !item.imageUrl) {
+            res.status(422).json({
+              success: false,
+              result: null,
+              message: "Clothing item not found or has no image."
+            } satisfies GenerateOutfitResponse);
+            return;
+          }
+          clothingImageUrls.push(item.imageUrl);
+        }
+      }
+
+      // 7. Generate the try-on image
+      const generatedImageBuffer = await imageGenerationService.generateOutfitImage({
+        bodyImageUrl,
+        ...(headshotImageUrl ? { headshotImageUrl } : {}),
+        clothingImageUrls,
+        aspectRatio: "3:4"
+      });
+
+      // 8. Upload generated image to R2
+      const filename = `${Date.now()}-shop-tryon.png`;
+      const key = r2StorageService.buildGeneratedImageKey(userId, filename);
+      const generatedImageUrl = await r2StorageService.uploadBuffer(key, generatedImageBuffer, "image/png");
+
+      // 9. Save generation record
+      await generationRepository.create(userId, clothingItemIds, generatedImageUrl);
+
+      const generatedAt = new Date().toISOString();
+      res.json({
+        success: true,
+        result: { imageUrl: generatedImageUrl, generatedAt }
+      } satisfies GenerateOutfitResponse);
+    } catch (error) {
+      console.error("Shop try-on error:", error);
+      res.status(500).json({
+        success: false,
+        result: null,
+        message: "Failed to generate try-on image."
+      } satisfies GenerateOutfitResponse);
     }
   });
 

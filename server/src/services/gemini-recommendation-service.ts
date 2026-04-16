@@ -133,7 +133,7 @@ function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
   const formatOutfit = ({ outfit, weight }: { outfit: VotedOutfit; weight: number }) =>
     `- ${outfit.outfitName} [recency: ${weight.toFixed(2)}]: ${outfit.items.map((i) => i.name).join(", ")}`;
 
-  console.log("generate style summary");
+  // console.log("generate style summary");
 
   return [
     "You are a fashion analyst. Based on a user's outfit vote history, write a concise style preference note (3-4 sentences max).",
@@ -165,7 +165,7 @@ export class GeminiRecommendationService {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
     const prompt = buildStyleSummaryPrompt(votedOutfits);
-    console.log("[summarizeStyle] prompt sent to Gemini:\n", prompt);
+    // console.log("[summarizeStyle] prompt sent to Gemini:\n", prompt);
     const response = await this.ai.models.generateContent({
       model: GEMINI_MODEL,
       contents: [{ parts: [{ text: prompt }] }]
