@@ -28,24 +28,33 @@
 
 ---
 
-### **R2. Preference-Driven Personalization**
+### **R2. Preference-Driven Personalization** (#271)
 
-**Description:** The system already regenerates a `styleNote` asynchronously after each outfit vote using time-decayed weighting, but the summary is based only on outfit names — it lacks item attributes such as category and tags. As a result, the LLM's style inference cannot identify patterns like "I prefer casual cotton tops" or "I dislike formal shoes." Additionally, `buildWardrobeSystemMessage()` in `chat-routes.ts` treats the `styleNote` as a passive data point (`- Style preferences: ...`) with no instruction to the LLM to actively use it when selecting outfit combinations.
+**Description:** The system already regenerates a `styleNote` asynchronously after each outfit vote using time-decayed weighting, but the summary is based only on outfit names — it lacks item attributes such as category and tags. As a result, the LLM's style inference cannot identify patterns like "I prefer casual cotton tops" or "I dislike formal shoes." Additionally, `buildWardrobeSystemMessage()` treats `styleNote` as a passive data point with no instruction to actively use it, there are no explicit style compatibility rules, outfit count is hardcoded to 3, try-on image prompts lack occasion and weather context, and all outfits arrive in a single block making users wait for the full set before seeing any result.
 
 **Task Breakdown:**
 
-- Extend the `VotedOutfit` interface in `gemini-recommendation-service.ts` to include per-item `category` and `tags`
-- In `recommendation-routes.ts`, when building the voted outfit list for `summarizeStyle()`, join each item's `id` against the user's closet to attach its `category` and `tags`; handle deleted items gracefully by omitting them from the enriched list
-- Update `buildStyleSummaryPrompt()` to include item category and tags in the formatted outfit lines so the LLM can identify attribute-level patterns
-- In `buildWardrobeSystemMessage()` in `chat-routes.ts`, add an explicit instruction block: when `styleNote` is set, tell the LLM to actively prioritize outfit combinations that match those preferences and avoid patterns the user has expressed dislike for
-- Write unit tests for the enriched `buildStyleSummaryPrompt()` covering liked-only, disliked-only, and mixed cases with item attributes; write an integration test for `PATCH /api/recommendations/:id/vote` verifying the enriched item data is passed to `summarizeStyle()`; document manual testing of LLM recommendation output in the PR description
+- Enrich `styleNote` generation: extend `VotedOutfit` to include `category` and `tags` per item; join each voted item against the closet in `recommendation-routes.ts` before calling `summarizeStyle()`; update `buildStyleSummaryPrompt()` to include attributes in outfit lines so the LLM can identify attribute-level patterns; silently omit deleted items (#264)
+- Add explicit system prompt instruction to use `styleNote`: in `buildWardrobeSystemMessage()` Step 4, tell the LLM to actively prioritize combinations matching the user's style preferences and avoid patterns associated with disliked outfits (#265)
+- Add style compatibility rules to `buildWardrobeSystemMessage()` Step 4: formality level matching across all outfit items, color coordination guidance, and occasion-appropriate selection (#266)
+- Make outfit count configurable: update system prompt to infer count from conversation (default 3, max 5); update Zod schema from fixed 3 to `.min(1).max(5)` (#267)
+- Inject occasion and weather into try-on image prompt: pass `occasions` and `weatherSummary` from the recommendation record to `generateOutfitImage()`; include them in the prompt body, not only the background instruction (#268)
+- Stream outfit cards one by one using a `submit_outfit` tool call per outfit: define the tool in `chat-service.ts`, handle each call in `chat-routes.ts` as a separate SSE event, update the frontend stream parser to render each card immediately on arrival (#269)
+- Write tests for all R2 changes (#270)
 
 **Acceptance Criteria:**
 
-- After a user votes on at least one outfit, the regenerated `styleNote` reflects item categories and tags — not just outfit names
-- The system prompt sent to the LLM contains an explicit instruction to use the user's style preferences when selecting outfit combinations, not merely listing them as a data point
-- Deleted closet items referenced in vote history do not cause style summary regeneration to fail
-- Failures during `styleNote` regeneration are logged but do not surface to the user and do not affect the vote response
+- After voting, the regenerated `styleNote` reflects item categories and tags, not just outfit names
+- System prompt actively instructs the LLM to use `styleNote` when selecting outfit combinations
+- Outfit formality is consistent across items; color coordination and occasion-appropriate selection are guided by prompt rules
+- Users requesting a specific outfit count receive that number (1–5); default is 3 when unspecified
+- Try-on image prompts include occasion and weather context in the outfit description section
+- Each outfit card renders as soon as its `submit_outfit` tool call is received, without waiting for remaining outfits
+- Deleted closet items in vote history do not cause `styleNote` regeneration to fail
+
+**Bug Fix (related):**
+
+- Fix timezone not sent when browser geolocation is denied: frontend must send `Intl.DateTimeFormat().resolvedOptions().timeZone` independently of `userLocation` so Step 2 (`get_current_time`) and Step 3's daytime/evening occasion check always execute (#263)
 
 ---
 
@@ -97,6 +106,9 @@
 
 - **Enriched vote data join:** The closet lookup added in R2 must handle items deleted since the vote was cast — missing items are silently omitted from the enriched list so that styleNote regeneration does not fail.
 - **styleNote and manual edits:** The Profile page allows users to manually edit their `styleNote`. Auto-regeneration from votes will overwrite any manual text. This trade-off is acceptable for now; a future iteration could introduce a separate auto-generated field.
+- **Outfit count:** The LLM infers count from the conversation. The Zod schema accepts 1–5; the frontend renders cards in a loop and requires no structural changes for variable counts.
+- **Streaming with tool calls:** Each `submit_outfit` tool call carries one complete outfit. The backend emits a dedicated SSE event per call so the frontend can render incrementally. The `context` block (weather summary) is emitted first as a separate event before any outfit cards.
+- **Timezone fix:** Browser timezone via `Intl.DateTimeFormat()` requires no permission and is always available. It is sent as a top-level field in the chat request body, separate from the geolocation-gated `userLocation` object.
 - **Product try-on isolation:** The product image uploaded on the try-on page must never be written to the user's closet or R2 storage bucket. It is analyzed in-memory and discarded after the response is sent.
 - **Conversational accessory tool:** The `set_accessory_mode` tool call persists mode to the `conversation` document (not the user profile), so it resets per conversation rather than becoming a global preference. The manual dropdown continues to write to the conversation document and clears any `pendingConfirmation` state.
 - **Dropdown sync:** The frontend reads `accessoryMode` from the conversation document returned in each chat response. The dropdown is a controlled component reflecting backend state; local optimistic updates are discarded if the backend returns a different mode.
@@ -110,7 +122,7 @@
 
 **Dependency Order**
 
-- R2 is self-contained and can begin immediately.
+- R2: `#263` (timezone bug) and `#264`–`#266` (prompt and data changes) are independent and can begin immediately. `#267` (outfit count) should land before `#269` (streaming) so the tool call schema handles variable counts from the start. `#268` (try-on prompt) is independent. `#270` (tests) is end-of-cycle.
 - R3: `#254` (pendingConfirmation model + tool) must land before `#255`, `#256`, and `#258`; `#256` must land before `#257`; `#258` and `#259` are end-of-cycle.
 - R1: the backend endpoint (`#249`) must land before the frontend page (`#250`) can be wired up end-to-end.
 - R4 has no blocking dependencies and can proceed in parallel with all other work.
