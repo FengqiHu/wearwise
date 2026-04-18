@@ -501,7 +501,8 @@ describe("createChatRoutes POST /chat", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(response.headers.get("x-conversation-id")).toBe("conversation-1");
-    expect(await response.text()).toBe('```json\n{"outfits":[]}\n```');
+    // SSE format: text chunks are wrapped in `data: <json>\n\n` events
+    expect(await response.text()).toBe(`data: ${JSON.stringify('```json\n{"outfits":[]}\n```')}\n\n`);
 
     expect(harness.spies.authResolve).toHaveBeenCalledOnce();
     expect(harness.spies.chatConfigured).toHaveBeenCalledOnce();
@@ -535,7 +536,7 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain("- Style preferences: minimal streetwear");
   });
 
-  it("includes the 3-outfit JSON schema instruction in the system message", async () => {
+  it("includes the submit_outfit instruction in the system message", async () => {
     const harness = makeRouteHarness({
       closetItems: [makeClosetItem({ id: "ready-only", name: "Ready Tee", category: "tops" })]
     });
@@ -553,15 +554,11 @@ describe("createChatRoutes POST /chat", () => {
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
 
-    expect(systemMessage).toContain("For outfit recommendation requests: you MUST respond with ONLY a JSON code block");
-    expect(systemMessage).toContain("```json");
-    expect(systemMessage).toContain('"outfits": [');
-    expect(systemMessage).toContain('"outfitName": "Outfit name here"');
-    expect(systemMessage).toContain('"reason": "Why this outfit suits the occasion and user"');
-    expect(systemMessage).toContain('{ "id": "<exact item ID>", "name": "<item name>" }');
-    expect(systemMessage).toContain('Always include exactly 3 outfits in the "outfits" array');
-    expect(systemMessage).toContain('Each outfit may contain at most one item per category');
-    expect(systemMessage).toContain('Only use items from the wardrobe list above, with their exact IDs');
+    expect(systemMessage).toContain("call the submit_outfit tool once for each outfit");
+    expect(systemMessage).toContain("Do NOT output a JSON code block for outfits");
+    expect(systemMessage).toContain("Infer the number of outfits from the user's request");
+    expect(systemMessage).toContain("Each outfit may contain at most one item per category");
+    expect(systemMessage).toContain("Only use items from the wardrobe list above, with their exact IDs");
   });
 
   it('excludes accessory items from the wardrobe context when accessoryMode is "exclude"', async () => {

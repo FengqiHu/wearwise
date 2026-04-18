@@ -5,6 +5,7 @@ import type {
   ClothingItem,
   ClosetItemRecord,
   OutfitRecommendation,
+  Recommendation,
   RecommendationHistoryEntry,
   UserProfile
 } from "../types";
@@ -466,12 +467,47 @@ export async function recommendOutfit(
 }
 
 
+class SSEParser {
+  private buffer = "";
+  private eventType = "message";
+  private dataLines: string[] = [];
+
+  feed(raw: string, onEvent: (type: string, data: string) => void): void {
+    this.buffer += raw;
+    const lines = this.buffer.split("\n");
+    this.buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      if (line === "") {
+        if (this.dataLines.length > 0) {
+          onEvent(this.eventType, this.dataLines.join("\n"));
+        }
+        this.eventType = "message";
+        this.dataLines = [];
+      } else if (line.startsWith("event:")) {
+        this.eventType = line.slice(6).trimStart();
+      } else if (line.startsWith("data:")) {
+        this.dataLines.push(line.slice(5).trimStart());
+      }
+    }
+  }
+
+  flush(onEvent: (type: string, data: string) => void): void {
+    if (this.dataLines.length > 0) {
+      onEvent(this.eventType, this.dataLines.join("\n"));
+      this.dataLines = [];
+      this.eventType = "message";
+    }
+  }
+}
+
 export async function streamChatResponse(
   token: string,
   payload: ChatStreamPayload,
   signal: AbortSignal,
   onChunk: (chunk: string) => void,
-  onConversationId?: (conversationId: string) => void
+  onConversationId?: (conversationId: string) => void,
+  onOutfit?: (outfit: Recommendation) => void
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/api/chat`, {
     method: "POST",
@@ -496,15 +532,33 @@ export async function streamChatResponse(
 
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
+  const parser = new SSEParser();
+
+  const handleEvent = (type: string, data: string): void => {
+    if (type === "message") {
+      try {
+        onChunk(JSON.parse(data) as string);
+      } catch {
+        onChunk(data);
+      }
+    } else if (type === "outfit" && onOutfit) {
+      try {
+        onOutfit(JSON.parse(data) as Recommendation);
+      } catch {
+        // ignore malformed outfit event
+      }
+    }
+  };
 
   while (true) {
     const { done, value } = await reader.read();
 
     if (done) {
+      parser.flush(handleEvent);
       break;
     }
 
-    onChunk(decoder.decode(value, { stream: true }));
+    parser.feed(decoder.decode(value, { stream: true }), handleEvent);
   }
 }
 

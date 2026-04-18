@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { Router } from "express";
 import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
@@ -6,6 +7,7 @@ import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
+import type { SubmitOutfitArgs } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
@@ -16,137 +18,6 @@ interface ChatRoutesDependencies {
   userRepository: UserRepository;
 }
 
-interface ParsedRecommendationContext {
-  weatherSummary: string | null;
-}
-
-interface ParsedOutfit {
-  outfitName: string;
-  reason: string;
-  occasions: string[];
-  items: Array<{ id: string; name: string }>;
-}
-
-interface ParsedOutfitResponse {
-  context: ParsedRecommendationContext;
-  outfits: ParsedOutfit[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === "object";
-}
-
-function parseOptionalString(value: unknown): string | null {
-  if (typeof value !== "string") {
-    return null;
-  }
-
-  const normalized = value.trim();
-  return normalized.length > 0 ? normalized : null;
-}
-
-function parseOccasions(value: unknown): string[] {
-  if (!Array.isArray(value)) {
-    return [];
-  }
-
-  const seen = new Set<string>();
-  const occasions: string[] = [];
-
-  for (const entry of value) {
-    if (typeof entry !== "string") {
-      continue;
-    }
-
-    const normalized = entry.trim();
-
-    if (!normalized || seen.has(normalized)) {
-      continue;
-    }
-
-    seen.add(normalized);
-    occasions.push(normalized);
-  }
-
-  return occasions;
-}
-
-function resolveRecommendationWeatherSummary(
-  toolWeatherSummary: string | null,
-  weatherSummary: string | null
-): string | null {
-  return weatherSummary ?? toolWeatherSummary;
-}
-
-function normalizeParsedOutfitResponse(parsed: unknown): ParsedOutfitResponse | null {
-  if (!isRecord(parsed) || !Array.isArray(parsed.outfits)) {
-    return null;
-  }
-
-  const context = isRecord(parsed.context)
-    ? {
-        weatherSummary: parseOptionalString(parsed.context.weatherSummary)
-      }
-    : {
-        weatherSummary: null
-      };
-
-  const outfits: ParsedOutfit[] = [];
-
-  for (const entry of parsed.outfits) {
-    if (!isRecord(entry)) {
-      continue;
-    }
-
-    const outfitName = parseOptionalString(entry.outfitName);
-    const reason = parseOptionalString(entry.reason);
-
-    if (!outfitName || !reason || !Array.isArray(entry.items)) {
-      continue;
-    }
-
-    const items = entry.items.flatMap((item) => {
-      if (!isRecord(item)) {
-        return [];
-      }
-
-      const id = parseOptionalString(item.id);
-      const name = parseOptionalString(item.name);
-
-      return id && name ? [{ id, name }] : [];
-    });
-
-    if (items.length === 0) {
-      continue;
-    }
-
-    outfits.push({
-      outfitName,
-      reason,
-      occasions: parseOccasions(entry.occasions),
-      items
-    });
-  }
-
-  if (outfits.length === 0) {
-    return null;
-  }
-
-  return {
-    context,
-    outfits
-  };
-}
-
-function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
-  const match = content.match(/```json\s*([\s\S]*?)\s*```/);
-  if (!match?.[1]) return null;
-  try {
-    return normalizeParsedOutfitResponse(JSON.parse(match[1]) as unknown);
-  } catch {
-    return null;
-  }
-}
 
 function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
   const profileSection = profile
@@ -183,32 +54,16 @@ ${wardrobeSection}
 
 For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
 
-For outfit recommendation requests: you MUST respond with ONLY a JSON code block in this exact format, no other text before or after:
+For outfit recommendation requests: think through your outfit selections, then call the submit_outfit tool once for each outfit you want to recommend. Each call immediately shows the outfit card to the user. After submitting all outfits, you may add a brief closing note.
 
-\`\`\`json
-{
-  "context": {
-    "weatherSummary": "Short weather summary used for these outfits, or null if none"
-  },
-  "outfits": [
-    {
-      "outfitName": "Outfit name here",
-      "reason": "Why this outfit suits the occasion and user",
-      "occasions": ["Short occasion labels used for this outfit, or []"],
-      "items": [
-        { "id": "<exact item ID>", "name": "<item name>" }
-      ]
-    }
-  ]
-}
-\`\`\`
+Do NOT output a JSON code block for outfits. Use submit_outfit instead.
 
-Rules for the JSON:
-- Always include exactly 3 outfits in the "outfits" array
+Rules for each outfit:
+- Infer the number of outfits from the user's request. Default to 3 when not specified. Maximum is 5.
 - Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
-- Each outfit must include an "occasions" array. Use [] when no occasion context applies.
-- "context.weatherSummary" must be a short factual weather summary when weather influenced the recommendation, otherwise use null
+- Include weatherSummary in submit_outfit when weather influenced the outfit selection
+- Include occasions in submit_outfit when occasion context is known; use [] otherwise
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
@@ -450,11 +305,35 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       let assistantText = "";
       let assistantSaved = false;
-      let recommendationWeatherSummary: string | null = null;
+      const collectedOutfits: SubmitOutfitArgs[] = [];
+
+      // SSE helpers — all streamed data uses proper SSE event format
+      const writeChunk = (chunk: string): void => {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+      };
+
+      const writeOutfitEvent = (outfit: SubmitOutfitArgs): void => {
+        const tempId = crypto.randomUUID();
+        const now = new Date().toISOString();
+        res.write(`event: outfit\ndata: ${JSON.stringify({
+          id: tempId,
+          userId,
+          outfitName: outfit.outfitName,
+          reason: outfit.reason,
+          items: outfit.items ?? [],
+          occasions: outfit.occasions ?? [],
+          weather: outfit.weatherSummary ?? null,
+          generation: null,
+          vote: null,
+          conversationId: conversationIdForSave,
+          messageId: "",
+          createdAt: now,
+          updatedAt: now
+        })}\n\n`);
+      };
 
       try {
         // stream the chat response from the chat service
-        // stream chat includes developer prompt, user prompt, and assistant response with tool calls if have
         const chatResult = await chatService.streamChat({
           messages: [
             { role: "system", content: wardrobeSystemMessage },
@@ -467,60 +346,54 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
             : {}),
           signal: abortController.signal,
-          // stream callback
           onChunk: (chunk) => {
             assistantText += chunk;
-            res.write(chunk);
+            writeChunk(chunk);
+          },
+          onOutfit: (outfit) => {
+            collectedOutfits.push(outfit);
+            writeOutfitEvent(outfit);
           }
         });
         assistantText = chatResult.assistantText;
-        recommendationWeatherSummary = chatResult.recommendationWeatherSummary;
 
-        // save the msg to database and create recommendations if outfits were generated
-        if (assistantText.trim().length > 0) {
+        // Save assistant message and recommendations to database
+        if (assistantText.trim().length > 0 || collectedOutfits.length > 0) {
+          const savedText = assistantText.trim().length > 0 ? assistantText : "(outfits submitted)";
           const updatedConversation = await conversationRepository.appendMessage(
             userId,
             conversationIdForSave,
             "assistant",
-            assistantText
+            savedText
           );
           assistantSaved = Boolean(updatedConversation);
 
-          // Parse outfits from assistant response and save as recommendation records
-          if (updatedConversation) {
-            const outfitData = parseOutfitResponse(assistantText);
-            if (outfitData && outfitData.outfits.length > 0) {
-              const assistantMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
-              if (assistantMessage) {
-                try {
-                  const savedWeather = resolveRecommendationWeatherSummary(
-                    recommendationWeatherSummary,
-                    outfitData.context.weatherSummary
-                  );
-                  const recommendations = await recommendationRepository.createMany(
-                    outfitData.outfits.map((outfit) => ({
-                      userId,
-                      outfitName: outfit.outfitName,
-                      reason: outfit.reason,
-                      items: outfit.items.map((item) => ({ id: item.id, name: item.name })),
-                      occasions: outfit.occasions,
-                      weather: savedWeather,
-                      conversationId: conversationIdForSave,
-                      messageId: assistantMessage.id
-                    }))
-                  );
-
-                  // Attach recommendation IDs to the assistant message
-                  const recommendationIds = recommendations.map((r) => r.id);
-                  await conversationRepository.setMessageRecommendationIds(
+          // Save outfits collected via submit_outfit tool calls
+          if (updatedConversation && collectedOutfits.length > 0) {
+            const assistantMessage = updatedConversation.messages[updatedConversation.messages.length - 1];
+            if (assistantMessage) {
+              try {
+                const recommendations = await recommendationRepository.createMany(
+                  collectedOutfits.map((outfit) => ({
                     userId,
-                    conversationIdForSave,
-                    assistantMessage.id,
-                    recommendationIds
-                  );
-                } catch (error) {
-                  console.error("Failed to save recommendations:", error);
-                }
+                    outfitName: outfit.outfitName,
+                    reason: outfit.reason,
+                    items: outfit.items ?? [],
+                    occasions: outfit.occasions ?? [],
+                    weather: outfit.weatherSummary ?? chatResult.recommendationWeatherSummary,
+                    conversationId: conversationIdForSave,
+                    messageId: assistantMessage.id
+                  }))
+                );
+                const recommendationIds = recommendations.map((r) => r.id);
+                await conversationRepository.setMessageRecommendationIds(
+                  userId,
+                  conversationIdForSave,
+                  assistantMessage.id,
+                  recommendationIds
+                );
+              } catch (error) {
+                console.error("Failed to save recommendations:", error);
               }
             }
           }
@@ -528,15 +401,16 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       } catch (error) {
         if (!abortController.signal.aborted) {
           console.error("Chat stream error:", error);
-          res.write("\n\nUnable to reach the AI service right now. Please try again.");
+          writeChunk("\n\nUnable to reach the AI service right now. Please try again.");
         }
       } finally {
         // cleanup the event listener to prevent memory leak
         req.off("close", handleClose);
 
-        if (!assistantSaved && assistantText.trim().length > 0) {
+        if (!assistantSaved && (assistantText.trim().length > 0 || collectedOutfits.length > 0)) {
           try {
-            await conversationRepository.appendMessage(userId, conversationIdForSave, "assistant", assistantText);
+            const savedText = assistantText.trim().length > 0 ? assistantText : "(outfits submitted)";
+            await conversationRepository.appendMessage(userId, conversationIdForSave, "assistant", savedText);
           } catch (appendError) {
             console.error("Failed to persist assistant response:", appendError);
           }
