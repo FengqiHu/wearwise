@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
@@ -48,13 +49,31 @@ function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<stri
   return nextStates;
 }
 
+function OutfitCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm animate-pulse">
+      <div className="h-5 w-2/3 rounded bg-boutique-200" />
+      <div className="flex flex-wrap gap-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-16 w-16 rounded-xl bg-boutique-200" />
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="h-3 w-full rounded bg-boutique-200" />
+        <div className="h-3 w-4/5 rounded bg-boutique-200" />
+      </div>
+    </div>
+  );
+}
+
 function RecommendationCards({
   recommendations,
   closetItems,
   generationStates,
   voteStates,
   onGenerateTryOn,
-  onVote
+  onVote,
+  showSkeleton = false
 }: {
   recommendations: Recommendation[];
   closetItems: ClothingItem[];
@@ -62,6 +81,7 @@ function RecommendationCards({
   voteStates: Record<string, "up" | "down" | null>;
   onGenerateTryOn: (recommendationId: string) => Promise<void>;
   onVote: (recommendationId: string, vote: "up" | "down" | null) => Promise<void>;
+  showSkeleton?: boolean;
 }) {
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
@@ -182,6 +202,7 @@ function RecommendationCards({
             </div>
           );
         })}
+        {showSkeleton && <OutfitCardSkeleton />}
       </div>
     </div>
   );
@@ -515,11 +536,13 @@ export function ChatPage() {
           setActiveConversationId(conversationId);
         },
         (outfit) => {
-          setStreamingOutfits((previous) => {
-            const existing = previous.get(streamingMessageId) ?? [];
-            const next = new Map(previous);
-            next.set(streamingMessageId, [...existing, outfit]);
-            return next;
+          flushSync(() => {
+            setStreamingOutfits((previous) => {
+              const existing = previous.get(streamingMessageId) ?? [];
+              const next = new Map(previous);
+              next.set(streamingMessageId, [...existing, outfit]);
+              return next;
+            });
           });
         }
       );
@@ -731,11 +754,13 @@ export function ChatPage() {
                           : "border border-boutique-200 bg-boutique-100/70 text-boutique-900"
                       )}
                     >
-                      {isThinking ? (
-                        <ThinkingDots />
-                      ) : (() => {
+                      {(() => {
                         const recommendations = message.recommendations;
                         const streamingRecs = streamingOutfits.get(message.id);
+
+                        if (isThinking && (!streamingRecs || streamingRecs.length === 0)) {
+                          return <ThinkingDots />;
+                        }
 
                         if (recommendations && recommendations.length > 0) {
                           return (
@@ -754,6 +779,7 @@ export function ChatPage() {
                           for (const rec of streamingRecs) {
                             streamingGenerationStates[rec.id] = { generatedImageUrl: null, error: null, isLoading: true };
                           }
+                          const stillStreaming = isGenerating && index === messages.length - 1;
                           return (
                             <div className="flex flex-col gap-2">
                               {message.content.trim().length > 0 && (
@@ -764,8 +790,9 @@ export function ChatPage() {
                                 closetItems={closetItems}
                                 generationStates={streamingGenerationStates}
                                 voteStates={{}}
-                                onGenerateTryOn={async () => { /* disabled during streaming */ }}
-                                onVote={async () => { /* disabled during streaming */ }}
+                                onGenerateTryOn={async () => {}}
+                                onVote={async () => {}}
+                                showSkeleton={stillStreaming}
                               />
                             </div>
                           );

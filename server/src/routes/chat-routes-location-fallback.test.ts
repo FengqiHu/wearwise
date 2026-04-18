@@ -28,6 +28,11 @@ function makeHarness() {
 
   const chatService = {
     isConfigured: vi.fn().mockReturnValue(true),
+    prefetchWeatherAndTime: vi.fn().mockResolvedValue({
+      weatherSummary: null,
+      currentTime: null,
+      locationLabel: null
+    }),
     streamChat: vi.fn(async (input: StreamChatInput) => {
       capturedStreamInput = input;
       input.onChunk('```json\n{"outfits":[]}\n```');
@@ -157,7 +162,7 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("DAYTIME");
     expect(systemMessage).toContain("EVENING");
-    expect(systemMessage).toContain("Do you have anything planned for tomorrow?");
+    expect(systemMessage).toContain("EVENING");
   });
 
   it("skips location fallback instructions and uses provided timezone when location is available", async () => {

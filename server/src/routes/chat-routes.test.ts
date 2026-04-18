@@ -100,6 +100,11 @@ function makeRouteHarness(options: {
 
   const chatService = {
     isConfigured: vi.fn().mockReturnValue(true),
+    prefetchWeatherAndTime: vi.fn().mockResolvedValue({
+      weatherSummary: null,
+      currentTime: null,
+      locationLabel: null
+    }),
     streamChat: vi.fn(async (input: StreamChatInput) => {
       capturedStreamInput = input;
       input.onChunk(assistantReply);
@@ -554,7 +559,7 @@ describe("createChatRoutes POST /chat", () => {
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
 
-    expect(systemMessage).toContain("call the submit_outfit tool once for each outfit");
+    expect(systemMessage).toContain("submit_outfit tool once per outfit");
     expect(systemMessage).toContain("Do NOT output a JSON code block for outfits");
     expect(systemMessage).toContain("Infer the number of outfits from the user's request");
     expect(systemMessage).toContain("Each outfit may contain at most one item per category");

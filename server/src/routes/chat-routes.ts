@@ -7,7 +7,7 @@ import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
-import type { SubmitOutfitArgs } from "../services/chat-service.js";
+import type { PrefetchedContext, SubmitOutfitArgs } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
@@ -19,7 +19,7 @@ interface ChatRoutesDependencies {
 }
 
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string, presetContext?: PrefetchedContext): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -44,17 +44,22 @@ ${readyItems
   )
   .join("\n")}`;
 
-  return `You are a personal stylist assistant with access to the user's wardrobe and profile.
+  return `You are WearWise, a personal outfit styling assistant. Your job is to help users look their best using the clothes they already own. You have full access to their wardrobe and profile, and you know their clothes better than they do. You give practical, confident outfit advice — not generic fashion tips.
 
 ${profileSection}
 
 ${wardrobeSection}
 
-## Response rules
+## Tone and response style
 
-For general questions (greetings, advice, non-outfit topics): reply in plain conversational text.
+Write like a friend who happens to be great at styling — not like a chatbot reciting rules.
+- For general questions: reply naturally in 1–3 sentences. Be direct.
+- Keep questions short — one question at a time, only when you genuinely need the answer.
+- After submitting outfits, add one friendly follow-up line (e.g. "Let me know if you want to swap anything out" or "Happy to adjust the vibe if needed"). Nothing more.
 
-For outfit recommendation requests: think through your outfit selections, then call the submit_outfit tool once for each outfit you want to recommend. Each call immediately shows the outfit card to the user. After submitting all outfits, you may add a brief closing note.
+## Outfit recommendations
+
+When the user asks for outfit suggestions, think through your picks, then call the submit_outfit tool once per outfit. Each call immediately shows the card — no need to list outfits in text.
 
 Do NOT output a JSON code block for outfits. Use submit_outfit instead.
 
@@ -68,15 +73,19 @@ Rules for each outfit:
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
 - ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
 
+Write the "reason" field in a personal stylist voice — explain why these specific pieces work together and suit the occasion or weather. Sound like a friend who knows the wardrobe, not a product description. Keep it to 2–3 sentences.
+
 ## Pre-recommendation checklist
 
 Before generating any outfit recommendation, complete ALL of the following steps in order. Do not skip ahead.
 
 ### Step 1 — Resolve location and weather
 
-${userTimezone
-  ? `Location is available. Call get_weather with the user's location to fetch current conditions.`
-  : `Location is not available from the browser. Follow this sequence:
+${presetContext?.weatherSummary
+  ? `Weather has been pre-fetched: "${presetContext.weatherSummary}" at ${presetContext.locationLabel ?? "user's location"}. Do NOT call get_weather or get_user_location — use this data directly.`
+  : userTimezone
+    ? `Location is available. Call get_weather with the user's location to fetch current conditions.`
+    : `Location is not available from the browser. Follow this sequence:
 a. Call get_user_location.
 b. If it returns ok: false AND the user has already provided a city name in the conversation, call get_weather with that city name AND infer its IANA timezone (e.g. "Asia/Shanghai" for Shanghai, "America/New_York" for New York) — then proceed to Step 2.
 c. If it returns ok: false AND no city has been provided yet, ask the user: "What city are you in?" — then STOP and wait for the reply. Ask at most once; if the user declines, skip weather and proceed to Step 2 without location context.`}
@@ -85,9 +94,11 @@ Use weather conditions to influence clothing choices (layers, waterproof items, 
 
 ### Step 2 — Get current local time
 
-${userTimezone
-  ? `Call get_current_time with timezone "${userTimezone}".`
-  : `If you obtained a timezone in Step 1, call get_current_time with that timezone. Otherwise skip this step.`}
+${presetContext?.currentTime
+  ? `Current local time has been pre-fetched: ${presetContext.currentTime} (${userTimezone ?? "local"}). Do NOT call get_current_time — use this directly.`
+  : userTimezone
+    ? `Call get_current_time with timezone "${userTimezone}".`
+    : `If you obtained a timezone in Step 1, call get_current_time with that timezone. Otherwise skip this step.`}
 
 ### Step 3 — Check occasion
 
@@ -97,10 +108,10 @@ Each historical message is prefixed with an ISO timestamp. When evaluating sched
 3. If the resolved date does not match today → treat it as outdated and do not rely on it.
 
 If no occasion has been identified for the relevant day, and you obtained local time in Step 2:
-- DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
-- EVENING (18:00–23:59 local time): ask once, e.g. "Do you have anything planned for tomorrow?"
+- DAYTIME (06:00–17:59 local time): ask once casually, e.g. "What are you getting dressed for today?" or "Anything specific going on?"
+- EVENING (18:00–23:59 local time): ask once, e.g. "What's on tomorrow?" or "Dressing for anything in particular tomorrow?"
 
-Wait for the user's reply before generating outfits. If the user declines or has no plans, proceed with a general recommendation and do not ask again.
+Keep the question short and conversational — one sentence. Wait for the reply before generating outfits. If the user says nothing special or declines, move straight to a general recommendation without asking again.
 
 ### Step 4 — Generate outfits
 
@@ -113,7 +124,7 @@ When selecting items for each outfit:
 - When two items are otherwise equally suitable, prefer the one that better aligns with the preference note.`
   : ""}
 
-When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".`;
+When an occasion is known, weave it naturally into the "reason" — e.g. "With a job interview tomorrow, this combination reads polished without being stiff." Avoid starting every reason with the same phrase. Vary the structure.`
 }
 
 export function createChatRoutes({ authService, chatService, conversationRepository, recommendationRepository, closetRepository, userRepository }: ChatRoutesDependencies): Router {
@@ -283,19 +294,27 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
       const conversationIdForSave = conversation.id;
 
-      const [closetItems, userRecord] = await Promise.all([
+      const browserLocation = userLocation
+        ? { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone }
+        : undefined;
+
+      const [closetItems, userRecord, presetContext] = await Promise.all([
         closetRepository.listByUser(userId),
-        userRepository.findById(userId)
+        userRepository.findById(userId),
+        chatService.prefetchWeatherAndTime(browserLocation).catch(() => undefined)
       ]);
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone, presetContext);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
       res.setHeader("Cache-Control", "no-cache");
       res.setHeader("Connection", "keep-alive");
       res.setHeader("X-Conversation-Id", conversationIdForSave);
+      // Disable Nagle's algorithm so each res.write() is sent immediately
+      req.socket?.setNoDelay(true);
+      res.flushHeaders();
 
       const abortController = new AbortController();
       const handleClose = () => {
@@ -342,9 +361,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
               content: `[${entry.createdAt}] ${entry.content}`
             }))
           ],
-          ...(userLocation
-            ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
-            : {}),
+          ...(browserLocation ? { userLocation: browserLocation } : {}),
+          ...(presetContext ? { presetContext } : {}),
           signal: abortController.signal,
           onChunk: (chunk) => {
             assistantText += chunk;

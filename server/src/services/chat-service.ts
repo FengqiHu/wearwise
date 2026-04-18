@@ -24,6 +24,7 @@ interface StreamChatInput {
   onOutfit?: (outfit: SubmitOutfitArgs) => void | Promise<void>;
   signal?: AbortSignal;
   userLocation?: BrowserLocation;
+  presetContext?: PrefetchedContext;
 }
 
 const CHAT_MODEL = "gpt-5-mini";
@@ -96,6 +97,12 @@ interface RunnerMessage {
   tool_calls?: RunnerToolCall[];
 }
 
+export interface PrefetchedContext {
+  weatherSummary: string | null;
+  currentTime: string | null;
+  locationLabel: string | null;
+}
+
 export interface StreamChatResult {
   assistantText: string;
   recommendationWeatherSummary: string | null;
@@ -113,8 +120,12 @@ function toIsoLocalDate(date: Date): string {
 
 function buildDeveloperInstructions(todayIsoDate: string): string {
   return [
-    "You are the WearWise assistant.",
+    "You are WearWise, a personal outfit styling assistant that helps users get dressed using the clothes they already own.",
     `Today's date is ${todayIsoDate}.`,
+    "Tone: warm, concise, and conversational — like a knowledgeable friend helping someone get dressed, not a product manual.",
+    "Match the user's energy: casual message gets a casual reply, detailed question gets a thorough answer.",
+    "Never open with filler phrases like 'Certainly!', 'Of course!', 'Great choice!', or 'Sure!'.",
+    "Get straight to the point. One sentence of context is enough before acting.",
     "When the user asks for live weather, current conditions, rain, snow, temperature, or any forecast, use the get_weather tool instead of answering from memory.",
     "If the user uses a relative date such as today or tomorrow, convert it to an exact YYYY-MM-DD date before calling the tool.",
     "Use mode=current for current conditions and mode=forecast for future dates.",
@@ -230,6 +241,50 @@ export class ChatService {
     return this.client !== null;
   }
 
+  async prefetchWeatherAndTime(userLocation: BrowserLocation | undefined, signal?: AbortSignal): Promise<PrefetchedContext> {
+    const currentTime = userLocation?.timezone
+      ? (() => {
+          const result = this.currentTimeService.executeTool(JSON.stringify({ timezone: userLocation.timezone }));
+          return result.ok && result.datetime ? result.datetime.time : null;
+        })()
+      : null;
+
+    if (!userLocation) {
+      return { weatherSummary: null, currentTime, locationLabel: null };
+    }
+
+    try {
+      const locationResult = await this.userLocationService.executeTool(userLocation, signal);
+
+      if (!locationResult.ok || !locationResult.location) {
+        return { weatherSummary: null, currentTime, locationLabel: null };
+      }
+
+      const loc = locationResult.location;
+      const locationLabel = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") || null;
+
+      if (!loc.city) {
+        return { weatherSummary: null, currentTime, locationLabel };
+      }
+
+      const weatherArgs = JSON.stringify({
+        location: loc.city,
+        ...(loc.region ? { stateCode: loc.region } : {}),
+        ...(loc.country ? { countryCode: loc.country } : {}),
+        mode: "current"
+      });
+      const weatherResult = await this.openWeatherService.executeTool(weatherArgs, signal);
+
+      const weatherSummary = weatherResult.ok && weatherResult.weather
+        ? buildWeatherSummary(weatherResult)
+        : null;
+
+      return { weatherSummary, currentTime, locationLabel };
+    } catch {
+      return { weatherSummary: null, currentTime, locationLabel: null };
+    }
+  }
+
   async streamChat(input: StreamChatInput): Promise<StreamChatResult> {
     if (!this.client) {
       throw new Error("OPENAI_API_KEY is not configured on server.");
@@ -254,6 +309,7 @@ export class ChatService {
       {
         model: CHAT_MODEL,
         stream: true,
+        parallel_tool_calls: false,
         messages: [
           {
             role: "developer",
