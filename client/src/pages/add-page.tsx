@@ -99,8 +99,8 @@ export function AddPage() {
   return (
     <section className="mx-auto max-w-4xl space-y-6">
       <header>
-        <h1 className="font-display text-5xl text-boutique-900">Add Cloth</h1>
-        <p className="mt-1 text-sm text-boutique-700">Upload one or many clothing images. WearWise will process each item in the background.</p>
+        <h1 className="text-5xl font-semibold text-charcoal">Add Cloth</h1>
+        <p className="mt-1 text-sm text-dim">Upload one or many clothing images. WearWise will process each item in the background.</p>
       </header>
 
       <Card>
@@ -111,8 +111,8 @@ export function AddPage() {
 
         <CardContent className="space-y-4">
           <div
-            className={`rounded-3xl border-2 border-dashed p-8 text-center transition ${
-              isDragging ? "border-boutique-600 bg-boutique-100" : "border-boutique-300 bg-boutique-50"
+            className={`rounded-xl border-2 border-dashed p-8 text-center transition ${
+              isDragging ? "border-charcoal bg-[rgba(28,28,28,0.06)]" : "border-pebble bg-cream"
             }`}
             onDragOver={(event) => {
               event.preventDefault();
@@ -121,14 +121,14 @@ export function AddPage() {
             onDragLeave={() => setIsDragging(false)}
             onDrop={onDrop}
           >
-            <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-2xl border border-boutique-300 bg-boutique-100 text-boutique-800">
+            <div className="mx-auto mb-4 grid h-20 w-20 place-items-center rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)] text-charcoal">
               <svg viewBox="0 0 48 48" className="h-10 w-10" fill="none" aria-hidden="true">
                 <rect x="6" y="11" width="36" height="26" rx="5" stroke="currentColor" strokeWidth="2.5" />
                 <path d="M18 24L22 28L31 20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
 
-            <p className="text-sm text-boutique-700">Drag and drop your clothing photos here, or click below to select files.</p>
+            <p className="text-sm text-dim">Drag and drop your clothing photos here, or click below to select files.</p>
 
             <div className="mt-4 flex justify-center gap-2">
               <Button
@@ -139,12 +139,7 @@ export function AddPage() {
               >
                 Choose Files
               </Button>
-              <Button
-                onClick={() => void startUpload()}
-                disabled={selectedFiles.length === 0 || isUploading}
-              >
-                {uploadProgress ?? (isUploading ? "Uploading..." : "Upload")}
-              </Button>
+
             </div>
 
             <input
@@ -158,14 +153,14 @@ export function AddPage() {
           </div>
 
           {selectedFiles.length > 0 ? (
-            <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-4">
-              <p className="mb-3 text-sm font-medium text-boutique-800">Selected files ({selectedFiles.length})</p>
+            <div className="rounded-xl border border-pebble bg-cream p-4">
+              <p className="mb-3 text-sm font-medium text-charcoal">Selected files ({selectedFiles.length})</p>
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
                 {selectedFiles.map((file) => {
                   const previewUrl = URL.createObjectURL(file);
                   return (
                     <div key={`${file.name}-${file.size}`} className="group relative">
-                      <div className="aspect-square overflow-hidden rounded-xl border border-boutique-200 bg-boutique-100">
+                      <div className="aspect-square overflow-hidden rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)]">
                         <img
                           src={previewUrl}
                           alt={file.name}
@@ -173,7 +168,7 @@ export function AddPage() {
                           onLoad={() => URL.revokeObjectURL(previewUrl)}
                         />
                       </div>
-                      <p className="mt-1 truncate text-xs text-boutique-600">{file.name}</p>
+                      <p className="mt-1 truncate text-xs text-dim">{file.name}</p>
                     </div>
                   );
                 })}
@@ -181,11 +176,25 @@ export function AddPage() {
             </div>
           ) : null}
 
-          {feedback ? <p className="text-sm text-boutique-700">{feedback}</p> : null}
+          {feedback ? <p className="text-sm text-dim">{feedback}</p> : null}
 
-          <Button variant="primary" onClick={() => navigate("/wardrobe")}>
-            Go to My Wardrobe
-          </Button>
+          <div className="flex flex-col gap-3 sm:flex-row-reverse">
+            <Button
+              variant="primary"
+              onClick={() => void startUpload()}
+              disabled={selectedFiles.length === 0 || isUploading}
+              className="flex-1"
+            >
+              {uploadProgress ?? (isUploading ? "Uploading..." : "Upload")}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => navigate("/wardrobe")}
+              className="flex-1"
+            >
+              Go to My Wardrobe
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </section>

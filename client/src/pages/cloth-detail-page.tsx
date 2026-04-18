@@ -150,7 +150,7 @@ export function ClothDetailPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-4 p-8 text-center">
-          <p className="text-sm text-boutique-700">Loading...</p>
+          <p className="text-sm text-dim">Loading...</p>
         </Card>
       </div>
     );
@@ -160,8 +160,8 @@ export function ClothDetailPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-4 p-8 text-center">
-          <h1 className="font-display text-4xl text-boutique-900">Clothing item not found</h1>
-          <p className="text-sm text-boutique-700">The item may have been deleted or is not available in this account.</p>
+          <h1 className="text-4xl font-semibold text-charcoal">Clothing item not found</h1>
+          <p className="text-sm text-dim">The item may have been deleted or is not available in this account.</p>
           <div>
             <Button onClick={() => navigate("/wardrobe")}>Back to wardrobe</Button>
           </div>
@@ -174,8 +174,8 @@ export function ClothDetailPage() {
     return (
       <div className="mx-auto max-w-2xl">
         <Card className="space-y-4 p-8 text-center">
-          <h1 className="font-display text-4xl text-boutique-900">Processing</h1>
-          <p className="text-sm text-boutique-700">
+          <h1 className="text-4xl font-semibold text-charcoal">Processing</h1>
+          <p className="text-sm text-dim">
             AI analysis for this clothing item is still running. Please check again in a moment.
           </p>
           <div className="flex justify-center gap-2">
@@ -192,7 +192,7 @@ export function ClothDetailPage() {
   return (
     <section className="mx-auto max-w-5xl space-y-5">
       <header className="flex items-center justify-between gap-3">
-        <h1 className="font-display text-5xl text-boutique-900">Cloth Detail</h1>
+        <h1 className="text-5xl font-semibold text-charcoal">Cloth Detail</h1>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/wardrobe")}>Back</Button>
           {!isEditing && (
@@ -237,53 +237,53 @@ export function ClothDetailPage() {
       />
 
       <Card className="grid gap-6 p-5 md:grid-cols-[0.95fr_1.05fr] md:p-7">
-        <div className="overflow-hidden rounded-3xl border border-boutique-200 bg-boutique-100">
+        <div className="overflow-hidden rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)]">
           <img src={item.imageUrl} alt={item.name ?? "Clothing item"} className="h-full w-full object-cover" />
         </div>
 
         <div className="space-y-4">
           {/* Name */}
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Title</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-dim">Title</p>
             {isEditing ? (
               <input
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="mt-1 w-full rounded-xl border border-boutique-300 bg-boutique-50 px-3 py-2 text-boutique-900 focus:outline-none focus:ring-2 focus:ring-boutique-400"
+                className="mt-1 w-full rounded-lg border border-pebble bg-cream px-3 py-2 text-charcoal focus:outline-none focus:shadow-focus-warm"
               />
             ) : (
-              <h2 className="font-display text-4xl text-boutique-900">{item.name}</h2>
+              <h2 className="text-4xl font-semibold text-charcoal">{item.name}</h2>
             )}
           </div>
 
           {/* Category */}
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Category</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-dim">Category</p>
             {isEditing ? (
               <select
                 value={editCategory}
                 onChange={(e) => setEditCategory(e.target.value)}
-                className="mt-1 h-10 w-full rounded-xl border border-boutique-300 bg-boutique-50 px-3 text-sm text-boutique-900 focus:outline-none focus:ring-2 focus:ring-boutique-400"
+                className="mt-1 h-10 w-full rounded-lg border border-pebble bg-cream px-3 text-sm text-charcoal focus:outline-none focus:shadow-focus-warm"
               >
                 {CLOTHING_CATEGORIES.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
             ) : (
-              <p className="mt-1 text-lg font-medium text-boutique-900">{item.category}</p>
+              <p className="mt-1 text-lg font-medium text-charcoal">{item.category}</p>
             )}
           </div>
 
           {/* Tags */}
           <div>
-            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-boutique-600">Tags</p>
+            <p className="mb-2 text-xs uppercase tracking-[0.16em] text-dim">Tags</p>
             {isEditing ? (
               <div className="space-y-2">
                 <div className="flex flex-wrap gap-2">
                   {editTags.map((tag) => (
-                    <span key={tag} className="flex items-center gap-1 rounded-full border border-boutique-300 bg-boutique-100 px-3 py-0.5 text-sm text-boutique-800">
+                    <span key={tag} className="flex items-center gap-1 rounded-full border border-pebble bg-[rgba(28,28,28,0.04)] px-3 py-0.5 text-sm text-charcoal">
                       {tag}
-                      <button type="button" onClick={() => removeTag(tag)} className="text-boutique-500 hover:text-red-600">×</button>
+                      <button type="button" onClick={() => removeTag(tag)} className="text-dim hover:text-red-600">×</button>
                     </span>
                   ))}
                 </div>
@@ -293,7 +293,7 @@ export function ClothDetailPage() {
                     onChange={(e) => setTagInput(e.target.value)}
                     onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTag(); } }}
                     placeholder="Add a tag..."
-                    className="flex-1 rounded-xl border border-boutique-300 bg-boutique-50 px-3 py-1.5 text-sm text-boutique-900 focus:outline-none focus:ring-2 focus:ring-boutique-400"
+                    className="flex-1 rounded-lg border border-pebble bg-cream px-3 py-1.5 text-sm text-charcoal focus:outline-none focus:shadow-focus-warm"
                   />
                   <Button size="sm" variant="outline" onClick={addTag}>Add</Button>
                 </div>
@@ -307,16 +307,16 @@ export function ClothDetailPage() {
 
           {/* Description */}
           <div>
-            <p className="text-xs uppercase tracking-[0.16em] text-boutique-600">Description</p>
+            <p className="text-xs uppercase tracking-[0.16em] text-dim">Description</p>
             {isEditing ? (
               <textarea
                 value={editDescription}
                 onChange={(e) => setEditDescription(e.target.value)}
                 rows={3}
-                className="mt-1 w-full rounded-xl border border-boutique-300 bg-boutique-50 px-3 py-2 text-sm text-boutique-900 focus:outline-none focus:ring-2 focus:ring-boutique-400"
+                className="mt-1 w-full rounded-lg border border-pebble bg-cream px-3 py-2 text-sm text-charcoal focus:outline-none focus:shadow-focus-warm"
               />
             ) : (
-              <p className="mt-1 text-sm leading-relaxed text-boutique-800">{item.description}</p>
+              <p className="mt-1 text-sm leading-relaxed text-charcoal">{item.description}</p>
             )}
           </div>
 

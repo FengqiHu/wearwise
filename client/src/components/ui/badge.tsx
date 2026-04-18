@@ -10,7 +10,7 @@ export function Badge({ className, variant = "soft", ...props }: BadgeProps) {
     <span
       className={cn(
         "inline-flex items-center rounded-full px-3 py-1 text-xs font-medium tracking-wide",
-        variant === "solid" ? "bg-boutique-800 text-boutique-50" : "bg-boutique-100 text-boutique-800",
+        variant === "solid" ? "bg-charcoal text-chalk" : "bg-[rgba(28,28,28,0.08)] text-charcoal",
         className
       )}
       {...props}

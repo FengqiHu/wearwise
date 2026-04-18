@@ -36,11 +36,7 @@ export const PromptInput = forwardRef<HTMLFormElement, PromptInputProps>(
 
     const handleSubmit = (event: FormEvent<HTMLFormElement>): void => {
       event.preventDefault();
-
-      if (!canSubmit) {
-        return;
-      }
-
+      if (!canSubmit) return;
       onSubmit();
     };
 
@@ -48,10 +44,7 @@ export const PromptInput = forwardRef<HTMLFormElement, PromptInputProps>(
       <form
         ref={ref}
         onSubmit={handleSubmit}
-        className={cn(
-          "rounded-2xl border border-boutique-200 bg-boutique-50 p-2 shadow-insetWarm",
-          className
-        )}
+        className={cn("rounded-xl border border-pebble bg-cream p-2", className)}
         {...props}
       >
         {children}
@@ -67,36 +60,26 @@ export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, PromptInputTe
     const innerRef = useRef<HTMLTextAreaElement | null>(null);
 
     useEffect(() => {
-      if (!innerRef.current) {
-        return;
-      }
-
+      if (!innerRef.current) return;
       resizeTextarea(innerRef.current, maxHeight);
     }, [value, maxHeight]);
 
     const setRefs = (element: HTMLTextAreaElement | null): void => {
       innerRef.current = element;
-
       if (typeof ref === "function") {
         ref(element);
         return;
       }
-
-      if (ref) {
-        ref.current = element;
-      }
+      if (ref) ref.current = element;
     };
 
     const handleKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>): void => {
       if (event.key === "Enter" && !event.shiftKey) {
         event.preventDefault();
         const form = event.currentTarget.form;
-        if (form) {
-          form.requestSubmit();
-        }
+        if (form) form.requestSubmit();
         return;
       }
-
       onKeyDown?.(event);
     };
 
@@ -106,13 +89,11 @@ export const PromptInputTextarea = forwardRef<HTMLTextAreaElement, PromptInputTe
         rows={1}
         value={value}
         disabled={isLoading}
-        onChange={(event) => {
-          onValueChange(event.target.value);
-        }}
+        onChange={(event) => { onValueChange(event.target.value); }}
         onKeyDown={handleKeyDown}
         className={cn(
-          "w-full resize-none bg-transparent px-3 py-2 text-sm text-boutique-900 outline-none",
-          "placeholder:text-boutique-500",
+          "w-full resize-none bg-transparent px-3 py-2 text-sm text-charcoal outline-none",
+          "placeholder:text-dim",
           className
         )}
         {...props}
@@ -152,8 +133,8 @@ export const PromptSuggestion = forwardRef<HTMLButtonElement, PromptSuggestionPr
         ref={ref}
         type={type}
         className={cn(
-          "rounded-full border border-boutique-200 bg-boutique-50 px-3 py-1.5 text-xs text-boutique-700 transition",
-          "hover:bg-boutique-100 hover:text-boutique-900",
+          "rounded-full border border-pebble bg-cream px-3 py-1.5 text-xs text-dim transition",
+          "hover:bg-[rgba(28,28,28,0.05)] hover:text-charcoal",
           className
         )}
         {...props}
