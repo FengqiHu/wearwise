@@ -258,6 +258,11 @@ When selecting items for each outfit:
 - When two items are otherwise equally suitable, prefer the one that better aligns with the preference note.`
   : ""}
 
+**Style compatibility rules (apply to every outfit):**
+- **Formality:** All items in an outfit must share the same formality level. Do not mix casual and formal pieces (e.g. no sneakers with a suit, no graphic tee with dress trousers).
+- **Color coordination:** Combine colors that work together — complementary, analogous, or neutral palettes. Avoid obvious clashes (e.g. bright red top with bright green bottoms).
+- **Occasion fit:** When an occasion is known, every item must be appropriate for that occasion. Do not include an item that contradicts the occasion's dress code even if other items match.
+
 When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".`;
 }
 
