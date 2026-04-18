@@ -188,7 +188,7 @@ function RecommendationCards({
 }
 
 function isRawOutfitJson(content: string): boolean {
-  return /```json[\s\S]*"outfits"/.test(content);
+  return content.includes("```json");
 }
 
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {

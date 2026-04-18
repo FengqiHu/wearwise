@@ -460,6 +460,23 @@ describe("createChatRoutes POST /chat – weather and occasion instructions in s
     expect(systemMessage).toContain("tonight or tomorrow");
   });
 
+  it("asks for timing and occasion together in Step 3 when no occasion is known and it is evening", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    // EVENING + no occasion → single question covering both timing and occasion
+    expect(systemMessage).toContain("tonight or tomorrow");
+    expect(systemMessage).toContain("what's the occasion");
+  });
+
   it("includes combined city-and-occasion question in Step 1 when location is unavailable", async () => {
     const harness = makeRouteHarness();
     const started = await startServer(harness.dependencies);
