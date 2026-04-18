@@ -204,7 +204,7 @@ For outfit recommendation requests: you MUST respond with ONLY a JSON code block
 \`\`\`
 
 Rules for the JSON:
-- Always include exactly 3 outfits in the "outfits" array
+- Infer the number of outfits to include from the conversation (e.g. if the user says "give me one outfit" include 1, "show me 5 options" include 5). Default to 3 when no count is specified. Maximum is 5.
 - Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
 - Each outfit must include an "occasions" array. Use [] when no occasion context applies.
