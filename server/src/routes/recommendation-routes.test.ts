@@ -406,6 +406,87 @@ describe("createRecommendationRoutes PATCH /recommendations/:recommendationId/vo
     expect(harness.spies.summarizeStyle).toHaveBeenCalledOnce();
   });
 
+  it("calls findByIds with all item IDs from voted recommendations before summarizeStyle", async () => {
+    const votedRecs = [
+      makeRecommendationRecord({ id: "rec-1", vote: "up", items: [{ id: "item-1", name: "Blue Shirt" }, { id: "item-2", name: "Slim Chinos" }] }),
+      makeRecommendationRecord({ id: "rec-2", vote: "down", items: [{ id: "item-3", name: "Leather Jacket" }] })
+    ];
+    const harness = makeHarness({ votedRecs });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: "up" })
+    });
+    await advancePastThrottle();
+
+    expect(harness.spies.findByIds).toHaveBeenCalledWith(
+      "user-1",
+      expect.arrayContaining(["item-1", "item-2", "item-3"])
+    );
+  });
+
+  it("passes category and tags from closet items to summarizeStyle", async () => {
+    const votedRecs = [
+      makeRecommendationRecord({ id: "rec-1", vote: "up", items: [{ id: "item-1", name: "Blue Shirt" }] })
+    ];
+    const closetItem = makeClosetItem({ id: "item-1", name: "Blue Shirt", category: "tops", tags: ["blue", "cotton"] });
+
+    const harness = makeHarness({ votedRecs });
+    harness.spies.findByIds.mockResolvedValue([closetItem]);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: "up" })
+    });
+    await advancePastThrottle();
+
+    expect(harness.spies.summarizeStyle).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          items: expect.arrayContaining([
+            expect.objectContaining({ id: "item-1", category: "tops", tags: ["blue", "cotton"] })
+          ])
+        })
+      ])
+    );
+  });
+
+  it("omits deleted closet items (not returned by findByIds) from summarizeStyle input", async () => {
+    const votedRecs = [
+      makeRecommendationRecord({
+        id: "rec-1", vote: "up",
+        items: [
+          { id: "item-exists", name: "Blue Shirt" },
+          { id: "item-deleted", name: "Old Jacket" }
+        ]
+      })
+    ];
+    const closetItem = makeClosetItem({ id: "item-exists", name: "Blue Shirt", category: "tops", tags: [] });
+
+    const harness = makeHarness({ votedRecs });
+    harness.spies.findByIds.mockResolvedValue([closetItem]);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/recommendations/rec-1/vote`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ vote: "up" })
+    });
+    await advancePastThrottle();
+
+    const callArg = harness.spies.summarizeStyle.mock.calls[0]?.[0] as { items: { id: string }[] }[];
+    const passedItems = callArg?.[0]?.items ?? [];
+    expect(passedItems.map((i) => i.id)).toEqual(["item-exists"]);
+    expect(passedItems.map((i) => i.id)).not.toContain("item-deleted");
+  });
+
   it("opens a new throttle window after the previous one expires", async () => {
     const harness = makeHarness({ votedRecs: [makeRecommendationRecord({ vote: "up" })] });
     const started = await startServer(harness.dependencies);
