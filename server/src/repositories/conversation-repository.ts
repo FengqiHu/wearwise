@@ -222,6 +222,23 @@ export class ConversationRepository {
     return updated ? toConversationRecord(updated) : null;
   }
 
+  async findLatestAssistantRecommendationMessage(
+    userId: string,
+    conversationId: string
+  ): Promise<{ messageId: string; recommendationIds: string[] } | null> {
+    const collection = await this.getCollection();
+    const document = await collection.findOne({ _id: conversationId, userId });
+    if (!document) return null;
+
+    for (let i = document.messages.length - 1; i >= 0; i--) {
+      const message = document.messages[i];
+      if (message && message.role === "assistant" && message.recommendationIds && message.recommendationIds.length > 0) {
+        return { messageId: message.id, recommendationIds: message.recommendationIds };
+      }
+    }
+    return null;
+  }
+
   async updateConversationFields(
     userId: string,
     conversationId: string,

@@ -4,7 +4,7 @@ import { ConversationRepository } from "../repositories/conversation-repository.
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
+import type { AccessoryMode, ChatRequest, ClosetItemRecord, PendingConfirmation, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
@@ -148,7 +148,13 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
+function buildWardrobeSystemMessage(
+  profile: UserProfile | null,
+  items: ClosetItemRecord[],
+  accessoryMode: AccessoryMode,
+  pendingConfirmation: PendingConfirmation | undefined,
+  userTimezone?: string
+): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -205,6 +211,36 @@ The user can change their accessory preference (include / exclude / auto) by spe
 4. NEVER call set_accessory_mode without an explicit confirmation in the most recent user turn.
 
 5. If the user rejects the confirmation ("no, never mind"), do not call the tool. The mode stays as it was — acknowledge their decision briefly and move on.
+
+6. If the user asks to switch to "include" but set_accessory_mode returns { ok: false, error: "no_accessories_in_wardrobe" }, DO NOT retry the tool. Reply: "You have no accessories in your wardrobe. Please upload some first — otherwise I can't generate recommendations or try-on images with accessories." The mode stays as it was.
+
+## Add-accessories-back flow
+
+Pending confirmation state for this conversation: ${pendingConfirmation?.type ?? "none"}.
+
+When pending = "addAccessoriesOffer" (the user recently switched to exclude and this is their first outfit-related turn since):
+- Generate outfits as usual (no accessories, per current mode).
+- After the JSON code block, append ONE plain-text sentence on its own line: "Would you like me to add accessories to these outfits? Say 'yes, all', 'the second one', or 'no thanks'."
+- Do NOT call add_accessories_to_recommendation yet — wait for the user's confirmation in the NEXT turn.
+
+When pending = "addAccessoriesOffer" AND the user's latest turn confirms add-back (e.g. "yes", "yes all", "the second one", "add accessories"):
+- Call add_accessories_to_recommendation. Pass outfitIndex (0-based) if they named a specific outfit (e.g. "the second" → 1, "the third" → 2); omit outfitIndex to add to all outfits.
+- The tool returns { ok: true, originalOutfits, availableAccessories, targetOutfitIndex? }.
+  - If targetOutfitIndex is set: produce exactly 1 outfit that copies every item in originalOutfits[targetOutfitIndex] AND adds at least one accessory from availableAccessories.
+  - Otherwise: produce exactly 3 outfits — one for each entry in originalOutfits — each preserving the original items AND adding at least one accessory from availableAccessories.
+- Preserve original item IDs exactly. Only use accessory IDs from availableAccessories.
+- Respond with ONLY the JSON code block (same schema as normal outfit responses), followed by this one-sentence plain-text question on its own line: "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?"
+- If the tool returns { ok: false, error: "no_recent_recommendation" }: reply "I don't see a recent outfit recommendation to add accessories to. Ask me for an outfit first." and do not retry.
+- If the tool returns { ok: false, error: "no_accessories_in_wardrobe" }: reply "You have no accessories in your wardrobe. Please upload some first — otherwise I can't add accessories to your outfits." and do not retry.
+
+When pending = "futureAccessoryMode" and the user's latest turn picks a future mode (e.g. "a" / "let me decide" → auto, "b" / "always include" → include):
+- Call set_accessory_mode with "auto" or "include" accordingly. Then acknowledge briefly.
+
+When pending = "addAccessoriesOffer" AND the user declines add-back (e.g. "no", "no thanks", "skip"):
+- Briefly acknowledge (e.g. "Got it — no accessories added."). The server will clear the pending state.
+
+When the user's latest turn is off-topic while pending is "addAccessoriesOffer" or "futureAccessoryMode":
+- Answer the off-topic request first, then RE-ASK the pending question once at the end of your reply. Only re-ask once per pending state.
 
 ## Response rules
 
@@ -459,7 +495,17 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         closetRepository.listByUser(userId),
         userRepository.findById(userId)
       ]);
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
+      const wardrobeHasAccessories = closetItems.some(
+        (item) => item.analysisStatus === "ready" && item.category === "accessories"
+      );
+      const pendingConfirmation = conversation.pendingConfirmation;
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(
+        userRecord?.profile ?? null,
+        closetItems,
+        resolvedMode,
+        pendingConfirmation,
+        userLocation?.timezone
+      );
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -493,11 +539,57 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             : {}),
           signal: abortController.signal,
           accessoryModeContext: {
+            wardrobeHasAccessories,
             onModeChanged: async (mode) => {
+              const nextPending: PendingConfirmation | null =
+                mode === "exclude"
+                  ? { type: "addAccessoriesOffer", createdAt: new Date().toISOString() }
+                  : null;
               await conversationRepository.updateConversationFields(userId, conversationIdForSave, {
                 accessoryMode: mode,
-                pendingConfirmation: null
+                pendingConfirmation: nextPending
               });
+            },
+            onAddBackRequested: async ({ outfitIndex }) => {
+              const latest = await conversationRepository.findLatestAssistantRecommendationMessage(
+                userId,
+                conversationIdForSave
+              );
+              if (!latest || latest.recommendationIds.length === 0) {
+                return { ok: false, error: "no_recent_recommendation" };
+              }
+              const recs = await Promise.all(
+                latest.recommendationIds.map((id) => recommendationRepository.findById(userId, id))
+              );
+              const originalOutfits = recs
+                .filter((r): r is NonNullable<typeof r> => r !== null)
+                .map((r) => ({
+                  outfitName: r.outfitName,
+                  items: r.items.map((i) => ({ id: i.id, name: i.name }))
+                }));
+              if (originalOutfits.length === 0) {
+                return { ok: false, error: "no_recent_recommendation" };
+              }
+              const availableAccessories = closetItems
+                .filter((i) => i.analysisStatus === "ready" && i.category === "accessories")
+                .map((i) => ({
+                  id: i.id,
+                  name: i.name ?? "Unnamed",
+                  category: i.category ?? "accessories",
+                  tags: i.tags
+                }));
+              if (availableAccessories.length === 0) {
+                return { ok: false, error: "no_accessories_in_wardrobe" };
+              }
+              await conversationRepository.updateConversationFields(userId, conversationIdForSave, {
+                pendingConfirmation: { type: "futureAccessoryMode", createdAt: new Date().toISOString() }
+              });
+              return {
+                ok: true,
+                originalOutfits,
+                availableAccessories,
+                ...(outfitIndex !== undefined ? { targetOutfitIndex: outfitIndex } : {})
+              };
             }
           },
           // stream callback
