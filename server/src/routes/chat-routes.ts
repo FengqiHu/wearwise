@@ -224,7 +224,10 @@ ${userTimezone
   : `Location is not available from the browser. Follow this sequence:
 a. Call get_user_location.
 b. If it returns ok: false AND the user has already provided a city name in the conversation, call get_weather with that city name AND infer its IANA timezone (e.g. "Asia/Shanghai" for Shanghai, "America/New_York" for New York) — then proceed to Step 2.
-c. If it returns ok: false AND no city has been provided yet, ask the user: "What city are you in?" — then STOP and wait for the reply. Ask at most once; if the user declines, skip weather and proceed to Step 2 without location context.`}
+c. If it returns ok: false AND no city has been provided yet:
+   - If an occasion has already been mentioned in the conversation: ask only for the city, e.g. "What city are you in?" — then STOP and wait for the reply.
+   - If no occasion has been mentioned either: ask for both in one message, e.g. "What city are you in, and what are you dressing for?" — then STOP and wait for the reply.
+   Ask at most once. If the user declines to provide a city, skip weather and proceed to Step 2 without location context.`}
 
 Use weather conditions to influence clothing choices (layers, waterproof items, light fabrics). Include weather context in the "reason" field of each outfit, e.g. "It's 13 °C and raining, so I chose this waterproof jacket…". If weather data is unavailable, omit it from the reason.
 
@@ -234,18 +237,28 @@ ${userTimezone
   ? `Call get_current_time with timezone "${userTimezone}".`
   : `If you obtained a timezone in Step 1, call get_current_time with that timezone. Otherwise skip this step.`}
 
-### Step 3 — Check occasion
+### Step 3 — Check occasion and timing
 
 Each historical message is prefixed with an ISO timestamp. When evaluating schedule information in the conversation history:
 1. Resolve relative time references ("tomorrow", "next week") relative to THAT MESSAGE's own timestamp, not today's date.
 2. If the resolved date matches today → treat the information as current.
 3. If the resolved date does not match today → treat it as outdated and do not rely on it.
 
-If no occasion has been identified for the relevant day, and you obtained local time in Step 2:
-- DAYTIME (06:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
-- EVENING (18:00–23:59 local time): ask once, e.g. "Do you have anything planned for tomorrow?"
+Check the conversation history before asking anything. Only ask if the information is genuinely missing.
 
-Wait for the user's reply before generating outfits. If the user declines or has no plans, proceed with a general recommendation and do not ask again.
+**If no occasion has been identified** and you obtained local time in Step 2:
+- DAYTIME (00:00–17:59 local time): ask once naturally, e.g. "Do you have any plans today?"
+- EVENING (18:00–23:59 local time): ask once, e.g. "Do you have anything planned for tomorrow?"
+- Wait for the user's reply. If the user declines or has no plans, proceed with a general recommendation and do not ask again.
+
+**If no occasion has been identified** and you did NOT obtain local time:
+- Ask once: "What are you dressing for?" — then wait for the reply. If the user declines, proceed with a general recommendation.
+
+**If an occasion HAS been identified** and local time is EVENING (18:00–23:59) and the conversation does not make clear whether the occasion is for tonight or tomorrow:
+- Ask once to confirm, e.g. "Are you dressing for [occasion] tonight or tomorrow?" — then wait for the reply before generating outfits.
+
+**If an occasion HAS been identified** and local time is DAYTIME (00:00–17:59), or timing is already clear from the conversation:
+- Proceed directly to Step 4 without asking.
 
 ### Step 4 — Generate outfits
 
@@ -397,7 +410,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
-      const { message, conversationId, accessoryMode, userLocation } = req.body as ChatRequest;
+      const { message, conversationId, accessoryMode, timezone, userLocation } = req.body as ChatRequest;
       const trimmedMessage = typeof message === "string" ? message.trim() : "";
       const trimmedConversationId = typeof conversationId === "string" ? conversationId.trim() : "";
 
@@ -425,7 +438,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       ]);
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
+      const resolvedTimezone = userLocation?.timezone ?? (typeof timezone === "string" && timezone.trim() ? timezone.trim() : undefined);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, resolvedTimezone);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");

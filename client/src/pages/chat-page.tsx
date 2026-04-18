@@ -505,6 +505,7 @@ export function ChatPage() {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
           accessoryMode,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           userLocation: userLocation ?? undefined
         },
         controller.signal,

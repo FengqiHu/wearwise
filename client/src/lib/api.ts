@@ -24,6 +24,7 @@ interface ChatStreamPayload {
   message: string;
   conversationId?: string;
   accessoryMode?: AccessoryMode;
+  timezone?: string;
   userLocation?: UserLocation;
 }
 
