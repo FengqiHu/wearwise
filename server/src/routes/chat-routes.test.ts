@@ -475,6 +475,27 @@ describe("createChatRoutes POST /chat – weather and occasion instructions in s
     expect(systemMessage).toContain("What city are you in, and what are you dressing for?");
   });
 
+  it("shows location-unavailable sequence in Step 1 when only top-level timezone is provided", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Suggest an outfit.",
+        timezone: "Asia/Tokyo"
+      })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    // Step 1 should show the "not available" sequence (no lat/lon), not "Location is available"
+    expect(systemMessage).toContain("Location is not available from the browser");
+    // Step 2 should still use the top-level timezone
+    expect(systemMessage).toContain('get_current_time with timezone "Asia/Tokyo"');
+  });
+
   it("uses daytime range 00:00-17:59 in Step 3", async () => {
     const harness = makeRouteHarness();
     const started = await startServer(harness.dependencies);

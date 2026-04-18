@@ -148,7 +148,7 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string): string {
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string, hasUserLocation?: boolean): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -219,7 +219,7 @@ Before generating any outfit recommendation, complete ALL of the following steps
 
 ### Step 1 — Resolve location and weather
 
-${userTimezone
+${hasUserLocation
   ? `Location is available. Call get_weather with the user's location to fetch current conditions.`
   : `Location is not available from the browser. Follow this sequence:
 a. Call get_user_location.
@@ -439,7 +439,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
       const resolvedTimezone = userLocation?.timezone ?? (typeof timezone === "string" && timezone.trim() ? timezone.trim() : undefined);
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, resolvedTimezone);
+      const hasUserLocation = userLocation !== null && userLocation !== undefined;
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, resolvedTimezone, hasUserLocation);
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
