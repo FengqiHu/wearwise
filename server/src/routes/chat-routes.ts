@@ -249,6 +249,15 @@ Wait for the user's reply before generating outfits. If the user declines or has
 
 ### Step 4 — Generate outfits
 
+${profile?.styleNote
+  ? `**Style preferences (apply actively):** The user's style preference note is:
+"${profile.styleNote}"
+When selecting items for each outfit:
+- Prioritize combinations whose colors, formality, and item types match the stated preferences.
+- Avoid patterns or item types associated with disliked outfits in the preference note.
+- When two items are otherwise equally suitable, prefer the one that better aligns with the preference note.`
+  : ""}
+
 When an occasion is known, include it in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".`;
 }
 

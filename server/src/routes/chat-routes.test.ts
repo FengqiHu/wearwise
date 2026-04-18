@@ -241,6 +241,92 @@ describe("createChatRoutes POST /chat – sex in system prompt", () => {
   });
 });
 
+describe("createChatRoutes POST /chat – styleNote active instruction in system message", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("includes active styleNote instruction in Step 4 when styleNote is set", async () => {
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord({
+        profile: {
+          name: "Taylor",
+          heightCm: 170,
+          weightKg: 65,
+          styleNote: "I prefer casual cotton tops and slim-fit pants",
+          avatarUrl: null,
+          fullBodyImageUrl: null,
+          headshotImageUrl: null
+        }
+      })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Style preferences (apply actively)");
+    expect(systemMessage).toContain("I prefer casual cotton tops and slim-fit pants");
+    expect(systemMessage).toContain("Prioritize combinations");
+    expect(systemMessage).toContain("Avoid patterns");
+  });
+
+  it("omits style preference instruction when styleNote is not set", async () => {
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord({
+        profile: {
+          name: "Taylor",
+          heightCm: 170,
+          weightKg: 65,
+          styleNote: "",
+          avatarUrl: null,
+          fullBodyImageUrl: null,
+          headshotImageUrl: null
+        }
+      })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).not.toContain("Style preferences (apply actively)");
+    expect(systemMessage).not.toContain("Prioritize combinations");
+  });
+
+  it("omits style preference instruction when profile is not set", async () => {
+    const harness = makeRouteHarness({
+      userRecord: makeUserRecord({ profile: null })
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).not.toContain("Style preferences (apply actively)");
+  });
+});
+
 describe("createChatRoutes POST /chat – ISO timestamp prefixes on historical messages", () => {
   let server: Server | null = null;
 
