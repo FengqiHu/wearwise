@@ -337,7 +337,7 @@ describe("createChatRoutes POST /chat – style compatibility rules in system me
     }
   });
 
-  it("includes formality matching rule in Step 4", async () => {
+  it("includes all three style compatibility rules in Step 4", async () => {
     const harness = makeRouteHarness();
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -351,36 +351,8 @@ describe("createChatRoutes POST /chat – style compatibility rules in system me
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("Formality");
     expect(systemMessage).toContain("formality level");
-  });
-
-  it("includes color coordination rule in Step 4", async () => {
-    const harness = makeRouteHarness();
-    const started = await startServer(harness.dependencies);
-    server = started.server;
-
-    await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Suggest an outfit." })
-    });
-
-    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("Color coordination");
     expect(systemMessage).toContain("complementary");
-  });
-
-  it("includes occasion fit rule in Step 4", async () => {
-    const harness = makeRouteHarness();
-    const started = await startServer(harness.dependencies);
-    server = started.server;
-
-    await fetch(`${started.baseUrl}/api/chat`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: "Suggest an outfit." })
-    });
-
-    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("Occasion fit");
     expect(systemMessage).toContain("dress code");
   });
