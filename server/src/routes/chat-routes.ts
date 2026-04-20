@@ -148,51 +148,11 @@ function parseOutfitResponse(content: string): ParsedOutfitResponse | null {
   }
 }
 
-function buildWardrobeSystemMessage(
-  profile: UserProfile | null,
-  items: ClosetItemRecord[],
+function buildAccessoryModeSection(
   accessoryMode: AccessoryMode,
-  pendingConfirmation: PendingConfirmation | undefined,
-  userTimezone?: string
+  pendingConfirmation: PendingConfirmation | undefined
 ): string {
-  const profileSection = profile
-    ? `User profile:
-- Name: ${profile.name}
-- Height: ${profile.heightCm} cm
-- Weight: ${profile.weightKg} kg
-- Sex: ${profile.sex ?? "not specified"}
-- Style preferences: ${profile.styleNote || "not specified"}`
-    : "User profile: not set up yet.";
-
-  const readyItems = items.filter(
-    (item) => item.analysisStatus === "ready" && (accessoryMode !== "exclude" || item.category !== "accessories")
-  );
-
-  const wardrobeSection =
-    readyItems.length === 0
-      ? "Wardrobe: no clothing items available yet."
-      : `Wardrobe (${readyItems.length} items):
-${readyItems
-  .map(
-    (item) =>
-      `- ID: ${item.id} | Name: ${item.name ?? "Unnamed"} | Category: ${item.category ?? "Unknown"} | Tags: ${item.tags.join(", ") || "none"} | Description: ${item.description ?? "none"}`
-  )
-  .join("\n")}`;
-
-  const accessoryModeInstruction =
-    accessoryMode === "include"
-      ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit."
-      : accessoryMode === "exclude"
-        ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations"
-        : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit";
-
-  return `You are a personal stylist assistant with access to the user's wardrobe and profile.
-
-${profileSection}
-
-${wardrobeSection}
-
-## Accessory Mode Intent Recognition
+  return `## Accessory Mode Intent Recognition
 
 Current accessoryMode for this conversation: ${accessoryMode}.
 
@@ -240,7 +200,54 @@ When pending = "addAccessoriesOffer" AND the user declines add-back (e.g. "no", 
 - Briefly acknowledge (e.g. "Got it — no accessories added."). The server will clear the pending state.
 
 When the user's latest turn is off-topic while pending is "addAccessoriesOffer" or "futureAccessoryMode":
-- Answer the off-topic request first, then RE-ASK the pending question once at the end of your reply. Only re-ask once per pending state.
+- Answer the off-topic request first, then RE-ASK the pending question once at the end of your reply. Only re-ask once per pending state.`;
+}
+
+function buildWardrobeSystemMessage(
+  profile: UserProfile | null,
+  items: ClosetItemRecord[],
+  accessoryMode: AccessoryMode,
+  pendingConfirmation: PendingConfirmation | undefined,
+  userTimezone?: string
+): string {
+  const profileSection = profile
+    ? `User profile:
+- Name: ${profile.name}
+- Height: ${profile.heightCm} cm
+- Weight: ${profile.weightKg} kg
+- Sex: ${profile.sex ?? "not specified"}
+- Style preferences: ${profile.styleNote || "not specified"}`
+    : "User profile: not set up yet.";
+
+  const readyItems = items.filter(
+    (item) => item.analysisStatus === "ready" && (accessoryMode !== "exclude" || item.category !== "accessories")
+  );
+
+  const wardrobeSection =
+    readyItems.length === 0
+      ? "Wardrobe: no clothing items available yet."
+      : `Wardrobe (${readyItems.length} items):
+${readyItems
+  .map(
+    (item) =>
+      `- ID: ${item.id} | Name: ${item.name ?? "Unnamed"} | Category: ${item.category ?? "Unknown"} | Tags: ${item.tags.join(", ") || "none"} | Description: ${item.description ?? "none"}`
+  )
+  .join("\n")}`;
+
+  const accessoryModeInstruction =
+    accessoryMode === "include"
+      ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit."
+      : accessoryMode === "exclude"
+        ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations"
+        : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit";
+
+  return `You are a personal stylist assistant with access to the user's wardrobe and profile.
+
+${profileSection}
+
+${wardrobeSection}
+
+${buildAccessoryModeSection(accessoryMode, pendingConfirmation)}
 
 ## Response rules
 
