@@ -651,8 +651,8 @@ export function WardrobePage() {
     <section className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="font-display text-5xl text-boutique-900">My Wardrobe</h1>
-          <p className="mt-1 text-sm text-boutique-700">Browse, filter, and inspect your uploaded clothing items.</p>
+          <h1 className="text-5xl font-semibold text-charcoal">My Wardrobe</h1>
+          <p className="mt-1 text-sm text-dim">Browse, filter, and inspect your uploaded clothing items.</p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -707,10 +707,10 @@ export function WardrobePage() {
 
         {/* Selection summary bar */}
         {selectionMode ? (
-          <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-boutique-300 bg-boutique-100/95 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)] p-4">
             <div className="space-y-1">
-              <p className="text-sm font-medium text-boutique-900">Selection mode active</p>
-              <p className="text-sm text-boutique-700">
+              <p className="text-sm font-medium text-charcoal">Selection mode active</p>
+              <p className="text-sm text-dim">
                 {coveredCategories.length === 0
                   ? "No categories selected yet."
                   : coveredCategories
@@ -722,7 +722,7 @@ export function WardrobePage() {
                   Replaced your {replacedCategory} selection
                 </p>
               ) : null}
-              <p className="text-xs text-boutique-700">
+              <p className="text-xs text-dim">
                 {selectedItems.size} item{selectedItems.size !== 1 ? "s" : ""} selected
               </p>
               {recommendError ? (
@@ -750,15 +750,15 @@ export function WardrobePage() {
 
         {/* Item grid */}
         {isLoading ? (
-          <div className="rounded-2xl border border-boutique-200 bg-boutique-50 p-10 text-center text-boutique-700">
+          <div className="rounded-xl border border-pebble bg-cream p-10 text-center text-dim">
             Loading your wardrobe...
           </div>
         ) : error ? (
-          <div className="rounded-2xl border border-red-200 bg-red-50 p-10 text-center text-red-700">
+          <div className="rounded-xl border border-red-200 bg-red-50 p-10 text-center text-red-700">
             {error}
           </div>
         ) : pagedItems.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-boutique-300 bg-boutique-50 p-10 text-center text-boutique-700">
+          <div className="rounded-xl border border-dashed border-pebble bg-cream p-10 text-center text-dim">
             No items found for this filter.
           </div>
         ) : (
@@ -783,16 +783,16 @@ export function WardrobePage() {
                     }}
                     aria-pressed={selectionMode ? isSelected : undefined}
                     className={cn(
-                      "group w-full overflow-hidden rounded-2xl border border-boutique-200 bg-boutique-50 text-left shadow-sm transition",
+                      "group w-full overflow-hidden rounded-xl border border-pebble bg-cream text-left shadow-sm transition",
                       isProcessing || isDeleting
                         ? "cursor-not-allowed grayscale opacity-60"
-                        : "hover:-translate-y-0.5 hover:border-boutique-400 hover:shadow-soft",
-                      selectionMode && isSelected ? "ring-2 ring-boutique-700 ring-offset-2 ring-offset-boutique-50" : null
+                        : "hover:-translate-y-0.5 hover:border-[rgba(28,28,28,0.3)] hover:shadow-soft",
+                      selectionMode && isSelected ? "ring-2 ring-charcoal ring-offset-2 ring-offset-cream" : null
                     )}
                   >
-                    <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
+                    <div className="aspect-[4/5] overflow-hidden bg-[rgba(28,28,28,0.04)]">
                       {brokenImageIds.has(item.id) ? (
-                        <div className="flex h-full w-full items-center justify-center text-boutique-400 text-xs">No image</div>
+                        <div className="flex h-full w-full items-center justify-center text-dim text-xs">No image</div>
                       ) : (
                         <img
                           src={item.imageUrl}
@@ -804,23 +804,23 @@ export function WardrobePage() {
                     </div>
 
                     <div className="space-y-2 p-3">
-                      <p className="truncate text-sm font-semibold text-boutique-900">{item.title}</p>
+                      <p className="truncate text-sm font-semibold text-charcoal">{item.title}</p>
                       <div className="flex items-center justify-between gap-2">
                         <Badge>{item.category}</Badge>
-                        {isProcessing ? <Badge className="bg-boutique-200 text-boutique-700">Processing</Badge> : null}
+                        {isProcessing ? <Badge className="bg-[rgba(28,28,28,0.08)] text-dim">Processing</Badge> : null}
                       </div>
                     </div>
 
                     {isProcessing ? (
-                      <div className="absolute inset-0 grid place-items-center bg-boutique-900/20">
-                        <span className="rounded-full bg-boutique-50 px-3 py-1 text-xs font-medium text-boutique-800">Processing</span>
+                      <div className="absolute inset-0 grid place-items-center bg-[rgba(28,28,28,0.2)]">
+                        <span className="rounded-full bg-cream px-3 py-1 text-xs font-medium text-charcoal">Processing</span>
                       </div>
                     ) : null}
                   </button>
 
                   {selectionMode ? (
                     isSelected ? (
-                      <div className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-boutique-900 text-xs font-semibold text-boutique-50 shadow-soft">
+                      <div className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-charcoal text-xs font-semibold text-chalk shadow-soft">
                         {"\u2713"}
                       </div>
                     ) : null
@@ -829,7 +829,7 @@ export function WardrobePage() {
                       type="button"
                       disabled={isDeleting}
                       onClick={(e) => void handleDelete(item, e)}
-                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-white/80 text-boutique-600 shadow backdrop-blur-sm transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-cream/80 text-dim shadow backdrop-blur-sm transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
                       aria-label="Delete item"
                     >
                       <svg viewBox="0 0 16 16" className="h-3.5 w-3.5" fill="none" aria-hidden="true">
@@ -864,8 +864,8 @@ export function WardrobePage() {
       {recommendation ? (
         <Card className="space-y-5 p-5 md:p-6">
           <div>
-            <h2 className="font-display text-4xl text-boutique-900">Outfit Recommendation</h2>
-            <p className="mt-2 rounded-2xl border border-boutique-200 bg-boutique-100/80 px-4 py-3 text-sm italic text-boutique-800">
+            <h2 className="text-4xl font-semibold text-charcoal">Outfit Recommendation</h2>
+            <p className="mt-2 rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)] px-4 py-3 text-sm italic text-charcoal">
               {recommendation.styleNote}
             </p>
           </div>
@@ -874,11 +874,11 @@ export function WardrobePage() {
             {recommendation.outfit.map((item) => (
               <article
                 key={item.id}
-                className="overflow-hidden rounded-2xl border border-boutique-200 bg-boutique-50 shadow-sm"
+                className="overflow-hidden rounded-xl border border-pebble bg-cream shadow-sm"
               >
-                <div className="aspect-[4/5] overflow-hidden bg-boutique-100">
+                <div className="aspect-[4/5] overflow-hidden bg-[rgba(28,28,28,0.04)]">
                   {brokenImageIds.has(item.id) ? (
-                    <div className="flex h-full w-full items-center justify-center text-boutique-400 text-xs">No image</div>
+                    <div className="flex h-full w-full items-center justify-center text-dim text-xs">No image</div>
                   ) : (
                     <img
                       src={item.imageUrl}
@@ -890,17 +890,17 @@ export function WardrobePage() {
                 </div>
 
                 <div className="space-y-2 p-3">
-                  <p className="truncate text-sm font-semibold text-boutique-900">{item.name}</p>
+                  <p className="truncate text-sm font-semibold text-charcoal">{item.name}</p>
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge>{item.category}</Badge>
                     {item.isUserSelected ? (
-                      <Badge className="bg-boutique-800 text-boutique-50">Your pick</Badge>
+                      <Badge variant="solid">Your pick</Badge>
                     ) : (
                       <Badge className="bg-amber-100 text-amber-800">AI suggested</Badge>
                     )}
                   </div>
                   {!item.isUserSelected && item.reason ? (
-                    <p className="text-xs italic text-boutique-600">{item.reason}</p>
+                    <p className="text-xs italic text-dim">{item.reason}</p>
                   ) : null}
                 </div>
               </article>
@@ -920,7 +920,7 @@ export function WardrobePage() {
             ) : null}
 
             {tryOnImageUrl ? (
-              <div className="overflow-hidden rounded-2xl border border-boutique-200">
+              <div className="overflow-hidden rounded-xl border border-pebble">
                 <img
                   src={tryOnImageUrl}
                   alt="Virtual try-on result"

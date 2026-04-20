@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Cormorant+Garamond:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -16,7 +16,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  @apply bg-boutique-50 font-sans text-boutique-900 antialiased;
+  @apply bg-cream font-sans text-charcoal antialiased;
 }
 
 #root {
@@ -25,11 +25,12 @@ body {
 
 @layer utilities {
   .bg-boutique-atmosphere {
-    background-image: linear-gradient(160deg, #f8f5ee 0%, #f3ebdf 48%, #efe4d5 100%);
+    background-color: #f7f4ed;
+    background-image: linear-gradient(160deg, #f7f4ed 0%, #f2ebe0 50%, #ede3d3 100%);
   }
 
   .card-sheen {
-    background-image: linear-gradient(140deg, rgba(248, 245, 238, 0.85), rgba(236, 224, 207, 0.45));
+    background-image: linear-gradient(140deg, rgba(247, 244, 237, 0.9), rgba(236, 234, 228, 0.5));
   }
 }
 
