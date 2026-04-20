@@ -1058,4 +1058,29 @@ describe("createChatRoutes GET /chat/conversations/:conversationId – recommend
     expect(body.messages[0]?.recommendations).toHaveLength(1);
     expect(body.messages[0]?.recommendations[0]?.id).toBe("rec-exists");
   });
+
+  it("returns the conversation accessoryMode in the response (default auto)", async () => {
+    const harness = makeGetHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { conversation: { accessoryMode: string } };
+    expect(body.conversation.accessoryMode).toBe("auto");
+  });
+
+  it("returns the persisted accessoryMode when the conversation has a non-default mode", async () => {
+    const conversation = makeConversationRecord({ accessoryMode: "exclude" });
+    const harness = makeGetHarness({ conversation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/chat/conversations/conv-1`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { conversation: { accessoryMode: string } };
+    expect(body.conversation.accessoryMode).toBe("exclude");
+  });
 });

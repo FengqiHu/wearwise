@@ -1,4 +1,5 @@
 import type {
+  AccessoryMode,
   AuthenticatedUser,
   ChatConversationDetail,
   ChatConversationSummary,
@@ -10,6 +11,8 @@ import type {
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
 
+export type { AccessoryMode } from "../types";
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
 export interface UserLocation {
@@ -17,8 +20,6 @@ export interface UserLocation {
   lon: number;
   timezone: string;
 }
-
-export type AccessoryMode = "include" | "exclude" | "auto";
 
 interface ChatStreamPayload {
   message: string;
