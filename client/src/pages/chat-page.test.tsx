@@ -207,7 +207,7 @@ describe("ChatPage", () => {
         { id: "conv-2", title: "Formal Dinner Look", lastMessagePreview: "Try a navy blazer", updatedAt: new Date().toISOString() }
       ]);
       apiMocks.fetchChatConversation.mockResolvedValue({
-        id: "conv-1",
+        conversation: { id: "conv-1", accessoryMode: "auto" },
         messages: [{ id: "m1", role: "assistant", content: "Here are 3 suggestions" }]
       });
 
@@ -223,7 +223,7 @@ describe("ChatPage", () => {
         { id: "conv-1", title: "Old Chat", lastMessagePreview: "...", updatedAt: new Date().toISOString() }
       ]);
       apiMocks.fetchChatConversation.mockResolvedValue({
-        id: "conv-1",
+        conversation: { id: "conv-1", accessoryMode: "auto" },
         messages: [{ id: "m1", role: "user", content: "Hello" }]
       });
 
@@ -236,13 +236,61 @@ describe("ChatPage", () => {
     });
   });
 
+  describe("accessory mode sync", () => {
+    it("dropdown reflects the stored accessoryMode when opening an existing conversation", async () => {
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-1", title: "Exclude Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "exclude" },
+        messages: [{ id: "m1", role: "assistant", content: "No accessories for this one." }]
+      });
+
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("exclude");
+      });
+    });
+
+    it("dropdown updates after the SSE stream completes and refetch returns a new mode", async () => {
+      const user = userEvent.setup();
+
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-new", accessoryMode: "include" },
+        messages: [{ id: "m1", role: "assistant", content: "Accessories added." }]
+      });
+      apiMocks.streamChatResponse.mockImplementation(
+        async (_token: string, _payload: unknown, _signal: unknown, _onChunk: unknown, onConversationId: (id: string) => void) => {
+          onConversationId("conv-new");
+        }
+      );
+
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      expect(accessoryModeSelect).toHaveValue("auto");
+
+      const textarea = screen.getByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "I want accessories");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("include");
+      });
+      expect(apiMocks.fetchChatConversation).toHaveBeenCalledWith("test-token", "conv-new");
+    });
+  });
+
   describe("outfit cards", () => {
     it("renders outfit cards when assistant message has recommendations", async () => {
       apiMocks.fetchChatConversations.mockResolvedValue([
         { id: "conv-1", title: "Outfit Suggestions", lastMessagePreview: "", updatedAt: new Date().toISOString() }
       ]);
       apiMocks.fetchChatConversation.mockResolvedValue({
-        id: "conv-1",
+        conversation: { id: "conv-1", accessoryMode: "auto" },
         messages: [
           {
             id: "m1",

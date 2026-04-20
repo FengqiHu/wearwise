@@ -393,7 +393,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           title: conversation.title,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
-          lastMessageAt: conversation.lastMessageAt
+          lastMessageAt: conversation.lastMessageAt,
+          accessoryMode: conversation.accessoryMode
         },
         messages: messagesWithRecommendations
       });
