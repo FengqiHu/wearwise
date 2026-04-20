@@ -229,19 +229,21 @@ export class ConversationRepository {
   ): Promise<ConversationRecord | null> {
     const set: Partial<ConversationDocument> = { updatedAt: nowIsoString() };
     const unset: Partial<Record<keyof ConversationDocument, "">> = {};
+    let hasMeaningfulSet = false;
 
     if (updates.accessoryMode !== undefined) {
       set.accessoryMode = updates.accessoryMode;
+      hasMeaningfulSet = true;
     }
     if (updates.pendingConfirmation === null) {
       unset.pendingConfirmation = "";
     } else if (updates.pendingConfirmation !== undefined) {
       set.pendingConfirmation = updates.pendingConfirmation;
+      hasMeaningfulSet = true;
     }
 
-    const hasSet = Object.keys(set).length > 1; // always has updatedAt
     const hasUnset = Object.keys(unset).length > 0;
-    if (!hasSet && !hasUnset) {
+    if (!hasMeaningfulSet && !hasUnset) {
       return this.findById(userId, conversationId);
     }
 
