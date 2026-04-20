@@ -1,6 +1,13 @@
 import crypto from "node:crypto";
 import { Collection, MongoClient } from "mongodb";
-import type { ChatRole, ConversationRecord, ConversationSummary, StoredChatMessage } from "../types/domain.js";
+import type {
+  AccessoryMode,
+  ChatRole,
+  ConversationRecord,
+  ConversationSummary,
+  PendingConfirmation,
+  StoredChatMessage
+} from "../types/domain.js";
 
 interface ConversationDocument {
   _id: string;
@@ -10,6 +17,14 @@ interface ConversationDocument {
   updatedAt: string;
   lastMessageAt: string;
   messages: StoredChatMessage[];
+  accessoryMode?: AccessoryMode;
+  pendingConfirmation?: PendingConfirmation;
+}
+
+export interface ConversationFieldUpdates {
+  accessoryMode?: AccessoryMode;
+  // null explicitly clears the pending confirmation; undefined leaves it untouched.
+  pendingConfirmation?: PendingConfirmation | null;
 }
 
 interface ConversationRepositoryOptions {
@@ -41,15 +56,20 @@ function createConversationTitle(firstMessage: string): string {
 }
 
 function toConversationRecord(document: ConversationDocument): ConversationRecord {
-  return {
+  const base: ConversationRecord = {
     id: document._id,
     userId: document.userId,
     title: document.title,
     createdAt: document.createdAt,
     updatedAt: document.updatedAt,
     lastMessageAt: document.lastMessageAt,
-    messages: document.messages
+    messages: document.messages,
+    accessoryMode: document.accessoryMode ?? "auto"
   };
+  if (document.pendingConfirmation) {
+    base.pendingConfirmation = document.pendingConfirmation;
+  }
+  return base;
 }
 
 function toConversationSummary(document: ConversationDocument): ConversationSummary {
@@ -122,7 +142,11 @@ export class ConversationRepository {
     return result.deletedCount === 1;
   }
 
-  async createWithFirstUserMessage(userId: string, messageContent: string): Promise<ConversationRecord> {
+  async createWithFirstUserMessage(
+    userId: string,
+    messageContent: string,
+    accessoryMode: AccessoryMode = "auto"
+  ): Promise<ConversationRecord> {
     const now = nowIsoString();
     const userMessage = this.createMessage("user", messageContent);
     const document: ConversationDocument = {
@@ -132,7 +156,8 @@ export class ConversationRepository {
       createdAt: now,
       updatedAt: now,
       lastMessageAt: now,
-      messages: [userMessage]
+      messages: [userMessage],
+      accessoryMode
     };
 
     const collection = await this.getCollection();
@@ -191,6 +216,46 @@ export class ConversationRepository {
           updatedAt: nowIsoString()
         }
       },
+      { returnDocument: "after" }
+    );
+
+    return updated ? toConversationRecord(updated) : null;
+  }
+
+  async updateConversationFields(
+    userId: string,
+    conversationId: string,
+    updates: ConversationFieldUpdates
+  ): Promise<ConversationRecord | null> {
+    const set: Partial<ConversationDocument> = { updatedAt: nowIsoString() };
+    const unset: Partial<Record<keyof ConversationDocument, "">> = {};
+    let hasMeaningfulSet = false;
+
+    if (updates.accessoryMode !== undefined) {
+      set.accessoryMode = updates.accessoryMode;
+      hasMeaningfulSet = true;
+    }
+    if (updates.pendingConfirmation === null) {
+      unset.pendingConfirmation = "";
+    } else if (updates.pendingConfirmation !== undefined) {
+      set.pendingConfirmation = updates.pendingConfirmation;
+      hasMeaningfulSet = true;
+    }
+
+    const hasUnset = Object.keys(unset).length > 0;
+    if (!hasMeaningfulSet && !hasUnset) {
+      return this.findById(userId, conversationId);
+    }
+
+    const update: Record<string, unknown> = { $set: set };
+    if (hasUnset) {
+      update.$unset = unset;
+    }
+
+    const collection = await this.getCollection();
+    const updated = await collection.findOneAndUpdate(
+      { _id: conversationId, userId },
+      update,
       { returnDocument: "after" }
     );
 

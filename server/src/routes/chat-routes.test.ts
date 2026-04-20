@@ -111,7 +111,10 @@ function makeRouteHarness(options: {
   } as unknown as ChatService;
 
   const conversationRepository = {
-    createWithFirstUserMessage: vi.fn().mockResolvedValue(makeConversationRecord()),
+    createWithFirstUserMessage: vi.fn().mockImplementation(
+      async (_userId: string, _content: string, accessoryMode: "include" | "exclude" | "auto" = "auto") =>
+        makeConversationRecord({ accessoryMode })
+    ),
     findById: vi.fn().mockResolvedValue(makeConversationRecord()),
     deleteById: vi.fn().mockResolvedValue(true),
     appendMessage: vi.fn().mockImplementation(async (_userId: string, conversationId: string, role: "user" | "assistant", content: string) =>
@@ -126,6 +129,9 @@ function makeRouteHarness(options: {
           })
         ]
       })
+    ),
+    updateConversationFields: vi.fn().mockImplementation(async (_userId: string, conversationId: string, updates: { accessoryMode?: "include" | "exclude" | "auto" }) =>
+      makeConversationRecord({ id: conversationId, accessoryMode: updates.accessoryMode ?? "auto" })
     )
   } as unknown as ConversationRepository;
 
@@ -167,6 +173,7 @@ function makeRouteHarness(options: {
       findConversation: (conversationRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
       deleteConversation: (conversationRepository as unknown as { deleteById: ReturnType<typeof vi.fn> }).deleteById,
       appendMessage: (conversationRepository as unknown as { appendMessage: ReturnType<typeof vi.fn> }).appendMessage,
+      updateConversationFields: (conversationRepository as unknown as { updateConversationFields: ReturnType<typeof vi.fn> }).updateConversationFields,
       deleteRecommendationsByConversation: (recommendationRepository as unknown as { deleteByConversation: ReturnType<typeof vi.fn> }).deleteByConversation,
       listClosetItems: (closetRepository as unknown as { listByUser: ReturnType<typeof vi.fn> }).listByUser,
       findUser: (userRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
@@ -419,7 +426,7 @@ describe("createChatRoutes POST /chat", () => {
 
     expect(harness.spies.authResolve).toHaveBeenCalledOnce();
     expect(harness.spies.chatConfigured).toHaveBeenCalledOnce();
-    expect(harness.spies.createConversation).toHaveBeenCalledWith("user-1", "Build me an outfit for class tomorrow.");
+    expect(harness.spies.createConversation).toHaveBeenCalledWith("user-1", "Build me an outfit for class tomorrow.", "auto");
     expect(harness.spies.listClosetItems).toHaveBeenCalledWith("user-1");
     expect(harness.spies.findUser).toHaveBeenCalledWith("user-1");
     expect(harness.spies.streamChat).toHaveBeenCalledOnce();
@@ -554,6 +561,100 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain("Wardrobe (2 items):");
     expect(systemMessage).toContain("ID: ready-accessory | Name: Silver Watch | Category: accessories");
     expect(systemMessage).toContain("Use your own judgment on whether to include accessories");
+  });
+});
+
+describe("createChatRoutes POST /chat – accessory mode tool wiring", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("seeds accessoryMode on new conversations from the request body", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit with no accessories.",
+      accessoryMode: "exclude"
+    });
+
+    expect(response.status).toBe(200);
+    await response.text();
+
+    expect(harness.spies.createConversation).toHaveBeenCalledWith(
+      "user-1",
+      "Build me an outfit with no accessories.",
+      "exclude"
+    );
+  });
+
+  it("defaults new-conversation accessoryMode to 'auto' when the body omits it", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Hello" });
+
+    expect(harness.spies.createConversation).toHaveBeenCalledWith("user-1", "Hello", "auto");
+  });
+
+  it("ignores body accessoryMode on existing conversations and uses the persisted value", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.appendMessage.mockResolvedValue(
+      makeConversationRecord({ id: "conv-existing", accessoryMode: "include" })
+    );
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, {
+      message: "What should I wear?",
+      conversationId: "conv-existing",
+      accessoryMode: "exclude"
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Current accessoryMode for this conversation: include");
+    expect(systemMessage).toContain("Every outfit MUST include at least one accessory item");
+  });
+
+  it("injects an accessoryModeContext whose onModeChanged persists via updateConversationFields", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Recommend an outfit." });
+
+    const capturedInput = harness.getCapturedStreamInput();
+    expect(capturedInput?.accessoryModeContext).toBeDefined();
+
+    await capturedInput?.accessoryModeContext?.onModeChanged("exclude");
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(String),
+      { accessoryMode: "exclude", pendingConfirmation: null }
+    );
+  });
+
+  it("includes the intent-recognition flow instructions in the system prompt", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Hello" });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Accessory Mode Intent Recognition");
+    expect(systemMessage).toContain("set_accessory_mode");
+    expect(systemMessage).toContain("(a) include accessories");
+    expect(systemMessage).toContain("(b) exclude accessories");
+    expect(systemMessage).toContain("(c) let me decide");
   });
 });
 

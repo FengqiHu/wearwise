@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import type { ChatRole } from "../types/domain.js";
+import type { AccessoryMode, ChatRole } from "../types/domain.js";
 import { CurrentTimeService } from "./current-time-service.js";
 import { OpenWeatherService, type OpenWeatherToolResult } from "./openweather-service.js";
 import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
@@ -10,11 +10,16 @@ interface ModelInputMessage {
   content: string;
 }
 
+export interface AccessoryModeContext {
+  onModeChanged: (mode: AccessoryMode) => Promise<void>;
+}
+
 interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
   signal?: AbortSignal;
   userLocation?: BrowserLocation;
+  accessoryModeContext?: AccessoryModeContext;
 }
 
 const CHAT_MODEL = "gpt-5-mini";
@@ -71,6 +76,27 @@ const weatherToolInputSchema = z
   });
 
 type WeatherToolArgs = z.infer<typeof weatherToolInputSchema>;
+
+const accessoryModeToolParameters = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    mode: {
+      type: "string",
+      enum: ["include", "exclude", "auto"],
+      description:
+        "Accessory mode the user has just confirmed. " +
+        "Use include when they want accessories, exclude when they don't, auto when they let you decide."
+    }
+  },
+  required: ["mode"]
+};
+
+const accessoryModeToolInputSchema = z.object({
+  mode: z.enum(["include", "exclude", "auto"])
+});
+
+type AccessoryModeToolArgs = z.infer<typeof accessoryModeToolInputSchema>;
 
 interface RunnerToolCall {
   id?: string;
@@ -239,6 +265,7 @@ export class ChatService {
     }
 
     const userLocation = input.userLocation;
+    const accessoryModeContext = input.accessoryModeContext;
 
     let assistantText = "";
     const runner = this.client.chat.completions.runTools(
@@ -320,7 +347,36 @@ export class ChatService {
                 }
               }
             }
-          }
+          },
+          ...(accessoryModeContext
+            ? [
+                {
+                  type: "function" as const,
+                  function: {
+                    name: "set_accessory_mode",
+                    description:
+                      "Persist the user's confirmed accessory mode preference for this conversation. " +
+                      "Only call AFTER the user has explicitly confirmed their choice in the most recent turn. " +
+                      "Do not call this tool to guess a preference or to 'try' a mode.",
+                    parameters: accessoryModeToolParameters,
+                    parse: (rawArguments: string) =>
+                      accessoryModeToolInputSchema.parse(JSON.parse(rawArguments)),
+                    function: async (args: AccessoryModeToolArgs) => {
+                      try {
+                        await accessoryModeContext.onModeChanged(args.mode);
+                        return { ok: true, newMode: args.mode };
+                      } catch (error) {
+                        return {
+                          ok: false,
+                          error:
+                            error instanceof Error ? error.message : "Failed to update accessory mode."
+                        };
+                      }
+                    }
+                  }
+                }
+              ]
+            : [])
         ]
       });
 

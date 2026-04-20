@@ -173,11 +173,38 @@ ${readyItems
   )
   .join("\n")}`;
 
+  const accessoryModeInstruction =
+    accessoryMode === "include"
+      ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit."
+      : accessoryMode === "exclude"
+        ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations"
+        : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit";
+
   return `You are a personal stylist assistant with access to the user's wardrobe and profile.
 
 ${profileSection}
 
 ${wardrobeSection}
+
+## Accessory Mode Intent Recognition
+
+Current accessoryMode for this conversation: ${accessoryMode}.
+
+The user can change their accessory preference (include / exclude / auto) by speaking naturally. Follow this flow strictly:
+
+1. If the user clearly expresses a preference, reply with a short confirmation question (e.g. "Got it — you want to exclude accessories for future outfits, correct?") and WAIT for their next turn. Do NOT call set_accessory_mode yet.
+   - "include / want accessories / add accessories" → target = include
+   - "no / exclude / skip / remove accessories" → target = exclude
+   - "you decide / whatever / let AI pick" → target = auto
+
+2. If the phrasing is ambiguous ("keep it minimal", "simple look", "maybe"), DO NOT guess. Reply with this exact format and STOP — do not call any tool:
+   "Just to confirm — would you like me to (a) include accessories, (b) exclude accessories, or (c) let me decide? Reply with a, b, or c."
+
+3. Once the user confirms in the NEXT turn (e.g. "yes", "b", "exclude accessories"), call set_accessory_mode({ mode: X }) with their confirmed choice. Then continue with whatever the user originally asked for in the same reply.
+
+4. NEVER call set_accessory_mode without an explicit confirmation in the most recent user turn.
+
+5. If the user rejects the confirmation ("no, never mind"), do not call the tool. The mode stays as it was — acknowledge their decision briefly and move on.
 
 ## Response rules
 
@@ -211,7 +238,7 @@ Rules for the JSON:
 - "context.weatherSummary" must be a short factual weather summary when weather influenced the recommendation, otherwise use null
 - Only use items from the wardrobe list above, with their exact IDs
 - The "name" field in each item is for display only — it must match the item's name from the wardrobe
-- ${accessoryMode === "include" ? "Every outfit MUST include at least one accessory item (jewelry, hats, bags). Do not skip accessories in any outfit." : accessoryMode === "exclude" ? "Do NOT include any accessories (jewelry, hats, bags) in your outfit recommendations" : "Use your own judgment on whether to include accessories (jewelry, hats, bags) based on the occasion and outfit"}
+- ${accessoryModeInstruction}
 
 ## Pre-recommendation checklist
 
@@ -406,11 +433,19 @@ export function createChatRoutes({ authService, chatService, conversationReposit
         return;
       }
 
+      const validModes = ["include", "exclude", "auto"] as const;
+      const requestMode: AccessoryMode | null =
+        typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode)
+          ? (accessoryMode as AccessoryMode)
+          : null;
+
       const userId = authResolution.user.id;
       // check if it is a new conversation or an existing conversation
+      // For new conversations, request body accessoryMode seeds the initial value.
+      // For existing conversations, the persisted conversation.accessoryMode is the source of truth.
       let conversation = trimmedConversationId
         ? await conversationRepository.appendMessage(userId, trimmedConversationId, "user", trimmedMessage)
-        : await conversationRepository.createWithFirstUserMessage(userId, trimmedMessage);
+        : await conversationRepository.createWithFirstUserMessage(userId, trimmedMessage, requestMode ?? "auto");
 
       if (!conversation) {
         res.status(404).json({ error: "Conversation not found." });
@@ -418,13 +453,12 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       }
 
       const conversationIdForSave = conversation.id;
+      const resolvedMode: AccessoryMode = conversation.accessoryMode;
 
       const [closetItems, userRecord] = await Promise.all([
         closetRepository.listByUser(userId),
         userRepository.findById(userId)
       ]);
-      const validModes = ["include", "exclude", "auto"] as const;
-      const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
       const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, userLocation?.timezone);
 
       // set headers for SSE
@@ -458,6 +492,14 @@ export function createChatRoutes({ authService, chatService, conversationReposit
             ? { userLocation: { lat: userLocation.lat, lon: userLocation.lon, timezone: userLocation.timezone } }
             : {}),
           signal: abortController.signal,
+          accessoryModeContext: {
+            onModeChanged: async (mode) => {
+              await conversationRepository.updateConversationFields(userId, conversationIdForSave, {
+                accessoryMode: mode,
+                pendingConfirmation: null
+              });
+            }
+          },
           // stream callback
           onChunk: (chunk) => {
             assistantText += chunk;

@@ -54,6 +54,7 @@ export function makeConversationRecord(overrides: Partial<ConversationRecord> = 
     updatedAt: "2026-03-24T00:00:00.000Z",
     lastMessageAt: "2026-03-24T00:00:00.000Z",
     messages: [makeStoredMessage()],
+    accessoryMode: "auto",
     ...overrides
   };
 }

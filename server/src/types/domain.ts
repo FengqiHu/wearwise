@@ -76,6 +76,12 @@ export interface StoredChatMessage {
   recommendationIds?: string[];
 }
 
+export interface PendingConfirmation {
+  type: "accessoryMode";
+  requestedMode: AccessoryMode;
+  createdAt: string;
+}
+
 export interface ConversationRecord {
   id: string;
   userId: string;
@@ -84,6 +90,8 @@ export interface ConversationRecord {
   updatedAt: string;
   lastMessageAt: string;
   messages: StoredChatMessage[];
+  accessoryMode: AccessoryMode;
+  pendingConfirmation?: PendingConfirmation;
 }
 
 export interface ConversationSummary {
