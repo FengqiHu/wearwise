@@ -76,11 +76,10 @@ export interface StoredChatMessage {
   recommendationIds?: string[];
 }
 
-export interface PendingConfirmation {
-  type: "accessoryMode";
-  requestedMode: AccessoryMode;
-  createdAt: string;
-}
+export type PendingConfirmation =
+  | { type: "accessoryMode"; requestedMode: AccessoryMode; createdAt: string }
+  | { type: "addAccessoriesOffer"; createdAt: string }
+  | { type: "futureAccessoryMode"; createdAt: string };
 
 export interface ConversationRecord {
   id: string;

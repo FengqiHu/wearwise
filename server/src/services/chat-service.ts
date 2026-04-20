@@ -10,8 +10,31 @@ interface ModelInputMessage {
   content: string;
 }
 
+export interface AddBackOriginalOutfit {
+  outfitName: string;
+  items: Array<{ id: string; name: string }>;
+}
+
+export interface AddBackAvailableAccessory {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+}
+
+export type AddBackResult =
+  | {
+      ok: true;
+      originalOutfits: AddBackOriginalOutfit[];
+      availableAccessories: AddBackAvailableAccessory[];
+      targetOutfitIndex?: number;
+    }
+  | { ok: false; error: "no_recent_recommendation" | "no_accessories_in_wardrobe" };
+
 export interface AccessoryModeContext {
   onModeChanged: (mode: AccessoryMode) => Promise<void>;
+  wardrobeHasAccessories: boolean;
+  onAddBackRequested: (args: { outfitIndex?: number }) => Promise<AddBackResult>;
 }
 
 interface StreamChatInput {
@@ -97,6 +120,27 @@ const accessoryModeToolInputSchema = z.object({
 });
 
 type AccessoryModeToolArgs = z.infer<typeof accessoryModeToolInputSchema>;
+
+const addAccessoriesToolParameters = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    outfitIndex: {
+      type: "integer",
+      minimum: 0,
+      description:
+        "0-based index of a specific outfit from the most recent recommendation to extend with accessories. " +
+        "Omit to add accessories to all outfits in that recommendation."
+    }
+  },
+  required: []
+};
+
+const addAccessoriesToolInputSchema = z.object({
+  outfitIndex: z.number().int().min(0).optional()
+});
+
+type AddAccessoriesToolArgs = z.infer<typeof addAccessoriesToolInputSchema>;
 
 interface RunnerToolCall {
   id?: string;
@@ -362,6 +406,9 @@ export class ChatService {
                     parse: (rawArguments: string) =>
                       accessoryModeToolInputSchema.parse(JSON.parse(rawArguments)),
                     function: async (args: AccessoryModeToolArgs) => {
+                      if (args.mode === "include" && !accessoryModeContext.wardrobeHasAccessories) {
+                        return { ok: false, error: "no_accessories_in_wardrobe" };
+                      }
                       try {
                         await accessoryModeContext.onModeChanged(args.mode);
                         return { ok: true, newMode: args.mode };
@@ -370,6 +417,35 @@ export class ChatService {
                           ok: false,
                           error:
                             error instanceof Error ? error.message : "Failed to update accessory mode."
+                        };
+                      }
+                    }
+                  }
+                },
+                {
+                  type: "function" as const,
+                  function: {
+                    name: "add_accessories_to_recommendation",
+                    description:
+                      "Generate a new outfit recommendation that adds accessories to the user's most recent outfit(s). " +
+                      "Call this AFTER the user has explicitly confirmed they want accessories added. " +
+                      "Pass outfitIndex (0-based) when the user named a specific outfit (e.g. 'the second one' -> 1); " +
+                      "omit outfitIndex to add accessories to all outfits in the most recent recommendation.",
+                    parameters: addAccessoriesToolParameters,
+                    parse: (rawArguments: string) =>
+                      addAccessoriesToolInputSchema.parse(JSON.parse(rawArguments)),
+                    function: async (args: AddAccessoriesToolArgs) => {
+                      try {
+                        return await accessoryModeContext.onAddBackRequested(
+                          args.outfitIndex !== undefined ? { outfitIndex: args.outfitIndex } : {}
+                        );
+                      } catch (error) {
+                        return {
+                          ok: false as const,
+                          error:
+                            error instanceof Error
+                              ? error.message
+                              : "Failed to fetch accessories for add-back."
                         };
                       }
                     }

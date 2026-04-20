@@ -432,5 +432,110 @@ describe("ConversationRepository", () => {
       expect(mockCollection.findOneAndUpdate).not.toHaveBeenCalled();
       expect(result?.accessoryMode).toBe("auto");
     });
+
+    it("stores pendingConfirmation of type addAccessoriesOffer", async () => {
+      const repo = makeRepo();
+      const pending = { type: "addAccessoriesOffer" as const, createdAt: "2026-04-18T00:00:00.000Z" };
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
+
+      const update = mockCollection.findOneAndUpdate.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
+      expect(update.$set.pendingConfirmation).toEqual(pending);
+    });
+
+    it("stores pendingConfirmation of type futureAccessoryMode", async () => {
+      const repo = makeRepo();
+      const pending = { type: "futureAccessoryMode" as const, createdAt: "2026-04-18T00:00:00.000Z" };
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
+
+      const update = mockCollection.findOneAndUpdate.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
+      expect(update.$set.pendingConfirmation).toEqual(pending);
+    });
+  });
+
+  describe("findLatestAssistantRecommendationMessage", () => {
+    it("returns the most recent assistant message with recommendationIds", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          { id: "msg-1", role: "user", content: "outfit please", createdAt: "2026-04-18T00:00:00.000Z" },
+          {
+            id: "msg-2",
+            role: "assistant",
+            content: "old rec",
+            createdAt: "2026-04-18T00:00:01.000Z",
+            recommendationIds: ["rec-old-1"]
+          },
+          { id: "msg-3", role: "user", content: "another", createdAt: "2026-04-18T00:00:02.000Z" },
+          {
+            id: "msg-4",
+            role: "assistant",
+            content: "new rec",
+            createdAt: "2026-04-18T00:00:03.000Z",
+            recommendationIds: ["rec-new-1", "rec-new-2", "rec-new-3"]
+          },
+          { id: "msg-5", role: "user", content: "follow-up", createdAt: "2026-04-18T00:00:04.000Z" }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toEqual({ messageId: "msg-4", recommendationIds: ["rec-new-1", "rec-new-2", "rec-new-3"] });
+    });
+
+    it("returns null when no assistant message has recommendationIds", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          { id: "msg-1", role: "user", content: "hi", createdAt: "2026-04-18T00:00:00.000Z" },
+          { id: "msg-2", role: "assistant", content: "plain text reply", createdAt: "2026-04-18T00:00:01.000Z" }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when the conversation does not exist", async () => {
+      const repo = makeRepo();
+      mockCollection.findOne.mockResolvedValue(null);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "missing");
+
+      expect(result).toBeNull();
+    });
+
+    it("skips assistant messages with empty recommendationIds arrays", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          {
+            id: "msg-2",
+            role: "assistant",
+            content: "has recs",
+            createdAt: "2026-04-18T00:00:01.000Z",
+            recommendationIds: ["rec-1"]
+          },
+          {
+            id: "msg-3",
+            role: "assistant",
+            content: "no recs",
+            createdAt: "2026-04-18T00:00:02.000Z",
+            recommendationIds: []
+          }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toEqual({ messageId: "msg-2", recommendationIds: ["rec-1"] });
+    });
   });
 });
