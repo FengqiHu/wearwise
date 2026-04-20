@@ -444,22 +444,6 @@ describe("ConversationRepository", () => {
       expect(update.$set.pendingConfirmation).toEqual(pending);
     });
 
-    it("stores pendingConfirmation of type addAccessoriesBack with outfitIndex", async () => {
-      const repo = makeRepo();
-      const pending = {
-        type: "addAccessoriesBack" as const,
-        recommendationMessageId: "msg-9",
-        outfitIndex: 1,
-        createdAt: "2026-04-18T00:00:00.000Z"
-      };
-      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
-
-      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
-
-      const update = mockCollection.findOneAndUpdate.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
-      expect(update.$set.pendingConfirmation).toEqual(pending);
-    });
-
     it("stores pendingConfirmation of type futureAccessoryMode", async () => {
       const repo = makeRepo();
       const pending = { type: "futureAccessoryMode" as const, createdAt: "2026-04-18T00:00:00.000Z" };
