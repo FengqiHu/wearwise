@@ -4,6 +4,7 @@ export interface ChatRequest {
   message: string;
   conversationId?: string;
   accessoryMode?: AccessoryMode;
+  timezone?: string;
   userLocation?: {
     lat: number;
     lon: number;
