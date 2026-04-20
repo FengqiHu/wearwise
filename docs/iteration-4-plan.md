@@ -102,6 +102,49 @@
 
 ---
 
+### **R5. Permanent Account Deletion**
+
+**Description:** Users can permanently delete their WearWise account from within the product. Deletion removes all user-owned application data - profile information, closet metadata, vote history, conversations, try-on history, and stored images - and then signs the user out. The flow must clearly communicate that this deletes the WearWise account only, not the user's Google account, and that the action cannot be undone.
+
+**Task Breakdown:**
+
+- Add an authenticated backend endpoint for account deletion that removes all user-scoped MongoDB records and prevents further access once deletion begins
+- Delete all user-owned images from R2 as part of the same flow, including profile photos, closet item images, and generated try-on/history assets
+- Add a frontend delete-account action in the profile/settings area with an explicit confirmation step and a post-delete redirect to the signed-out landing page
+- Show clear user-facing states for deletion success, deletion failure, and retry guidance
+- Write tests for backend cleanup, storage cleanup, and the frontend confirmation flow
+
+**Acceptance Criteria:**
+
+- An authenticated user can permanently delete their WearWise account from the UI after an explicit confirmation step
+- After deletion, the user's profile, closet items, vote history, conversations, try-on history, and stored images are no longer accessible through the app
+- The user is signed out immediately after deletion and any subsequent request with the deleted identity is rejected
+- The UI clearly states that the action deletes the WearWise account and WearWise-managed data only, not the user's Google account
+
+---
+
+### **R6. Uploaded Image Safety Review**
+
+**Description:** Every user-provided image upload path must pass the same review gate (Google Cloud Vision SafeSearch), rejected uploads must never be stored, and users must receive clear feedback when an image is blocked.
+
+**Task Breakdown:**
+
+- Extract a shared backend moderation helper or middleware that runs Google Cloud Vision SafeSearch before any user-provided image is stored or sent to downstream AI processing
+- Apply the review step to every upload entry point: face photo, full-body photo, headshot photo, closet item upload/replace.
+- Define the threshold policy and rejection mapping for unsafe SafeSearch categories and return consistent user-facing error messages
+- Ensure rejected images are not written to R2 or persisted in MongoDB; only structured rejection metadata may be logged for debugging or audit purposes
+- Implement fail-closed behavior when the moderation service errors or times out, returning a retriable message instead of bypassing review
+- Write backend integration tests for accepted uploads, rejected uploads, and SafeSearch service failure cases
+
+**Acceptance Criteria:**
+
+- Every user-provided image upload route invokes SafeSearch before storage or downstream AI analysis
+- Images that exceed the configured safety thresholds are rejected with a clear error message and are not stored in R2 or MongoDB
+- If the review service is unavailable, the upload is blocked with a clear retriable error rather than bypassing moderation
+- The moderation policy is applied consistently across profile, closet flows
+
+---
+
 ## **Coordination & Design Decisions**
 
 - **Enriched vote data join:** The closet lookup added in R2 must handle items deleted since the vote was cast — missing items are silently omitted from the enriched list so that styleNote regeneration does not fail.
@@ -109,20 +152,25 @@
 - **Outfit count:** The LLM infers count from the conversation. The Zod schema accepts 1–5; the frontend renders cards in a loop and requires no structural changes for variable counts.
 - **Streaming with tool calls:** Each `submit_outfit` tool call carries one complete outfit. The backend emits a dedicated SSE event per call so the frontend can render incrementally. The `context` block (weather summary) is emitted first as a separate event before any outfit cards.
 - **Timezone fix:** Browser timezone via `Intl.DateTimeFormat()` requires no permission and is always available. It is sent as a top-level field in the chat request body, separate from the geolocation-gated `userLocation` object.
-- **Product try-on isolation:** The product image uploaded on the try-on page must never be written to the user's closet or R2 storage bucket. It is analyzed in-memory and discarded after the response is sent.
+- **Product try-on isolation:** The product image uploaded on the try-on page must never be written to the user's closet or R2 storage bucket. It first passes through the shared safety review gate, then is analyzed in-memory and discarded after the response is sent.
 - **Conversational accessory tool:** The `set_accessory_mode` tool call persists mode to the `conversation` document (not the user profile), so it resets per conversation rather than becoming a global preference. The manual dropdown continues to write to the conversation document and clears any `pendingConfirmation` state.
 - **Dropdown sync:** The frontend reads `accessoryMode` from the conversation document returned in each chat response. The dropdown is a controlled component reflecting backend state; local optimistic updates are discarded if the backend returns a different mode.
+- **Account deletion scope:** Deleting an account removes WearWise-managed data only; it does not delete the user's Google account. Cleanup covers the user profile, closet items, votes, conversations, try-on history, and all user-owned R2 assets.
+- **Centralized upload review:** SafeSearch enforcement is implemented as a shared server-side gate reused by all upload entry points rather than per-route one-off logic.
+- **Moderation policy:** "Illegal/offensive" content is operationalized through configured SafeSearch thresholds and fail-closed behavior. Rejected image binaries are not retained after rejection.
 
 **Ownership**
 
-- `@z8ri`: Online product try-on — backend and frontend (R1); Conversational accessory mode switching (R3)
+- `@z8ri`: Online product try-on — backend and frontend (R1); Conversational accessory mode switching (R3); Uploaded image safety review — upload route integration (R6)
 - `@ZeliMa`: Preference-driven personalization (R2)
-- `@FengqiHu`: Online product try-on — shared ownership (R1); UI design rebuild (R4)
-- `@Nanshengbeisheng`: Conversational accessory mode switching — testing (R3)
+- `@FengqiHu`: Online product try-on — shared ownership (R1); UI design rebuild (R4); 
+- `@Nanshengbeisheng`: Conversational accessory mode switching — testing (R3); Permanent account deletion (R5); Uploaded image safety review (R6)
 
 **Dependency Order**
 
 - R2: `#263` (timezone bug) and `#264`–`#266` (prompt and data changes) are independent and can begin immediately. `#267` (outfit count) should land before `#269` (streaming) so the tool call schema handles variable counts from the start. `#268` (try-on prompt) is independent. `#270` (tests) is end-of-cycle.
 - R3: `#254` (pendingConfirmation model + tool) must land before `#255`, `#256`, and `#258`; `#256` must land before `#257`; `#258` and `#259` are end-of-cycle.
 - R1: the backend endpoint (`#249`) must land before the frontend page (`#250`) can be wired up end-to-end.
+- R5: the backend delete flow and storage cleanup must land before the frontend delete-account action can be wired end-to-end. Background job cancellation or write blocking should land before final destructive cleanup is treated as complete.
+- R6: the shared SafeSearch gate and threshold policy should land before individual upload routes are migrated. Product try-on upload should reuse the same moderation gate as R1 rather than introducing a separate review path. Tests are end-of-cycle after all upload entry points are covered.
 - R4 has no blocking dependencies and can proceed in parallel with all other work.
