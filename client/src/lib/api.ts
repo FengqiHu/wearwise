@@ -264,6 +264,33 @@ export async function deleteChatConversation(token: string, conversationId: stri
   }
 }
 
+export class AccessoryModeUpdateError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = "AccessoryModeUpdateError";
+  }
+}
+
+export async function setConversationAccessoryMode(
+  token: string,
+  conversationId: string,
+  mode: AccessoryMode
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}/mode`,
+    {
+      method: "POST",
+      headers: createAuthHeaders(token),
+      body: JSON.stringify({ mode })
+    }
+  );
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to update accessory mode.");
+    throw new AccessoryModeUpdateError(message, message);
+  }
+}
+
 const validCategorySet = new Set<string>(CLOTHING_CATEGORIES);
 
 function closetItemToClothingItem(record: ClosetItemRecord): ClothingItem {

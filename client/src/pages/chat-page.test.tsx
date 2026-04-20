@@ -12,14 +12,24 @@ vi.mock("../context/auth-context", () => ({
   })
 }));
 
-const apiMocks = vi.hoisted(() => ({
-  fetchChatConversations: vi.fn(),
-  fetchChatConversation: vi.fn(),
-  deleteChatConversation: vi.fn(),
-  fetchClosetItems: vi.fn(),
-  streamChatResponse: vi.fn(),
-  generateOutfit: vi.fn()
-}));
+const apiMocks = vi.hoisted(() => {
+  class AccessoryModeUpdateError extends Error {
+    constructor(public readonly code: string, message: string) {
+      super(message);
+      this.name = "AccessoryModeUpdateError";
+    }
+  }
+  return {
+    fetchChatConversations: vi.fn(),
+    fetchChatConversation: vi.fn(),
+    deleteChatConversation: vi.fn(),
+    fetchClosetItems: vi.fn(),
+    streamChatResponse: vi.fn(),
+    generateOutfit: vi.fn(),
+    setConversationAccessoryMode: vi.fn(),
+    AccessoryModeUpdateError
+  };
+});
 
 vi.mock("../lib/api", () => apiMocks);
 
@@ -36,6 +46,7 @@ describe("ChatPage", () => {
     vi.clearAllMocks();
     apiMocks.fetchClosetItems.mockResolvedValue([]);
     apiMocks.fetchChatConversations.mockResolvedValue([]);
+    apiMocks.setConversationAccessoryMode.mockResolvedValue(undefined);
   });
 
   describe("initial render", () => {
@@ -252,6 +263,125 @@ describe("ChatPage", () => {
       await waitFor(() => {
         expect(accessoryModeSelect).toHaveValue("exclude");
       });
+    });
+
+    it("does not call the mode API when dropdown changes before any conversation exists", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await user.selectOptions(accessoryModeSelect, "exclude");
+
+      expect(accessoryModeSelect).toHaveValue("exclude");
+      expect(apiMocks.setConversationAccessoryMode).not.toHaveBeenCalled();
+    });
+
+    it("persists the new mode to the backend when the dropdown changes on an existing conversation", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-1", title: "Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "auto" },
+        messages: [{ id: "m1", role: "user", content: "Hi" }]
+      });
+      renderChat();
+
+      await screen.findByText("Chat");
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("auto");
+      });
+
+      await user.selectOptions(accessoryModeSelect, "exclude");
+
+      expect(accessoryModeSelect).toHaveValue("exclude");
+      await waitFor(() => {
+        expect(apiMocks.setConversationAccessoryMode).toHaveBeenCalledWith("test-token", "conv-1", "exclude");
+      });
+    });
+
+    it("reverts the dropdown and shows a generic error when the mode API fails", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-1", title: "Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "auto" },
+        messages: [{ id: "m1", role: "user", content: "Hi" }]
+      });
+      apiMocks.setConversationAccessoryMode.mockRejectedValue(new Error("boom"));
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("auto");
+      });
+
+      await user.selectOptions(accessoryModeSelect, "exclude");
+
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("auto");
+      });
+      expect(screen.getByText(/Failed to update accessory mode/i)).toBeDefined();
+    });
+
+    it("shows the empty-wardrobe message when switching to include with no accessories", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-1", title: "Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "auto" },
+        messages: [{ id: "m1", role: "user", content: "Hi" }]
+      });
+      apiMocks.setConversationAccessoryMode.mockRejectedValue(
+        new apiMocks.AccessoryModeUpdateError("no_accessories_in_wardrobe", "no_accessories_in_wardrobe")
+      );
+      renderChat();
+
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("auto");
+      });
+
+      await user.selectOptions(accessoryModeSelect, "include");
+
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("auto");
+      });
+      expect(screen.getByText(/no accessories in your wardrobe/i)).toBeDefined();
+    });
+
+    it("drops old conversation messages (including any confirmation bubble) when switching conversations", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-old", title: "Older Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() },
+        { id: "conv-other", title: "Second Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockImplementation(async (_token: string, id: string) => {
+        if (id === "conv-old") {
+          return {
+            conversation: { id: "conv-old", accessoryMode: "auto" },
+            messages: [{ id: "m1", role: "assistant", content: "Just to confirm — would you like me to exclude accessories?" }]
+          };
+        }
+        return {
+          conversation: { id: "conv-other", accessoryMode: "auto" },
+          messages: [{ id: "m2", role: "assistant", content: "Fresh conversation." }]
+        };
+      });
+      renderChat();
+
+      await screen.findByText(/Just to confirm/i);
+
+      await user.click(screen.getByText("Second Chat"));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Just to confirm/i)).toBeNull();
+      });
+      expect(screen.getByText(/Fresh conversation/i)).toBeDefined();
     });
 
     it("dropdown updates after the SSE stream completes and refetch returns a new mode", async () => {

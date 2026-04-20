@@ -12,11 +12,13 @@ import {
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
 import {
+  AccessoryModeUpdateError,
   deleteChatConversation,
   fetchChatConversation,
   fetchChatConversations,
   fetchClosetItems,
   generateOutfit,
+  setConversationAccessoryMode,
   streamChatResponse,
   voteRecommendation,
   type UserLocation
@@ -252,6 +254,7 @@ export function ChatPage() {
   const [voteStates, setVoteStates] = useState<Record<string, "up" | "down" | null>>({});
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [accessoryMode, setAccessoryMode] = useState<AccessoryMode>("auto");
+  const [accessoryModeError, setAccessoryModeError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -265,6 +268,10 @@ export function ChatPage() {
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
+
+  useEffect(() => {
+    setAccessoryModeError(null);
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!navigator.geolocation) {
@@ -468,6 +475,31 @@ export function ChatPage() {
     },
     [token, isGenerating, isLoadingConversation, deletingConversationId, conversations, activeConversationId, greeting]
   );
+
+  const handleAccessoryModeChange = async (nextMode: AccessoryMode): Promise<void> => {
+    const previousMode = accessoryMode;
+    if (nextMode === previousMode) {
+      return;
+    }
+
+    setAccessoryModeError(null);
+    setAccessoryMode(nextMode);
+
+    if (!token || !activeConversationId) {
+      return;
+    }
+
+    try {
+      await setConversationAccessoryMode(token, activeConversationId, nextMode);
+    } catch (error) {
+      setAccessoryMode(previousMode);
+      if (error instanceof AccessoryModeUpdateError && error.code === "no_accessories_in_wardrobe") {
+        setAccessoryModeError("You have no accessories in your wardrobe. Please upload some first.");
+      } else {
+        setAccessoryModeError("Failed to update accessory mode. Please try again.");
+      }
+    }
+  };
 
   const appendChunkToMessage = (id: string, chunk: string): void => {
     setMessages((previous) =>
@@ -680,18 +712,25 @@ export function ChatPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
-              <span>Accessories:</span>
-              <select
-                value={accessoryMode}
-                onChange={(e) => setAccessoryMode(e.target.value as AccessoryMode)}
-                className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
-              >
-                <option value="auto">AI decides</option>
-                <option value="include">Include</option>
-                <option value="exclude">Exclude</option>
-              </select>
-            </label>
+            <div className="flex flex-col items-end gap-1">
+              <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
+                <span>Accessories:</span>
+                <select
+                  value={accessoryMode}
+                  onChange={(e) => {
+                    void handleAccessoryModeChange(e.target.value as AccessoryMode);
+                  }}
+                  className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
+                >
+                  <option value="auto">AI decides</option>
+                  <option value="include">Include</option>
+                  <option value="exclude">Exclude</option>
+                </select>
+              </label>
+              {accessoryModeError ? (
+                <p className="text-xs text-red-700">{accessoryModeError}</p>
+              ) : null}
+            </div>
             {activeConversationId ? (
               <Button
                 variant="danger"

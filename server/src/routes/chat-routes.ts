@@ -447,6 +447,70 @@ export function createChatRoutes({ authService, chatService, conversationReposit
     }
   });
 
+  // update the accessoryMode for a conversation from the dropdown; also clears any
+  // in-flight pendingConfirmation so a manual switch does not race with a conversational confirm.
+  router.post("/chat/conversations/:conversationId/mode", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const conversationId = (req.params.conversationId ?? "").trim();
+
+      if (!conversationId) {
+        res.status(400).json({ error: "conversationId is required." });
+        return;
+      }
+
+      const body = req.body as { mode?: unknown };
+      const validModes = ["include", "exclude", "auto"] as const;
+      if (typeof body.mode !== "string" || !(validModes as readonly string[]).includes(body.mode)) {
+        res.status(400).json({ error: "mode must be one of: include, exclude, auto." });
+        return;
+      }
+      const mode = body.mode as AccessoryMode;
+
+      const userId = authResolution.user.id;
+      const conversation = await conversationRepository.findById(userId, conversationId);
+
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found." });
+        return;
+      }
+
+      if (mode === "include") {
+        const closetItems = await closetRepository.listByUser(userId);
+        const hasAccessories = closetItems.some(
+          (item) => item.analysisStatus === "ready" && item.category === "accessories"
+        );
+        if (!hasAccessories) {
+          res.status(409).json({ error: "no_accessories_in_wardrobe" });
+          return;
+        }
+      }
+
+      const nextPending: PendingConfirmation | null =
+        mode === "exclude"
+          ? { type: "addAccessoriesOffer", createdAt: new Date().toISOString() }
+          : null;
+
+      await conversationRepository.updateConversationFields(userId, conversationId, {
+        accessoryMode: mode,
+        pendingConfirmation: nextPending
+      });
+
+      res.json({ accessoryMode: mode });
+    } catch (error) {
+      console.error("Chat mode update error:", error);
+      res.status(500).json({ error: "Failed to update accessory mode." });
+    }
+  });
+
   // handle chat message, stream the response from the chat service, and save the conversation history in database
   router.post("/chat", async (req, res): Promise<void> => {
     let shouldCloseResponse = true;
