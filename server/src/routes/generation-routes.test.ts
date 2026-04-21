@@ -396,3 +396,70 @@ describe("createGenerationRoutes POST /generate/outfit – direct clothingItemId
     expect(harness.spies.saveGeneration).toHaveBeenCalledOnce();
   });
 });
+
+describe("createGenerationRoutes POST /generate/outfit – occasion and weather context", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("passes occasions from recommendation to generateOutfitImage", async () => {
+    const recommendation = makeRecommendationRecord({
+      occasions: ["gym", "workout"],
+      weather: null
+    });
+    const harness = makeHarness({ recommendation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postGenerate(started.baseUrl, { recommendationId: "rec-1" });
+
+    expect(harness.spies.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ occasions: ["gym", "workout"] })
+    );
+  });
+
+  it("passes weatherSummary from recommendation to generateOutfitImage", async () => {
+    const recommendation = makeRecommendationRecord({
+      occasions: [],
+      weather: "13°C, light rain"
+    });
+    const harness = makeHarness({ recommendation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postGenerate(started.baseUrl, { recommendationId: "rec-1" });
+
+    expect(harness.spies.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({ weatherSummary: "13°C, light rain" })
+    );
+  });
+
+  it("does not pass occasions when recommendation has no occasions", async () => {
+    const recommendation = makeRecommendationRecord({ occasions: [], weather: null });
+    const harness = makeHarness({ recommendation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postGenerate(started.baseUrl, { recommendationId: "rec-1" });
+
+    const callArg = harness.spies.generateImage.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(callArg).not.toHaveProperty("occasions");
+  });
+
+  it("does not pass weatherSummary when recommendation has no weather", async () => {
+    const recommendation = makeRecommendationRecord({ occasions: [], weather: null });
+    const harness = makeHarness({ recommendation });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postGenerate(started.baseUrl, { recommendationId: "rec-1" });
+
+    const callArg = harness.spies.generateImage.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(callArg).not.toHaveProperty("weatherSummary");
+  });
+});
