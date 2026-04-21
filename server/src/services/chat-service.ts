@@ -10,11 +10,21 @@ interface ModelInputMessage {
   content: string;
 }
 
+export interface SubmitOutfitArgs {
+  outfitName: string;
+  reason: string;
+  occasions?: string[];
+  items: Array<{ id: string; name: string }>;
+  weatherSummary?: string;
+}
+
 interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
+  onOutfit?: (outfit: SubmitOutfitArgs) => void | Promise<void>;
   signal?: AbortSignal;
   userLocation?: BrowserLocation;
+  presetContext?: PrefetchedContext;
 }
 
 const CHAT_MODEL = "gpt-5-mini";
@@ -85,6 +95,12 @@ interface RunnerMessage {
   content?: unknown;
   tool_call_id?: string;
   tool_calls?: RunnerToolCall[];
+}
+
+export interface PrefetchedContext {
+  weatherSummary: string | null;
+  currentTime: string | null;
+  locationLabel: string | null;
 }
 
 export interface StreamChatResult {
@@ -225,6 +241,50 @@ export class ChatService {
     return this.client !== null;
   }
 
+  async prefetchWeatherAndTime(userLocation: BrowserLocation | undefined, signal?: AbortSignal): Promise<PrefetchedContext> {
+    const currentTime = userLocation?.timezone
+      ? (() => {
+          const result = this.currentTimeService.executeTool(JSON.stringify({ timezone: userLocation.timezone }));
+          return result.ok && result.datetime ? result.datetime.time : null;
+        })()
+      : null;
+
+    if (!userLocation) {
+      return { weatherSummary: null, currentTime, locationLabel: null };
+    }
+
+    try {
+      const locationResult = await this.userLocationService.executeTool(userLocation, signal);
+
+      if (!locationResult.ok || !locationResult.location) {
+        return { weatherSummary: null, currentTime, locationLabel: null };
+      }
+
+      const loc = locationResult.location;
+      const locationLabel = [loc.city, loc.region, loc.country].filter(Boolean).join(", ") || null;
+
+      if (!loc.city) {
+        return { weatherSummary: null, currentTime, locationLabel };
+      }
+
+      const weatherArgs = JSON.stringify({
+        location: loc.city,
+        ...(loc.region ? { stateCode: loc.region } : {}),
+        ...(loc.country ? { countryCode: loc.country } : {}),
+        mode: "current"
+      });
+      const weatherResult = await this.openWeatherService.executeTool(weatherArgs, signal);
+
+      const weatherSummary = weatherResult.ok && weatherResult.weather
+        ? buildWeatherSummary(weatherResult)
+        : null;
+
+      return { weatherSummary, currentTime, locationLabel };
+    } catch {
+      return { weatherSummary: null, currentTime, locationLabel: null };
+    }
+  }
+
   async streamChat(input: StreamChatInput): Promise<StreamChatResult> {
     if (!this.client) {
       throw new Error("OPENAI_API_KEY is not configured on server.");
@@ -249,6 +309,7 @@ export class ChatService {
       {
         model: CHAT_MODEL,
         stream: true,
+        parallel_tool_calls: false,
         messages: [
           {
             role: "developer",
@@ -321,6 +382,60 @@ export class ChatService {
                     ok: false,
                     error: error instanceof Error ? error.message : "Location lookup failed."
                   };
+                }
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
+              name: "submit_outfit",
+              description:
+                "Submit a single outfit recommendation. Call this once for each outfit you want to recommend. The outfit will be displayed to the user immediately.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  outfitName: {
+                    type: "string",
+                    description: "Short descriptive name for the outfit."
+                  },
+                  reason: {
+                    type: "string",
+                    description: "Why this outfit suits the user — mention occasion and weather if known."
+                  },
+                  occasions: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Short occasion labels (e.g. 'work', 'gym'). Use empty array if none."
+                  },
+                  items: {
+                    type: "array",
+                    description: "Clothing items from the user's wardrobe.",
+                    items: {
+                      type: "object",
+                      additionalProperties: false,
+                      properties: {
+                        id: { type: "string", description: "Exact item ID from the wardrobe." },
+                        name: { type: "string", description: "Item name for display." }
+                      },
+                      required: ["id", "name"]
+                    }
+                  },
+                  weatherSummary: {
+                    type: "string",
+                    description: "Brief factual weather summary if weather influenced this outfit (e.g. '13°C, light rain'). Omit if weather was not relevant."
+                  }
+                },
+                required: ["outfitName", "reason", "items"]
+              },
+              parse: (rawArguments: string) => JSON.parse(rawArguments) as SubmitOutfitArgs,
+              function: async (args: SubmitOutfitArgs) => {
+                try {
+                  await input.onOutfit?.(args);
+                  return { ok: true, submitted: args.outfitName };
+                } catch (error) {
+                  return { ok: false, error: error instanceof Error ? error.message : "Failed to submit outfit." };
                 }
               }
             }

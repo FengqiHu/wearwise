@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import {
@@ -48,13 +49,31 @@ function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<stri
   return nextStates;
 }
 
+function OutfitCardSkeleton() {
+  return (
+    <div className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm animate-pulse">
+      <div className="h-5 w-2/3 rounded bg-boutique-200" />
+      <div className="flex flex-wrap gap-2">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-16 w-16 rounded-xl bg-boutique-200" />
+        ))}
+      </div>
+      <div className="flex flex-col gap-1">
+        <div className="h-3 w-full rounded bg-boutique-200" />
+        <div className="h-3 w-4/5 rounded bg-boutique-200" />
+      </div>
+    </div>
+  );
+}
+
 function RecommendationCards({
   recommendations,
   closetItems,
   generationStates,
   voteStates,
   onGenerateTryOn,
-  onVote
+  onVote,
+  showSkeleton = false
 }: {
   recommendations: Recommendation[];
   closetItems: ClothingItem[];
@@ -62,6 +81,7 @@ function RecommendationCards({
   voteStates: Record<string, "up" | "down" | null>;
   onGenerateTryOn: (recommendationId: string) => Promise<void>;
   onVote: (recommendationId: string, vote: "up" | "down" | null) => Promise<void>;
+  showSkeleton?: boolean;
 }) {
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
@@ -182,14 +202,12 @@ function RecommendationCards({
             </div>
           );
         })}
+        {showSkeleton && <OutfitCardSkeleton />}
       </div>
     </div>
   );
 }
 
-function isRawOutfitJson(content: string): boolean {
-  return /```json[\s\S]*"outfits"/.test(content);
-}
 
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
   return {
@@ -250,6 +268,7 @@ export function ChatPage() {
   const [closetItems, setClosetItems] = useState<ClothingItem[]>([]);
   const [outfitGenerationStates, setOutfitGenerationStates] = useState<Record<string, OutfitGenerationState>>({});
   const [voteStates, setVoteStates] = useState<Record<string, "up" | "down" | null>>({});
+  const [streamingOutfits, setStreamingOutfits] = useState<Map<string, Recommendation[]>>(new Map());
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [accessoryMode, setAccessoryMode] = useState<"include" | "exclude" | "auto">("auto");
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -488,6 +507,7 @@ export function ChatPage() {
 
     const userMessage = createMessage("user", nextInput);
     const assistantMessage = createMessage("assistant", "");
+    const streamingMessageId = assistantMessage.id;
 
     setMessages((previous) => [...previous, userMessage, assistantMessage]);
     setInput("");
@@ -509,20 +529,30 @@ export function ChatPage() {
         },
         controller.signal,
         (chunk) => {
-          appendChunkToMessage(assistantMessage.id, chunk);
+          appendChunkToMessage(streamingMessageId, chunk);
         },
         (conversationId) => {
           responseConversationId = conversationId;
           setActiveConversationId(conversationId);
+        },
+        (outfit) => {
+          flushSync(() => {
+            setStreamingOutfits((previous) => {
+              const existing = previous.get(streamingMessageId) ?? [];
+              const next = new Map(previous);
+              next.set(streamingMessageId, [...existing, outfit]);
+              return next;
+            });
+          });
         }
       );
       shouldSyncConversation = true;
     } catch (error) {
       if (error instanceof DOMException && error.name === "AbortError") {
-        appendChunkToMessage(assistantMessage.id, "\n\n(Stopped)");
+        appendChunkToMessage(streamingMessageId, "\n\n(Stopped)");
       } else {
         appendChunkToMessage(
-          assistantMessage.id,
+          streamingMessageId,
           "\n\nUnable to reach the AI service right now. Please check server status and try again."
         );
       }
@@ -538,6 +568,7 @@ export function ChatPage() {
           // Keep the streamed local messages if the sync fails.
         }
       }
+      setStreamingOutfits(new Map());
       setIsGenerating(false);
       await refreshConversationList(responseConversationId ?? undefined);
     }
@@ -723,10 +754,14 @@ export function ChatPage() {
                           : "border border-boutique-200 bg-boutique-100/70 text-boutique-900"
                       )}
                     >
-                      {isThinking ? (
-                        <ThinkingDots />
-                      ) : (() => {
+                      {(() => {
                         const recommendations = message.recommendations;
+                        const streamingRecs = streamingOutfits.get(message.id);
+
+                        if (isThinking && (!streamingRecs || streamingRecs.length === 0)) {
+                          return <ThinkingDots />;
+                        }
+
                         if (recommendations && recommendations.length > 0) {
                           return (
                             <RecommendationCards
@@ -739,12 +774,27 @@ export function ChatPage() {
                             />
                           );
                         }
-                        if (isRawOutfitJson(message.content)) {
+                        if (streamingRecs && streamingRecs.length > 0) {
+                          const streamingGenerationStates: Record<string, OutfitGenerationState> = {};
+                          for (const rec of streamingRecs) {
+                            streamingGenerationStates[rec.id] = { generatedImageUrl: null, error: null, isLoading: true };
+                          }
+                          const stillStreaming = isGenerating && index === messages.length - 1;
                           return (
-                            <span className="inline-flex items-center gap-2 text-boutique-600">
-                              <ThinkingDots />
-                              <span>Building outfit recommendations...</span>
-                            </span>
+                            <div className="flex flex-col gap-2">
+                              {message.content.trim().length > 0 && (
+                                <p className="whitespace-pre-wrap leading-relaxed text-sm">{message.content}</p>
+                              )}
+                              <RecommendationCards
+                                recommendations={streamingRecs}
+                                closetItems={closetItems}
+                                generationStates={streamingGenerationStates}
+                                voteStates={{}}
+                                onGenerateTryOn={async () => {}}
+                                onVote={async () => {}}
+                                showSkeleton={stillStreaming}
+                              />
+                            </div>
                           );
                         }
                         return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
