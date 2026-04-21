@@ -162,7 +162,7 @@ describe("createChatRoutes POST /chat – location fallback instruction (#199)",
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("DAYTIME");
     expect(systemMessage).toContain("EVENING");
-    expect(systemMessage).toContain("EVENING");
+    expect(systemMessage).toContain("What's on tomorrow?");
   });
 
   it("skips location fallback instructions and uses provided timezone when location is available", async () => {

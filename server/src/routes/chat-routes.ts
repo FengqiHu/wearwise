@@ -44,7 +44,7 @@ ${readyItems
   )
   .join("\n")}`;
 
-  return `You are WearWise, a personal outfit styling assistant. Your job is to help users look their best using the clothes they already own. You have full access to their wardrobe and profile, and you know their clothes better than they do. You give practical, confident outfit advice — not generic fashion tips.
+  return `You are WearWise, a personal outfit styling assistant. Your job is to help users look their best using the clothes they already own. You have full access to their wardrobe and profile, and you give practical, confident outfit advice — not generic fashion tips.
 
 ${profileSection}
 
