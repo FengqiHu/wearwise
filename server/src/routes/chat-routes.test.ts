@@ -327,6 +327,80 @@ describe("createChatRoutes POST /chat – styleNote active instruction in system
   });
 });
 
+describe("createChatRoutes POST /chat – configurable outfit count in system message", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("instructs the LLM to infer outfit count from the conversation", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Infer the number of outfits");
+    expect(systemMessage).not.toContain("Always include exactly 3");
+  });
+
+  it("specifies default of 3 and maximum of 5 in the count instruction", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Default to 3");
+    expect(systemMessage).toContain("Maximum is 5");
+  });
+});
+
+describe("createChatRoutes POST /chat – style compatibility rules in system message", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("includes all three style compatibility rules in Step 4", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Formality");
+    expect(systemMessage).toContain("formality level");
+    expect(systemMessage).toContain("Color coordination");
+    expect(systemMessage).toContain("complementary");
+    expect(systemMessage).toContain("Occasion fit");
+    expect(systemMessage).toContain("dress code");
+  });
+});
+
 describe("createChatRoutes POST /chat – ISO timestamp prefixes on historical messages", () => {
   let server: Server | null = null;
 
@@ -559,7 +633,7 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain('"outfitName": "Outfit name here"');
     expect(systemMessage).toContain('"reason": "Why this outfit suits the occasion and user"');
     expect(systemMessage).toContain('{ "id": "<exact item ID>", "name": "<item name>" }');
-    expect(systemMessage).toContain('Always include exactly 3 outfits in the "outfits" array');
+    expect(systemMessage).toContain('Infer the number of outfits');
     expect(systemMessage).toContain('Each outfit may contain at most one item per category');
     expect(systemMessage).toContain('Only use items from the wardrobe list above, with their exact IDs');
   });

@@ -204,7 +204,7 @@ For outfit recommendation requests: you MUST respond with ONLY a JSON code block
 \`\`\`
 
 Rules for the JSON:
-- Always include exactly 3 outfits in the "outfits" array
+- Infer the number of outfits to include from the conversation (e.g. if the user says "give me one outfit" include 1, "show me 5 options" include 5). Default to 3 when no count is specified. Maximum is 5.
 - Each outfit must have a unique combination of items — no two outfits may share the exact same set of items
 - Each outfit may contain at most one item per category (e.g. no two tops, no two bottoms)
 - Each outfit must include an "occasions" array. Use [] when no occasion context applies.
@@ -257,6 +257,11 @@ When selecting items for each outfit:
 - Avoid patterns or item types associated with disliked outfits in the preference note.
 - When two items are otherwise equally suitable, prefer the one that better aligns with the preference note.`
   : ""}
+
+**Style compatibility rules (apply to every outfit):**
+- **Formality:** All items in an outfit must share the same formality level. Do not mix casual and formal pieces (e.g. no sneakers with a suit, no graphic tee with dress trousers).
+- **Color coordination:** Combine colors that work together — complementary, analogous, or neutral palettes. Avoid obvious clashes (e.g. bright orange top with hot pink bottoms).
+- **Occasion fit:** When an occasion is known, every item must be appropriate for that occasion. Do not include an item that contradicts the occasion's dress code even if other items match. Also reflect the occasion in the "reason" field of each outfit, e.g. "Since you have a job interview tomorrow, this outfit conveys professionalism…".
 
 When an occasion is known, weave it naturally into the "reason" — e.g. "With a job interview tomorrow, this combination reads polished without being stiff." Avoid starting every reason with the same phrase. Vary the structure.`
 }
