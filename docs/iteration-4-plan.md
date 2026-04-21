@@ -163,7 +163,7 @@
 
 - `@z8ri`: Conversational accessory mode switching (R3)
 - `@ZeliMa`: Preference-driven personalization (R2)
-- `@FengqiHu`: Online product try-on — shared ownership (R1); UI design rebuild (R4)
+- `@FengqiHu`: Online product try-on (R1); UI design rebuild (R4)
 - `@Nanshengbeisheng`: Permanent account deletion (R5); Uploaded image safety review (R6)
 
 **Dependency Order**
