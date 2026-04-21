@@ -306,7 +306,9 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       const [closetItems, userRecord, presetContext] = await Promise.all([
         closetRepository.listByUser(userId),
         userRepository.findById(userId),
-        chatService.prefetchWeatherAndTime(browserLocation).catch(() => undefined)
+        browserLocation
+          ? chatService.prefetchWeatherAndTime(browserLocation).catch(() => undefined)
+          : Promise.resolve(undefined)
       ]);
       const validModes = ["include", "exclude", "auto"] as const;
       const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
@@ -337,6 +339,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       };
 
       const writeOutfitEvent = (outfit: SubmitOutfitArgs): void => {
+        // Temp id for streaming card keying; replaced by DB id after client refetch.
         const tempId = crypto.randomUUID();
         const now = new Date().toISOString();
         res.write(`event: outfit\ndata: ${JSON.stringify({
@@ -382,7 +385,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
         // Save assistant message and recommendations to database
         if (assistantText.trim().length > 0 || collectedOutfits.length > 0) {
-          const savedText = assistantText.trim().length > 0 ? assistantText : "(outfits submitted)";
+          const savedText = assistantText.trim().length > 0 ? assistantText : "";
           const updatedConversation = await conversationRepository.appendMessage(
             userId,
             conversationIdForSave,
@@ -432,7 +435,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
         if (!assistantSaved && (assistantText.trim().length > 0 || collectedOutfits.length > 0)) {
           try {
-            const savedText = assistantText.trim().length > 0 ? assistantText : "(outfits submitted)";
+            const savedText = assistantText.trim().length > 0 ? assistantText : "";
             await conversationRepository.appendMessage(userId, conversationIdForSave, "assistant", savedText);
           } catch (appendError) {
             console.error("Failed to persist assistant response:", appendError);

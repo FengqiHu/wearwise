@@ -564,11 +564,11 @@ export function ChatPage() {
           setActiveConversationId(detail.conversation.id);
           setMessages(detail.messages);
           setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
-          setStreamingOutfits(new Map());
         } catch {
           // Keep the streamed local messages if the sync fails.
         }
       }
+      setStreamingOutfits(new Map());
       setIsGenerating(false);
       await refreshConversationList(responseConversationId ?? undefined);
     }
