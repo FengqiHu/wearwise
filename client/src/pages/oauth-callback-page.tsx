@@ -76,7 +76,7 @@ export function OAuthCallbackPage() {
           <CardTitle className="text-4xl">Google Sign-in</CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-4 text-boutique-700">
+        <CardContent className="space-y-4 text-dim">
           {errorText ? (
             <div className="space-y-3">
               <p className="text-red-700">{errorText}</p>

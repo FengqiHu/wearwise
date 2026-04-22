@@ -385,7 +385,7 @@ describe("createChatRoutes POST /chat – weather and occasion instructions in s
     expect(systemMessage).toContain("get_current_time");
   });
 
-  it("includes the user's timezone in the occasion instruction when provided", async () => {
+  it("includes the user's timezone in the occasion instruction when provided via userLocation", async () => {
     const harness = makeRouteHarness();
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -401,6 +401,143 @@ describe("createChatRoutes POST /chat – weather and occasion instructions in s
 
     const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
     expect(systemMessage).toContain("America/New_York");
+  });
+
+  it("uses top-level timezone when userLocation is absent", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Suggest an outfit.",
+        timezone: "Asia/Tokyo"
+      })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Asia/Tokyo");
+  });
+
+  it("prefers userLocation timezone over top-level timezone when both are present", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Suggest an outfit.",
+        timezone: "Asia/Tokyo",
+        userLocation: { lat: 40.7128, lon: -74.006, timezone: "America/New_York" }
+      })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("America/New_York");
+    expect(systemMessage).not.toContain("Asia/Tokyo");
+  });
+
+  it("omits timezone instruction when neither userLocation nor top-level timezone is provided", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("If you obtained a timezone in Step 1, call get_current_time");
+  });
+
+  it("includes tonight-or-tomorrow timing instruction in Step 3", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("tonight or tomorrow");
+  });
+
+  it("asks for timing and occasion together in Step 3 when no occasion is known and it is evening", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    // EVENING + no occasion → single question covering both timing and occasion
+    expect(systemMessage).toContain("tonight or tomorrow");
+    expect(systemMessage).toContain("what's the occasion");
+  });
+
+  it("includes combined city-and-occasion question in Step 1 when location is unavailable", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("What city are you in, and what are you dressing for?");
+  });
+
+  it("shows location-unavailable sequence in Step 1 when only top-level timezone is provided", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: "Suggest an outfit.",
+        timezone: "Asia/Tokyo"
+      })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    // Step 1 should show the "not available" sequence (no lat/lon), not "Location is available"
+    expect(systemMessage).toContain("Location is not available from the browser");
+    // Step 2 should still use the top-level timezone
+    expect(systemMessage).toContain('get_current_time with timezone "Asia/Tokyo"');
+  });
+
+  it("uses daytime range 00:00-17:59 in Step 3", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await fetch(`${started.baseUrl}/api/chat`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: "Suggest an outfit." })
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("00:00–17:59");
+    expect(systemMessage).toContain("18:00–23:59");
   });
 });
 
