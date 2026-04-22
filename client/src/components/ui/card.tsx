@@ -5,10 +5,7 @@ import { cn } from "../../lib/cn";
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(({ className, ...props }, ref) => (
   <div
     ref={ref}
-    className={cn(
-      "rounded-3xl border border-boutique-200 bg-boutique-50/85 p-5 shadow-soft backdrop-blur-sm",
-      className
-    )}
+    className={cn("rounded-xl border border-pebble bg-cream p-5", className)}
     {...props}
   />
 ));
@@ -22,13 +19,13 @@ export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEleme
 CardHeader.displayName = "CardHeader";
 
 export const CardTitle = forwardRef<HTMLHeadingElement, HTMLAttributes<HTMLHeadingElement>>(({ className, ...props }, ref) => (
-  <h2 ref={ref} className={cn("font-display text-3xl font-semibold tracking-tight text-boutique-900", className)} {...props} />
+  <h2 ref={ref} className={cn("text-2xl font-semibold tracking-tight text-charcoal", className)} {...props} />
 ));
 
 CardTitle.displayName = "CardTitle";
 
 export const CardDescription = forwardRef<HTMLParagraphElement, HTMLAttributes<HTMLParagraphElement>>(
-  ({ className, ...props }, ref) => <p ref={ref} className={cn("text-sm text-boutique-700", className)} {...props} />
+  ({ className, ...props }, ref) => <p ref={ref} className={cn("text-sm text-dim", className)} {...props} />
 );
 
 CardDescription.displayName = "CardDescription";

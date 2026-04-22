@@ -6,7 +6,7 @@ export function ThinkingDots() {
       {delays.map((delay) => (
         <span
           key={delay}
-          className="inline-block h-2.5 w-2.5 rounded-full bg-boutique-500 animate-typing-dot"
+          className="inline-block h-2.5 w-2.5 rounded-full bg-dim animate-typing-dot"
           style={{ animationDelay: delay }}
         />
       ))}
