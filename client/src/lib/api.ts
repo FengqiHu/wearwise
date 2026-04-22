@@ -595,12 +595,14 @@ export async function generateOutfit(
 export async function shopTryOn(
   token: string,
   productKey: string,
-  clothingItemIds: string[]
+  clothingItemIds: string[],
+  outfitName?: string,
+  productName?: string
 ): Promise<string> {
   const response = await fetch(`${API_BASE_URL}/api/shop/try-on`, {
     method: "POST",
     headers: createAuthHeaders(token),
-    body: JSON.stringify({ productKey, clothingItemIds })
+    body: JSON.stringify({ productKey, clothingItemIds, outfitName, productName })
   });
 
   if (response.status === 422) {

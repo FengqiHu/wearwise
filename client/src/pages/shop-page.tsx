@@ -19,11 +19,13 @@ function OutfitCard({
   outfit,
   index,
   productKey,
+  productName,
   token
 }: {
   outfit: ShopOutfit;
   index: number;
   productKey: string;
+  productName: string;
   token: string;
 }) {
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
@@ -45,7 +47,7 @@ function OutfitCard({
       .map((item) => item.id);
 
     try {
-      const imageUrl = await shopTryOn(token, productKey, wardrobeItemIds);
+      const imageUrl = await shopTryOn(token, productKey, wardrobeItemIds, outfit.styleNote, productName);
       setTryOnImageUrl(imageUrl);
       setTryOnState("done");
     } catch (err) {
@@ -328,6 +330,7 @@ export function ShopPage() {
               outfit={outfit}
               index={index}
               productKey={result.product.key}
+              productName={result.product.name}
               token={token ?? ""}
             />
           ))}

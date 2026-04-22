@@ -158,7 +158,8 @@ export function createApp() {
       r2StorageService,
       userRepository,
       imageGenerationService,
-      generationRepository
+      generationRepository,
+      recommendationRepository
     })
   );
 

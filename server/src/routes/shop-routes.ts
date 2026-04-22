@@ -2,6 +2,7 @@ import multer from "multer";
 import { Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { GenerationRepository } from "../repositories/generation-repository.js";
+import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
@@ -24,6 +25,7 @@ interface ShopRoutesDependencies {
   userRepository: UserRepository;
   imageGenerationService: ImageGenerationService;
   generationRepository: GenerationRepository;
+  recommendationRepository: RecommendationRepository;
 }
 
 interface ShopProductItem {
@@ -65,7 +67,8 @@ export function createShopRoutes({
   r2StorageService,
   userRepository,
   imageGenerationService,
-  generationRepository
+  generationRepository,
+  recommendationRepository
 }: ShopRoutesDependencies): Router {
   const router = Router();
 
@@ -258,7 +261,7 @@ export function createShopRoutes({
    * Generates a try-on image combining the user's body photo, a shop product image
    * (identified by its R2 key), and optional wardrobe items.
    *
-   * Request body: { productKey: string, clothingItemIds?: string[] }
+   * Request body: { productKey: string, clothingItemIds?: string[], outfitName?: string, productName?: string }
    * Response 200: { success: true, result: { imageUrl, generatedAt } }
    */
   router.post("/shop/try-on", async (req, res): Promise<void> => {
@@ -286,11 +289,18 @@ export function createShopRoutes({
       }
 
       // 3. Parse and validate request body
-      const body = req.body as { productKey?: unknown; clothingItemIds?: unknown };
+      const body = req.body as {
+        productKey?: unknown;
+        clothingItemIds?: unknown;
+        outfitName?: unknown;
+        productName?: unknown;
+      };
       const productKey = typeof body.productKey === "string" ? body.productKey.trim() : "";
       const clothingItemIds = Array.isArray(body.clothingItemIds)
         ? (body.clothingItemIds as unknown[]).filter((id): id is string => typeof id === "string")
         : [];
+      const outfitName = typeof body.outfitName === "string" ? body.outfitName.trim() : "";
+      const productName = typeof body.productName === "string" ? body.productName.trim() : "Online item";
 
       if (!productKey) {
         res.status(400).json({
@@ -318,8 +328,9 @@ export function createShopRoutes({
       // 5. Build product image URL from key
       const productImageUrl = r2StorageService.publicUrlForKey(productKey);
 
-      // 6. Fetch wardrobe clothing images (if any)
+      // 6. Fetch wardrobe clothing items (if any)
       const clothingImageUrls: string[] = [productImageUrl];
+      const fetchedWardrobeItems: Array<{ id: string; name: string }> = [];
 
       if (clothingItemIds.length > 0) {
         const clothingItems = await Promise.all(
@@ -336,6 +347,7 @@ export function createShopRoutes({
             return;
           }
           clothingImageUrls.push(item.imageUrl);
+          fetchedWardrobeItems.push({ id: item.id, name: item.name ?? "Unknown" });
         }
       }
 
@@ -352,10 +364,32 @@ export function createShopRoutes({
       const key = r2StorageService.buildGeneratedImageKey(userId, filename);
       const generatedImageUrl = await r2StorageService.uploadBuffer(key, generatedImageBuffer, "image/png");
 
+      const generatedAt = new Date().toISOString();
+
       // 9. Save generation record
       await generationRepository.create(userId, clothingItemIds, generatedImageUrl);
 
-      const generatedAt = new Date().toISOString();
+      // 10. Save recommendation record so the try-on appears in history
+      const recommendationItems = [
+        { id: productKey, name: productName },
+        ...fetchedWardrobeItems
+      ];
+      const label = outfitName || productName;
+      const rec = await recommendationRepository.create({
+        userId,
+        outfitName: label,
+        reason: label,
+        items: recommendationItems,
+        occasions: [],
+        weather: null,
+        conversationId: "",
+        messageId: ""
+      });
+      await recommendationRepository.updateGeneration(userId, rec.id, {
+        imageUrl: generatedImageUrl,
+        createdAt: generatedAt
+      });
+
       res.json({
         success: true,
         result: { imageUrl: generatedImageUrl, generatedAt }

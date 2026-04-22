@@ -106,7 +106,7 @@ export class R2StorageService {
     contentType: string
   ): Promise<{ publicUrl: string; key: string }> {
     const ext = MIME_TYPE_TO_EXT[contentType] ?? "bin";
-    const key = `${userId}/shop/${crypto.randomUUID()}.${ext}`;
+    const key = `${userId}/online-items/${crypto.randomUUID()}.${ext}`;
     const publicUrl = await this.uploadBuffer(key, buffer, contentType);
     return { publicUrl, key };
   }
