@@ -38,7 +38,7 @@ const VISION_LIKELIHOOD_RANK: Record<VisionLikelihood, number> = {
 const SAFE_SEARCH_POLICY = [
   { key: "adult", label: "adult", minimum: "POSSIBLE" },
   { key: "violence", label: "violent", minimum: "POSSIBLE" },
-  { key: "racy", label: "sexually suggestive", minimum: "POSSIBLE" }
+  { key: "racy", label: "sexually suggestive", minimum: "VERY_LIKELY" }
 ] as const satisfies ReadonlyArray<{
   key: keyof VisionSafeSearchAnnotation;
   label: string;
