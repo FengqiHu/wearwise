@@ -90,8 +90,22 @@ export function createRecommendationRoutes({
         if (!user?.profile) return;
         const votedRecs = await recommendationRepository.findVotedByUser(userId);
         if (votedRecs.length === 0) return;
+
+        const allItemIds = [...new Set(votedRecs.flatMap((r) => r.items.map((i) => i.id)))];
+        const closetItems = await closetRepository.findByIds(userId, allItemIds);
+        const closetItemMap = new Map(closetItems.map((item) => [item.id, item]));
+
         const styleNote = await geminiRecommendationService.summarizeStyle(
-          votedRecs.map((r: RecommendationRecord) => ({ outfitName: r.outfitName, items: r.items, vote: r.vote!, updatedAt: r.updatedAt }))
+          votedRecs.map((r: RecommendationRecord) => ({
+            outfitName: r.outfitName,
+            items: r.items.flatMap((item) => {
+              const closetItem = closetItemMap.get(item.id);
+              if (!closetItem) return [];
+              return [{ id: item.id, name: item.name, category: closetItem.category, tags: closetItem.tags }];
+            }),
+            vote: r.vote!,
+            updatedAt: r.updatedAt
+          }))
         );
         if (styleNote) {
           await userRepository.updateProfile(userId, { ...user.profile, styleNote });

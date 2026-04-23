@@ -72,9 +72,16 @@ function buildRecommendationPrompt(input: RecommendOutfitInput): string {
   ].join("\n");
 }
 
+export interface VotedOutfitItem {
+  id: string;
+  name: string;
+  category: string | null;
+  tags: string[];
+}
+
 export interface VotedOutfit {
   outfitName: string;
-  items: RecommendationItem[];
+  items: VotedOutfitItem[];
   vote: RecommendationVote;
   updatedAt: string;
 }
@@ -84,7 +91,7 @@ const MAX_VOTE_HISTORY = 20;
 const DECAY_HALF_LIFE_DAYS = 60;
 const DECAY_LAMBDA = Math.LN2 / DECAY_HALF_LIFE_DAYS;
 
-function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
+export function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
   // Take the most recent MAX_VOTE_HISTORY votes (already sorted by updatedAt desc from DB)
   const recent = votedOutfits.slice(0, MAX_VOTE_HISTORY);
 
@@ -101,8 +108,16 @@ function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
   const liked = weighted.filter((w) => w.outfit.vote === "up");
   const disliked = weighted.filter((w) => w.outfit.vote === "down");
 
-  const formatOutfit = ({ outfit, weight }: { outfit: VotedOutfit; weight: number }) =>
-    `- ${outfit.outfitName} [recency: ${weight.toFixed(2)}]: ${outfit.items.map((i) => i.name).join(", ")}`;
+  const formatOutfit = ({ outfit, weight }: { outfit: VotedOutfit; weight: number }) => {
+    const itemLines = outfit.items.length > 0
+      ? outfit.items.map((i) => {
+          const cat = i.category ?? "unknown";
+          const tags = i.tags.length > 0 ? ` [${i.tags.join(", ")}]` : "";
+          return `    - ${i.name} (${cat})${tags}`;
+        }).join("\n")
+      : "    (no items available)";
+    return `- ${outfit.outfitName} [recency: ${weight.toFixed(2)}]:\n${itemLines}`;
+  };
 
   console.log("generate style summary");
 
