@@ -1221,3 +1221,128 @@ describe("createChatRoutes GET /chat/conversations/:conversationId – recommend
     expect(body.conversation.accessoryMode).toBe("exclude");
   });
 });
+
+describe("createChatRoutes POST /chat/conversations/:conversationId/mode", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  async function postMode(baseUrl: string, conversationId: string, body: unknown): Promise<Response> {
+    return fetch(`${baseUrl}/api/chat/conversations/${conversationId}/mode`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  }
+
+  it("returns 401 when unauthenticated", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.authResolve.mockResolvedValue({ user: null, error: { status: 401, message: "Unauthorized." } });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "conv-1", { mode: "exclude" });
+
+    expect(res.status).toBe(401);
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalled();
+  });
+
+  it("returns 404 when the conversation does not exist", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.findConversation.mockResolvedValue(null);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "missing", { mode: "exclude" });
+
+    expect(res.status).toBe(404);
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when mode is missing or invalid", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const missing = await postMode(started.baseUrl, "conv-1", {});
+    expect(missing.status).toBe(400);
+
+    const invalid = await postMode(started.baseUrl, "conv-1", { mode: "maybe" });
+    expect(invalid.status).toBe(400);
+
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalled();
+  });
+
+  it("persists mode=auto and clears any pendingConfirmation", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "conv-1", { mode: "auto" });
+
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ accessoryMode: "auto" });
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      "conv-1",
+      { accessoryMode: "auto", pendingConfirmation: null }
+    );
+  });
+
+  it("persists mode=exclude and writes an addAccessoriesOffer pending", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "conv-1", { mode: "exclude" });
+
+    expect(res.status).toBe(200);
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      "conv-1",
+      {
+        accessoryMode: "exclude",
+        pendingConfirmation: { type: "addAccessoriesOffer", createdAt: expect.any(String) }
+      }
+    );
+  });
+
+  it("persists mode=include and clears pending when the wardrobe has a ready accessory", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-acc", category: "accessories", analysisStatus: "ready" })
+      ]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "conv-1", { mode: "include" });
+
+    expect(res.status).toBe(200);
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      "conv-1",
+      { accessoryMode: "include", pendingConfirmation: null }
+    );
+  });
+
+  it("returns 409 no_accessories_in_wardrobe and does not persist when include is requested with no ready accessory", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" })]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postMode(started.baseUrl, "conv-1", { mode: "include" });
+
+    expect(res.status).toBe(409);
+    expect(await res.json()).toEqual({ error: "no_accessories_in_wardrobe" });
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalled();
+  });
+});
