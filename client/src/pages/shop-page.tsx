@@ -119,6 +119,10 @@ export function ShopPage() {
   const findOutfits = async () => {
     if (!selectedFile || !token || isLoading) return;
 
+    // Capture before async ops so the product thumbnail stays correct even if
+    // the user somehow triggers a re-render mid-flight.
+    const localPreviewUrl = previewUrl;
+
     setIsLoading(true);
     setError(null);
     setResult(null);
@@ -134,6 +138,14 @@ export function ShopPage() {
       await uploadFileToPresignedUrl(uploadUrl, selectedFile);
 
       const recommendations = await shopRecommend(token, publicUrl, mimeType);
+
+      // The server deletes the temporary R2 object after analysis and returns
+      // imageUrl: "" for the product. Substitute the local blob so the thumbnail
+      // still renders without needing the (now-deleted) R2 URL.
+      if (localPreviewUrl) {
+        recommendations.product.imageUrl = localPreviewUrl;
+      }
+
       setResult(recommendations);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -148,6 +160,8 @@ export function ShopPage() {
     setPreviewUrl(null);
     setResult(null);
     setError(null);
+    // Clear the native input value so re-selecting the same file triggers onChange
+    if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   return (

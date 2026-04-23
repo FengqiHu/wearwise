@@ -154,7 +154,8 @@ export function createApp() {
       authService,
       closetRepository,
       geminiExtractionService,
-      geminiRecommendationService
+      geminiRecommendationService,
+      r2StorageService
     })
   );
 

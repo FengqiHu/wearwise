@@ -8,7 +8,7 @@ import {
   type OutfitCategory,
   type RecommendationItemContext
 } from "../services/gemini-recommendation-service.js";
-import { isAllowedMimeType } from "../services/r2-storage-service.js";
+import { isAllowedMimeType, type R2StorageService } from "../services/r2-storage-service.js";
 import type { OutfitItem } from "../types/domain.js";
 
 interface ShopRoutesDependencies {
@@ -16,6 +16,7 @@ interface ShopRoutesDependencies {
   closetRepository: ClosetRepository;
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
+  r2StorageService: R2StorageService;
 }
 
 interface ShopRecommendResponse {
@@ -30,7 +31,8 @@ export function createShopRoutes({
   authService,
   closetRepository,
   geminiExtractionService,
-  geminiRecommendationService
+  geminiRecommendationService,
+  r2StorageService
 }: ShopRoutesDependencies): Router {
   const router = Router();
 
@@ -38,7 +40,9 @@ export function createShopRoutes({
    * POST /api/shop/recommend
    *
    * Analyzes an uploaded product image and suggests outfits from the user's
-   * existing wardrobe that pair well with it. Nothing is persisted.
+   * existing wardrobe that pair well with it. The temporary R2 object is
+   * deleted after analysis; the client is expected to use its local preview URL
+   * for the product thumbnail.
    *
    * Request body: { imageUrl: string, mimeType: string }
    * Response 200: { product: OutfitItem, outfits: Array<{ styleNote, items }> }
@@ -68,6 +72,12 @@ export function createShopRoutes({
         return;
       }
 
+      // SSRF guard: only allow URLs that belong to our own R2 bucket
+      if (!r2StorageService.ownsPublicUrl(imageUrl)) {
+        res.status(400).json({ error: "imageUrl must point to an image in our storage bucket." });
+        return;
+      }
+
       if (!isAllowedMimeType(mimeType)) {
         res.status(400).json({
           error: "Invalid mimeType. Allowed: image/jpeg, image/png, image/webp."
@@ -85,15 +95,21 @@ export function createShopRoutes({
         return;
       }
 
-      // 4. Analyze the product image
+      // 4. Analyze the product image, then immediately delete the temporary R2 object.
+      // The image bytes are already held in memory by Gemini at this point, so R2 is no longer needed.
       const extraction = await geminiExtractionService.analyzeClothingImage(imageUrl, mimeType);
+      r2StorageService.deleteObject(imageUrl).catch((err) =>
+        console.error("[shop/recommend] Failed to delete temporary image:", err)
+      );
 
       const productCategory = extraction.category as OutfitCategory;
+      // imageUrl is intentionally left empty: the temporary R2 object has been deleted.
+      // The client substitutes its local preview URL for display.
       const product: OutfitItem = {
         id: "product",
         category: productCategory,
         name: extraction.name,
-        imageUrl,
+        imageUrl: "",
         tags: extraction.tags,
         description: extraction.description,
         isUserSelected: true,
@@ -160,7 +176,7 @@ export function createShopRoutes({
       // 8. Map Gemini result back to OutfitItem arrays (with hallucination guard)
       const wardrobeMap = new Map(allWardrobe.map((item) => [item.id, item]));
 
-      const outfits = geminiResult.outfits.map((geminiOutfit) => {
+      const rawOutfits = geminiResult.outfits.map((geminiOutfit) => {
         const items: OutfitItem[] = [product];
 
         for (const selection of geminiOutfit.selections) {
@@ -185,7 +201,21 @@ export function createShopRoutes({
         };
       });
 
-      const response: ShopRecommendResponse = { product, outfits };
+      // 9. Discard outfits where every selection was hallucinated (only the product remains)
+      const outfits = rawOutfits.filter((o) => o.items.length > 1);
+
+      // Fallback: if all outfits were filtered, return a single product-only outfit
+      const finalOutfits =
+        outfits.length > 0
+          ? outfits
+          : [
+              {
+                styleNote: "Add more analyzed items to your wardrobe to get outfit recommendations.",
+                items: [product]
+              }
+            ];
+
+      const response: ShopRecommendResponse = { product, outfits: finalOutfits };
       res.json(response);
     } catch (error) {
       console.error("Shop recommend error:", error);
