@@ -6,7 +6,6 @@ import { AddPage } from "./add-page";
 
 const apiMocks = vi.hoisted(() => ({
   createClosetItem: vi.fn(),
-  uploadFileToPresignedUrl: vi.fn(),
   analyzeClosetItem: vi.fn()
 }));
 
@@ -77,10 +76,8 @@ describe("AddPage", () => {
     });
 
     apiMocks.createClosetItem.mockResolvedValue({
-      item: { id: "item-1" },
-      uploadUrl: "https://upload.test/item-1"
+      item: { id: "item-1" }
     });
-    apiMocks.uploadFileToPresignedUrl.mockResolvedValue(undefined);
     apiMocks.analyzeClosetItem.mockResolvedValue(undefined);
   });
 
@@ -110,7 +107,7 @@ describe("AddPage", () => {
     expect(screen.getByRole("button", { name: /^upload$/i })).not.toBeDisabled();
   });
 
-  it("uploads selected files by calling createClosetItem, uploadFileToPresignedUrl, and analyzeClosetItem in order", async () => {
+  it("uploads selected files by calling createClosetItem and analyzeClosetItem in order", async () => {
     const user = userEvent.setup();
     const { container } = renderAddPage();
     const fileInput = getFileInput(container);
@@ -119,18 +116,13 @@ describe("AddPage", () => {
     const callOrder: string[] = [];
     let itemCounter = 0;
 
-    apiMocks.createClosetItem.mockImplementation(async (_token: string, contentType: string) => {
+    apiMocks.createClosetItem.mockImplementation(async (_token: string, file: File) => {
       itemCounter += 1;
-      callOrder.push(`create:${contentType}`);
+      callOrder.push(`create:${file.name}`);
 
       return {
-        item: { id: `item-${itemCounter}` },
-        uploadUrl: `https://upload.test/item-${itemCounter}`
+        item: { id: `item-${itemCounter}` }
       };
-    });
-
-    apiMocks.uploadFileToPresignedUrl.mockImplementation(async (uploadUrl: string, file: File) => {
-      callOrder.push(`upload:${uploadUrl}:${file.name}`);
     });
 
     apiMocks.analyzeClosetItem.mockImplementation(async (_token: string, itemId: string, mimeType: string) => {
@@ -142,22 +134,17 @@ describe("AddPage", () => {
 
     await waitFor(() => {
       expect(apiMocks.createClosetItem).toHaveBeenCalledTimes(2);
-      expect(apiMocks.uploadFileToPresignedUrl).toHaveBeenCalledTimes(2);
       expect(apiMocks.analyzeClosetItem).toHaveBeenCalledTimes(2);
     });
 
-    expect(apiMocks.createClosetItem).toHaveBeenNthCalledWith(1, "test-token", "image/png");
-    expect(apiMocks.createClosetItem).toHaveBeenNthCalledWith(2, "test-token", "image/jpeg");
-    expect(apiMocks.uploadFileToPresignedUrl).toHaveBeenNthCalledWith(1, "https://upload.test/item-1", firstFile);
-    expect(apiMocks.uploadFileToPresignedUrl).toHaveBeenNthCalledWith(2, "https://upload.test/item-2", secondFile);
+    expect(apiMocks.createClosetItem).toHaveBeenNthCalledWith(1, "test-token", firstFile);
+    expect(apiMocks.createClosetItem).toHaveBeenNthCalledWith(2, "test-token", secondFile);
     expect(apiMocks.analyzeClosetItem).toHaveBeenNthCalledWith(1, "test-token", "item-1", "image/png");
     expect(apiMocks.analyzeClosetItem).toHaveBeenNthCalledWith(2, "test-token", "item-2", "image/jpeg");
     expect(callOrder).toEqual([
-      "create:image/png",
-      "upload:https://upload.test/item-1:blue-shirt.png",
+      "create:blue-shirt.png",
       "analyze:item-1:image/png",
-      "create:image/jpeg",
-      "upload:https://upload.test/item-2:black-pants.jpg",
+      "create:black-pants.jpg",
       "analyze:item-2:image/jpeg"
     ]);
 
@@ -169,9 +156,9 @@ describe("AddPage", () => {
     const { container } = renderAddPage();
     const fileInput = getFileInput(container);
     const file = createTestFile("coat.webp", "image/webp");
-    const uploadGate = createDeferredPromise<void>();
+    const uploadGate = createDeferredPromise<{ item: { id: string } }>();
 
-    apiMocks.uploadFileToPresignedUrl.mockReturnValue(uploadGate.promise);
+    apiMocks.createClosetItem.mockReturnValue(uploadGate.promise);
 
     await user.upload(fileInput, file);
     await user.click(screen.getByRole("button", { name: /^upload$/i }));
@@ -180,7 +167,7 @@ describe("AddPage", () => {
       expect(screen.getByRole("button", { name: /uploading 1 of 1/i })).toBeDisabled();
     });
 
-    uploadGate.resolve(undefined);
+    uploadGate.resolve({ item: { id: "item-1" } });
 
     await waitFor(() => {
       expect(apiMocks.analyzeClosetItem).toHaveBeenCalledOnce();
@@ -205,12 +192,12 @@ describe("AddPage", () => {
     const fileInput = getFileInput(container);
     const file = createTestFile("boots.png", "image/png");
 
-    apiMocks.uploadFileToPresignedUrl.mockRejectedValue(new Error("Presigned upload failed."));
+    apiMocks.createClosetItem.mockRejectedValue(new Error("Managed upload failed."));
 
     await user.upload(fileInput, file);
     await user.click(screen.getByRole("button", { name: /^upload$/i }));
 
-    expect(await screen.findByText("Upload failed after 0 item(s): Presigned upload failed.")).toBeInTheDocument();
+    expect(await screen.findByText("Upload failed after 0 item(s): Managed upload failed.")).toBeInTheDocument();
     expect(apiMocks.analyzeClosetItem).not.toHaveBeenCalled();
   });
 });

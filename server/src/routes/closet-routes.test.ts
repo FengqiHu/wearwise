@@ -7,6 +7,7 @@ import { createClosetRoutes } from "./closet-routes.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
+import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { ClosetItemRecord, UserRecord } from "../types/domain.js";
@@ -45,6 +46,7 @@ async function startServer(dependencies: {
   authService: AuthService;
   closetRepository: ClosetRepository;
   r2StorageService: R2StorageService;
+  reviewedImageStorageService: ReviewedImageStorageService;
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
 }): Promise<{ baseUrl: string; server: Server }> {
@@ -95,8 +97,18 @@ function makeRouteHarness(options: {
     presignClosetImageUpload: vi.fn().mockResolvedValue({
       uploadUrl: "https://r2.example.com/presigned-upload",
       publicUrl: "https://cdn.example.com/user-1/item-1.jpg"
-    })
+    }),
+    ownsPublicUrl: vi.fn().mockReturnValue(true),
+    deleteObject: vi.fn().mockResolvedValue(undefined)
   } as unknown as R2StorageService;
+
+  const reviewedImageStorageService = {
+    isConfigured: vi.fn().mockReturnValue(isR2Configured),
+    storeUserImage: vi.fn().mockResolvedValue({
+      key: "user-1/closet/test-upload.jpg",
+      publicUrl: "https://cdn.example.com/user-1/item-1.jpg"
+    })
+  } as unknown as ReviewedImageStorageService;
 
   const geminiExtractionService = {
     isConfigured: vi.fn().mockReturnValue(isGeminiConfigured),
@@ -115,6 +127,7 @@ function makeRouteHarness(options: {
       authService,
       closetRepository,
       r2StorageService,
+      reviewedImageStorageService,
       geminiExtractionService,
       geminiRecommendationService
     },
@@ -123,6 +136,7 @@ function makeRouteHarness(options: {
       create: (closetRepository as unknown as { create: ReturnType<typeof vi.fn> }).create,
       findById: (closetRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
       updateExtraction: (closetRepository as unknown as { updateExtraction: ReturnType<typeof vi.fn> }).updateExtraction,
+      storeUserImage: (reviewedImageStorageService as unknown as { storeUserImage: ReturnType<typeof vi.fn> }).storeUserImage,
       analyzeClothingImage: (geminiExtractionService as unknown as { analyzeClothingImage: ReturnType<typeof vi.fn> }).analyzeClothingImage
     }
   };
@@ -166,21 +180,29 @@ describe("createClosetRoutes", () => {
   });
 
   describe("POST /closet/items", () => {
-    it("returns 201 with item and uploadUrl on success", async () => {
+    it("returns 201 with item on success", async () => {
       const harness = makeRouteHarness();
       const started = await startServer(harness.dependencies);
       server = started.server;
 
       const response = await fetch(`${started.baseUrl}/api/closet/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: "image/jpeg" })
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
       });
       const body = await response.json() as Record<string, unknown>;
 
       expect(response.status).toBe(201);
       expect(body.item).toBeDefined();
-      expect(body.uploadUrl).toBe("https://r2.example.com/presigned-upload");
+      expect(harness.spies.storeUserImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          folder: "closet",
+          contentType: "image/jpeg",
+          buffer: expect.any(Buffer)
+        })
+      );
+      expect(harness.spies.create).toHaveBeenCalledWith("user-1", "https://cdn.example.com/user-1/item-1.jpg");
     });
 
     it("returns 401 when not authenticated", async () => {
@@ -190,43 +212,42 @@ describe("createClosetRoutes", () => {
 
       const response = await fetch(`${started.baseUrl}/api/closet/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: "image/jpeg" })
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
       });
 
       expect(response.status).toBe(401);
     });
 
-    it("returns 503 when R2 storage is not configured", async () => {
+    it("returns 503 when image upload is not configured", async () => {
       const harness = makeRouteHarness({ isR2Configured: false });
       const started = await startServer(harness.dependencies);
       server = started.server;
 
       const response = await fetch(`${started.baseUrl}/api/closet/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: "image/jpeg" })
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
       });
       const body = await response.json() as Record<string, unknown>;
 
       expect(response.status).toBe(503);
-      expect(body.error).toBe("Storage service is not configured.");
+      expect(body.error).toBe("Image upload is temporarily unavailable. Please try again later.");
     });
 
-    it("returns 400 when contentType is missing", async () => {
+    it("returns 400 when Content-Type header is missing", async () => {
       const harness = makeRouteHarness();
       const started = await startServer(harness.dependencies);
       server = started.server;
 
       const response = await fetch(`${started.baseUrl}/api/closet/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({})
+        body: new Uint8Array([1, 2, 3])
       });
       const body = await response.json() as Record<string, unknown>;
 
       expect(response.status).toBe(400);
-      expect(body.error).toBe("Missing required field: contentType.");
+      expect(body.error).toBe("Invalid image content type.");
     });
 
     it("returns 400 for invalid contentType", async () => {
@@ -236,8 +257,8 @@ describe("createClosetRoutes", () => {
 
       const response = await fetch(`${started.baseUrl}/api/closet/items`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: "text/plain" })
+        headers: { "Content-Type": "text/plain" },
+        body: "not-an-image"
       });
       const body = await response.json() as Record<string, unknown>;
 
