@@ -940,6 +940,46 @@ describe("createChatRoutes POST /chat – submit_outfit tool behavior", () => {
   });
 });
 
+describe("createChatRoutes POST /chat – variable outfit count end-to-end (#267, #270)", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it.each([1, 3, 5])(
+    "emits %i SSE outfit events and persists %i recommendations when the LLM streams %i outfits",
+    async (count) => {
+      const outfits: SubmitOutfitArgs[] = Array.from({ length: count }, (_, i) => ({
+        outfitName: `Outfit ${i + 1}`,
+        reason: `Reason for outfit ${i + 1}`,
+        items: [{ id: "ready-top", name: "Ready Shirt" }],
+        occasions: []
+      }));
+      const harness = makeRouteHarness({ outfitsToEmit: outfits });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await postChat(started.baseUrl, { message: `Suggest ${count} outfits.` });
+      const body = await response.text();
+
+      // SSE stream contains exactly one outfit data line per streamed outfit
+      const outfitDataLines = body
+        .split("\n")
+        .filter((line) => line.startsWith("data: ") && /"outfitName":"Outfit \d+"/.test(line));
+      expect(outfitDataLines).toHaveLength(count);
+
+      // Persistence: createMany receives an array of exactly `count` recommendations
+      expect(harness.spies.createMany).toHaveBeenCalledOnce();
+      const createManyArg = harness.spies.createMany.mock.calls[0]?.[0] as unknown[];
+      expect(createManyArg).toHaveLength(count);
+    }
+  );
+});
+
 describe("createChatRoutes POST /chat – prefetchWeatherAndTime call behavior", () => {
   let server: Server | null = null;
 
