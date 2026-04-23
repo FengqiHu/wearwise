@@ -53,6 +53,17 @@ const s3Endpoint = getEnv("S3_ENDPOINT");
 const s3AccessKeyId = getEnv("S3_ACCESS_KEY_ID");
 const s3SecretAccessKey = getEnv("S3_SECRET_ACCESS_KEY");
 const s3PublicBaseUrl = stripTrailingSlashes(getEnv("S3_PUBLIC_BASE_URL"));
+const googleCloudVisionApiKey = getEnv("GOOGLE_CLOUD_VISION_API_KEY");
+
+function parseUploadModerationTimeoutMs(): number {
+  const parsed = Number.parseInt(getEnv("UPLOAD_MODERATION_TIMEOUT_MS"), 10);
+
+  if (Number.isFinite(parsed) && parsed > 0) {
+    return parsed;
+  }
+
+  return 10_000;
+}
 
 export const env = {
   port: Number.parseInt(process.env.PORT ?? "3001", 10),
@@ -82,5 +93,7 @@ export const env = {
   s3Endpoint,
   s3AccessKeyId,
   s3SecretAccessKey,
-  s3PublicBaseUrl
+  s3PublicBaseUrl,
+  googleCloudVisionApiKey,
+  uploadModerationTimeoutMs: parseUploadModerationTimeoutMs()
 };

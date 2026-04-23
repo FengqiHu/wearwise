@@ -9,8 +9,7 @@ import {
   deleteClosetItem,
   fetchClosetItem,
   replaceClosetItemImage,
-  updateClosetItemMetadata,
-  uploadFileToPresignedUrl
+  updateClosetItemMetadata
 } from "../lib/api";
 import { CLOTHING_CATEGORIES } from "../types";
 import type { ClosetItemRecord } from "../types";
@@ -129,8 +128,7 @@ export function ClothDetailPage() {
 
     try {
       const contentType = file.type || "image/jpeg";
-      const { item: updated, uploadUrl } = await replaceClosetItemImage(token, item.id, contentType);
-      await uploadFileToPresignedUrl(uploadUrl, file);
+      const { item: updated } = await replaceClosetItemImage(token, item.id, file);
 
       setReplaceStatus("Analyzing new image...");
       await analyzeClosetItem(token, updated.id, contentType);

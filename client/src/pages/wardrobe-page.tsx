@@ -5,13 +5,12 @@ import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
 import {
-  createPresignedImageUpload,
   deleteClosetItem,
   fetchClosetItems,
   generateOutfitByItems,
   importTestClosetItems,
   recommendOutfit,
-  uploadFileToPresignedUrl
+  uploadManagedImage
 } from "../lib/api";
 import { cn } from "../lib/cn";
 import {
@@ -144,7 +143,7 @@ function matchesSampleClosetItem(item: ClothingItem, sampleItem: SampleClosetIte
   const mimeType = getMimeTypeFromPath(normalizedPath);
   const safeFileName = sanitizeSampleFileName(fileName, getFallbackExtension(mimeType));
 
-  return item.imageUrl.includes(`/${userId}/closet/${safeFileName}`);
+  return item.imageUrl.includes(`/${userId}/closet/`) && item.imageUrl.endsWith(safeFileName);
 }
 
 export function WardrobePage() {
@@ -456,32 +455,29 @@ export function WardrobePage() {
           const imageBlob = await imageResponse.blob();
           const fileName = normalizedPath.split("/").pop() ?? "sample-image";
           const contentType = imageBlob.type || getMimeTypeFromPath(normalizedPath);
-          const presigned = await createPresignedImageUpload(token, {
-            contentType,
-            folder: "closet",
-            fileName
-          });
-
           const uploadFile = new File([imageBlob], fileName, { type: contentType });
 
           try {
-            await uploadFileToPresignedUrl(presigned.uploadUrl, uploadFile);
+            const uploaded = await uploadManagedImage(token, {
+              folder: "closet",
+              file: uploadFile
+            });
+
+            items.push({
+              imageUrl: uploaded.publicUrl,
+              analysisStatus: sampleItem.analysisStatus,
+              analysisError: sampleItem.analysisError,
+              name: sampleItem.name,
+              category: sampleItem.category,
+              tags: sampleItem.tags,
+              description: sampleItem.description,
+              createdAt: sampleItem.createdAt,
+              updatedAt: sampleItem.updatedAt
+            });
           } catch (uploadError) {
             const message = uploadError instanceof Error ? uploadError.message : "Unknown upload error.";
             throw new Error(`Failed to upload sample image ${fileName}: ${message}`);
           }
-
-          items.push({
-            imageUrl: presigned.publicUrl,
-            analysisStatus: sampleItem.analysisStatus,
-            analysisError: sampleItem.analysisError,
-            name: sampleItem.name,
-            category: sampleItem.category,
-            tags: sampleItem.tags,
-            description: sampleItem.description,
-            createdAt: sampleItem.createdAt,
-            updatedAt: sampleItem.updatedAt
-          });
           continue;
         }
 

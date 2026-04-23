@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../context/auth-context";
-import { createPresignedImageUpload, uploadFileToPresignedUrl } from "../lib/api";
+import { uploadManagedImage } from "../lib/api";
 import type { UserProfile } from "../types";
 
 const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
@@ -113,16 +113,13 @@ export function ProfilePage() {
     try {
       setUploadingField(field);
       const folder = field === "avatarUrl" ? "avatar" : field === "headshotImageUrl" ? "headshot" : "full-body";
-      const presigned = await createPresignedImageUpload(token, {
-        contentType: file.type,
+      const uploaded = await uploadManagedImage(token, {
         folder,
-        fileName: file.name
+        file
       });
 
-      await uploadFileToPresignedUrl(presigned.uploadUrl, file);
-
       setError(null);
-      updateField(field, presigned.publicUrl);
+      updateField(field, uploaded.publicUrl);
     } catch (uploadError) {
       const message = uploadError instanceof Error ? uploadError.message : "Failed to upload image.";
       setError(message);
