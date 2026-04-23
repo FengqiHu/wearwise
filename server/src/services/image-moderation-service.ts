@@ -109,10 +109,11 @@ export class ImageModerationService {
     let response: Response;
 
     try {
-      response = await fetch(`https://vision.googleapis.com/v1/images:annotate?key=${this.apiKey}`, {
+      response = await fetch("https://vision.googleapis.com/v1/images:annotate", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"
+          "Content-Type": "application/json",
+          "x-goog-api-key": this.apiKey
         },
         body: JSON.stringify({
           requests: [
