@@ -115,13 +115,23 @@ export interface RecommendationHistoryEntry {
   updatedAt: string;
 }
 
+export interface ShopProductItem {
+  /** R2 key — identifies the uploaded image for the try-on endpoint */
+  key: string;
+  imageUrl: string;
+  name: string;
+  category: string;
+  tags: string[];
+  description: string;
+}
+
 export interface ShopOutfit {
   styleNote: string;
   items: OutfitItem[];
 }
 
 export interface ShopRecommendResponse {
-  product: OutfitItem;
+  product: ShopProductItem;
   outfits: ShopOutfit[];
 }
 

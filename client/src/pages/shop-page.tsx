@@ -4,7 +4,7 @@ import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
-import { createPresignedImageUpload, shopRecommend, uploadFileToPresignedUrl } from "../lib/api";
+import { shopRecommend, shopTryOn } from "../lib/api";
 import type { ShopOutfit, ShopRecommendResponse } from "../types";
 
 function BrokenImagePlaceholder({ label }: { label: string }) {
@@ -15,11 +15,45 @@ function BrokenImagePlaceholder({ label }: { label: string }) {
   );
 }
 
-function OutfitCard({ outfit, index }: { outfit: ShopOutfit; index: number }) {
+function OutfitCard({
+  outfit,
+  index,
+  productKey,
+  productName,
+  token
+}: {
+  outfit: ShopOutfit;
+  index: number;
+  productKey: string;
+  productName: string;
+  token: string;
+}) {
   const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
+  const [tryOnState, setTryOnState] = useState<"idle" | "loading" | "done" | "error">("idle");
+  const [tryOnImageUrl, setTryOnImageUrl] = useState<string | null>(null);
+  const [tryOnError, setTryOnError] = useState<string | null>(null);
 
   const markBroken = (id: string) => {
     setBrokenImages((prev) => new Set(prev).add(id));
+  };
+
+  const handleGenerateTryOn = async () => {
+    if (tryOnState === "loading") return;
+    setTryOnState("loading");
+    setTryOnError(null);
+
+    const wardrobeItemIds = outfit.items
+      .filter((item) => !item.isUserSelected)
+      .map((item) => item.id);
+
+    try {
+      const imageUrl = await shopTryOn(token, productKey, wardrobeItemIds, outfit.styleNote, productName);
+      setTryOnImageUrl(imageUrl);
+      setTryOnState("done");
+    } catch (err) {
+      setTryOnError(err instanceof Error ? err.message : "Failed to generate try-on image.");
+      setTryOnState("error");
+    }
   };
 
   return (
@@ -59,14 +93,41 @@ function OutfitCard({ outfit, index }: { outfit: ShopOutfit; index: number }) {
           ))}
         </div>
 
-        <div className="mt-4">
+        <div className="mt-4 space-y-3">
+          {tryOnState === "loading" ? (
+            <div className="flex items-center gap-3 rounded-xl border border-pebble bg-cream px-4 py-3 text-sm text-dim">
+              <ThinkingDots />
+              <span>Generating try-on image...</span>
+            </div>
+          ) : null}
+
+          {tryOnError ? (
+            <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {tryOnError}
+            </p>
+          ) : null}
+
+          {tryOnImageUrl ? (
+            <div className="overflow-hidden rounded-xl border border-pebble">
+              <img
+                src={tryOnImageUrl}
+                alt={`Try-on for outfit ${index + 1}`}
+                className="w-full object-cover"
+              />
+            </div>
+          ) : null}
+
           <Button
-            variant="outline"
+            variant={tryOnState === "done" ? "outline" : "primary"}
             className="w-full"
-            disabled
-            title="Generate Try-On coming in #251"
+            disabled={tryOnState === "loading"}
+            onClick={() => void handleGenerateTryOn()}
           >
-            Generate Try-On
+            {tryOnState === "loading"
+              ? "Generating..."
+              : tryOnState === "done"
+                ? "Regenerate Try-On"
+                : "Generate Try-On"}
           </Button>
         </div>
       </div>
@@ -128,24 +189,7 @@ export function ShopPage() {
     setResult(null);
 
     try {
-      const mimeType = selectedFile.type || "image/jpeg";
-      const { uploadUrl, publicUrl } = await createPresignedImageUpload(token, {
-        contentType: mimeType,
-        folder: "closet",
-        fileName: selectedFile.name
-      });
-
-      await uploadFileToPresignedUrl(uploadUrl, selectedFile);
-
-      const recommendations = await shopRecommend(token, publicUrl, mimeType);
-
-      // The server deletes the temporary R2 object after analysis and returns
-      // imageUrl: "" for the product. Substitute the local blob so the thumbnail
-      // still renders without needing the (now-deleted) R2 URL.
-      if (localPreviewUrl) {
-        recommendations.product.imageUrl = localPreviewUrl;
-      }
-
+      const recommendations = await shopRecommend(token, selectedFile);
       setResult(recommendations);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -287,7 +331,14 @@ export function ShopPage() {
           </div>
 
           {result.outfits.map((outfit, index) => (
-            <OutfitCard key={index} outfit={outfit} index={index} />
+            <OutfitCard
+              key={index}
+              outfit={outfit}
+              index={index}
+              productKey={result.product.key}
+              productName={result.product.name}
+              token={token ?? ""}
+            />
           ))}
         </div>
       ) : null}
