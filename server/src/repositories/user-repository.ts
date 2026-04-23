@@ -188,4 +188,10 @@ export class UserRepository {
 
     return toUserRecord(updatedUser);
   }
+
+  async deleteById(userId: string): Promise<boolean> {
+    const collection = await this.getCollection();
+    const result = await collection.deleteOne({ _id: userId });
+    return result.deletedCount === 1;
+  }
 }

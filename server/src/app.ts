@@ -12,6 +12,7 @@ import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
+import { createAccountRoutes } from "./routes/account-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
@@ -100,6 +101,19 @@ export function createApp() {
     createProfileRoutes({
       authService,
       userRepository,
+      r2StorageService
+    })
+  );
+
+  app.use(
+    "/api",
+    createAccountRoutes({
+      authService,
+      userRepository,
+      closetRepository,
+      conversationRepository,
+      recommendationRepository,
+      generationRepository,
       r2StorageService
     })
   );

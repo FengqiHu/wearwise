@@ -149,6 +149,15 @@ export class RecommendationRepository {
     return documents.map(toRecommendationRecord);
   }
 
+  async listAllByUser(userId: string): Promise<RecommendationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+    return documents.map(toRecommendationRecord);
+  }
+
   async findByMessage(conversationId: string, messageId: string): Promise<RecommendationRecord[]> {
     const collection = await this.getCollection();
     const documents = await collection
@@ -161,6 +170,12 @@ export class RecommendationRepository {
   async deleteByConversation(userId: string, conversationId: string): Promise<number> {
     const collection = await this.getCollection();
     const result = await collection.deleteMany({ userId, conversationId });
+    return result.deletedCount ?? 0;
+  }
+
+  async deleteByUser(userId: string): Promise<number> {
+    const collection = await this.getCollection();
+    const result = await collection.deleteMany({ userId });
     return result.deletedCount ?? 0;
   }
 

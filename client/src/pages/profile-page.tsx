@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../co
 import { Input } from "../components/ui/input";
 import { Textarea } from "../components/ui/textarea";
 import { useAuth } from "../context/auth-context";
-import { createPresignedImageUpload, uploadFileToPresignedUrl } from "../lib/api";
+import { createPresignedImageUpload, deleteAccountFromApi, uploadFileToPresignedUrl } from "../lib/api";
+import { markAccountDeletedNotice } from "../lib/storage";
 import type { UserProfile } from "../types";
 
 const MAX_IMAGE_FILE_SIZE = 5 * 1024 * 1024;
@@ -72,6 +73,10 @@ export function ProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [uploadingField, setUploadingField] = useState<UploadField | null>(null);
+  const [isDeleteConfirmationOpen, setIsDeleteConfirmationOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   useEffect(() => {
     setForm(initialForm);
@@ -185,6 +190,34 @@ export function ProfilePage() {
   const fullBodyDisplay = form.fullBodyImageUrl || DEFAULT_FULL_BODY_IMAGE;
   const headshotDisplay = form.headshotImageUrl || DEFAULT_HEADSHOT_IMAGE;
   const avatarDisplay = normalizeAvatarUrl(form.avatarUrl) ?? normalizeAvatarUrl(user?.picture);
+  const isBusy = isSaving || uploadingField !== null || isDeletingAccount;
+  const isDeleteConfirmationValid = deleteConfirmationText.trim().toUpperCase() === "DELETE";
+
+  const handleDeleteAccount = async (): Promise<void> => {
+    if (!token) {
+      setDeleteError("You need to sign in again before deleting your account.");
+      return;
+    }
+
+    setDeleteError(null);
+    setIsDeletingAccount(true);
+
+    try {
+      await deleteAccountFromApi(token);
+      markAccountDeletedNotice();
+      logout();
+      navigate("/", { replace: true });
+    } catch (deleteAccountError) {
+      const message = deleteAccountError instanceof Error ? deleteAccountError.message : "Failed to delete account.";
+      setDeleteError(
+        /please try again/i.test(message)
+          ? message
+          : `${message.replace(/[.\s]+$/, "")}. Please try again in a moment.`
+      );
+    } finally {
+      setIsDeletingAccount(false);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -224,7 +257,7 @@ export function ProfilePage() {
                 <Button
                   type="button"
                   variant="outline"
-                  disabled={uploadingField !== null}
+                  disabled={uploadingField !== null || isDeletingAccount}
                   onClick={() => avatarInputRef.current?.click()}
                 >
                   {uploadingField === "avatarUrl" ? "Uploading..." : "Upload Avatar"}
@@ -233,7 +266,7 @@ export function ProfilePage() {
                   <Button
                     type="button"
                     variant="ghost"
-                    disabled={uploadingField !== null}
+                    disabled={uploadingField !== null || isDeletingAccount}
                     onClick={() => {
                       updateField("avatarUrl", "");
                       if (avatarInputRef.current) {
@@ -299,13 +332,13 @@ export function ProfilePage() {
               {error ? <p className="text-sm text-red-700">{error}</p> : null}
 
               <div className="flex flex-wrap gap-3 pt-2">
-                <Button type="submit" disabled={isSaving || uploadingField !== null}>
+                <Button type="submit" disabled={isBusy}>
                   {isSaving ? "Saving..." : "Save Profile"}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
-                  disabled={isSaving || uploadingField !== null}
+                  disabled={isBusy}
                   onClick={() => {
                     logout();
                     navigate("/");
@@ -313,7 +346,70 @@ export function ProfilePage() {
                 >
                   Logout
                 </Button>
+                {isEditingProfile ? (
+                  <Button
+                    type="button"
+                    variant="danger"
+                    disabled={isBusy}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteConfirmationText("");
+                      setIsDeleteConfirmationOpen(true);
+                    }}
+                  >
+                    Delete account
+                  </Button>
+                ) : null}
               </div>
+
+              {isEditingProfile && isDeleteConfirmationOpen ? (
+                <div className="rounded-xl border border-red-200 bg-red-50/70 p-4">
+                  <p className="text-sm leading-6 text-red-900">
+                    This permanently deletes your WearWise account, profile, closet metadata, vote history, conversations,
+                    try-on history, and WearWise-managed images. It cannot be undone.
+                  </p>
+
+                  <div className="mt-4">
+                    <label className="mb-1 block text-sm font-medium text-dim" htmlFor="delete-account-confirmation">
+                      Type DELETE to confirm
+                    </label>
+                    <Input
+                      id="delete-account-confirmation"
+                      value={deleteConfirmationText}
+                      onChange={(event) => setDeleteConfirmationText(event.target.value)}
+                      placeholder="DELETE"
+                      disabled={isDeletingAccount}
+                    />
+                  </div>
+
+                  {deleteError ? <p className="mt-3 text-sm text-red-700">{deleteError}</p> : null}
+
+                  <div className="mt-4 flex flex-wrap gap-3">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      disabled={!isDeleteConfirmationValid || isDeletingAccount}
+                      onClick={() => {
+                        void handleDeleteAccount();
+                      }}
+                    >
+                      {isDeletingAccount ? "Deleting account..." : "Permanently delete account"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={isDeletingAccount}
+                      onClick={() => {
+                        setIsDeleteConfirmationOpen(false);
+                        setDeleteConfirmationText("");
+                        setDeleteError(null);
+                      }}
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
             </form>
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 lg:justify-self-end">
@@ -325,6 +421,7 @@ export function ProfilePage() {
                     <button
                       type="button"
                       className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-cream/95 text-lg leading-none text-charcoal shadow"
+                      disabled={isDeletingAccount}
                       onClick={() => {
                         updateField("headshotImageUrl", "");
                         if (headshotInputRef.current) {
@@ -348,7 +445,7 @@ export function ProfilePage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  disabled={uploadingField !== null}
+                  disabled={uploadingField !== null || isDeletingAccount}
                   onClick={() => headshotInputRef.current?.click()}
                 >
                   {uploadingField === "headshotImageUrl" ? "Uploading..." : "Upload Image"}
@@ -363,6 +460,7 @@ export function ProfilePage() {
                     <button
                       type="button"
                       className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-cream/95 text-lg leading-none text-charcoal shadow"
+                      disabled={isDeletingAccount}
                       onClick={() => {
                         updateField("fullBodyImageUrl", "");
                         if (fullBodyInputRef.current) {
@@ -386,13 +484,14 @@ export function ProfilePage() {
                   type="button"
                   variant="outline"
                   className="w-full"
-                  disabled={uploadingField !== null}
+                  disabled={uploadingField !== null || isDeletingAccount}
                   onClick={() => fullBodyInputRef.current?.click()}
                 >
                   {uploadingField === "fullBodyImageUrl" ? "Uploading..." : "Upload Image"}
                 </Button>
               </div>
             </div>
+
           </div>
         </CardContent>
       </Card>

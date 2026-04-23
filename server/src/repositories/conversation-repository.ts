@@ -122,6 +122,12 @@ export class ConversationRepository {
     return result.deletedCount === 1;
   }
 
+  async deleteByUser(userId: string): Promise<number> {
+    const collection = await this.getCollection();
+    const result = await collection.deleteMany({ userId });
+    return result.deletedCount ?? 0;
+  }
+
   async createWithFirstUserMessage(userId: string, messageContent: string): Promise<ConversationRecord> {
     const now = nowIsoString();
     const userMessage = this.createMessage("user", messageContent);
