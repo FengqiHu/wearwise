@@ -115,6 +115,16 @@ export interface RecommendationHistoryEntry {
   updatedAt: string;
 }
 
+export interface ShopOutfit {
+  styleNote: string;
+  items: OutfitItem[];
+}
+
+export interface ShopRecommendResponse {
+  product: OutfitItem;
+  outfits: ShopOutfit[];
+}
+
 export interface ChatMessage {
   id: string;
   role: "user" | "assistant";

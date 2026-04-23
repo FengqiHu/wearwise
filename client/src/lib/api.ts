@@ -6,6 +6,7 @@ import type {
   ClosetItemRecord,
   OutfitRecommendation,
   RecommendationHistoryEntry,
+  ShopRecommendResponse,
   UserProfile
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
@@ -590,6 +591,25 @@ export async function generateOutfit(
   }
 
   return data.result.imageUrl;
+}
+
+export async function shopRecommend(
+  token: string,
+  imageUrl: string,
+  mimeType: string
+): Promise<ShopRecommendResponse> {
+  const response = await fetch(`${API_BASE_URL}/api/shop/recommend`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ imageUrl, mimeType })
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to get shop recommendations.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as ShopRecommendResponse;
 }
 
 export async function fetchRecommendationHistory(token: string): Promise<RecommendationHistoryEntry[]> {
