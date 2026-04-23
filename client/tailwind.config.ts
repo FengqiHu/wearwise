@@ -16,15 +16,24 @@ export default {
           700: "#755335",
           800: "#573d28",
           900: "#36261b"
-        }
+        },
+        // Design system colors
+        cream: "#f7f4ed",
+        chalk: "#fcfbf8",
+        pebble: "#e2dfd6",
+        charcoal: "#1c1c1c",
+        dim: "#5f5f5d"
       },
       fontFamily: {
         display: ['"Cormorant Garamond"', "serif"],
-        sans: ['"Manrope"', "ui-sans-serif", "system-ui", "sans-serif"]
+        sans: ['"DM Sans"', '"Manrope"', "ui-sans-serif", "system-ui", "sans-serif"]
       },
       boxShadow: {
         soft: "0 22px 40px -28px rgba(41, 27, 12, 0.45)",
-        insetWarm: "inset 0 0 0 1px rgba(149, 108, 67, 0.22)"
+        insetWarm: "inset 0 0 0 1px rgba(149, 108, 67, 0.22)",
+        "btn-dark":
+          "rgba(255,255,255,0.2) 0px 0.5px 0px 0px inset, rgba(0,0,0,0.2) 0px 0px 0px 0.5px inset, rgba(0,0,0,0.05) 0px 1px 2px 0px",
+        "focus-warm": "rgba(0,0,0,0.1) 0px 4px 12px"
       },
       keyframes: {
         "fade-up": {

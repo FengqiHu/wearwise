@@ -93,12 +93,14 @@ describe("ChatPage", () => {
       expect((textarea as HTMLTextAreaElement).value).toMatch(/smart-casual/i);
     });
 
-    it("hides quick prompts once input has text", async () => {
+    it("hides quick prompts once a message is sent", async () => {
       const user = userEvent.setup();
+      apiMocks.streamChatResponse.mockResolvedValue(undefined);
       renderChat();
 
       const textarea = await screen.findByPlaceholderText(/tell me what you want/i);
       await user.type(textarea, "what should I wear");
+      await user.click(screen.getByRole("button", { name: /send/i }));
 
       await waitFor(() => {
         expect(screen.queryByText(/smart-casual outfit/i)).toBeNull();
@@ -241,7 +243,7 @@ describe("ChatPage", () => {
       renderChat();
 
       await screen.findByText("Old Chat");
-      await user.click(screen.getByRole("button", { name: /new chat/i }));
+      await user.click(screen.getByRole("button", { name: /new conversation/i }));
 
       await screen.findByText(/tell me the weather/i);
     });

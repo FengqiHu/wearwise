@@ -202,11 +202,11 @@ export function ProfilePage() {
           <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-start">
             <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="mb-7 flex justify-center">
-                <div className="relative h-24 w-24 overflow-hidden rounded-full border border-boutique-300 bg-boutique-100">
+                <div className="relative h-24 w-24 overflow-hidden rounded-full border border-pebble bg-[rgba(28,28,28,0.04)]">
                   {avatarDisplay ? (
                     <img src={avatarDisplay} alt="Avatar preview" className="h-full w-full object-cover" />
                   ) : (
-                    <div className="grid h-full w-full place-items-center text-2xl font-semibold text-boutique-800">
+                    <div className="grid h-full w-full place-items-center text-2xl font-semibold text-charcoal">
                       {(form.name.trim().charAt(0) || "U").toUpperCase()}
                     </div>
                   )}
@@ -247,13 +247,13 @@ export function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Name</label>
+                <label className="mb-1 block text-sm font-medium text-dim">Name</label>
                 <Input value={form.name} onChange={(event) => updateField("name", event.target.value)} placeholder="Your name" />
               </div>
 
               <div className="grid gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-boutique-700">Height (cm)</label>
+                  <label className="mb-1 block text-sm font-medium text-dim">Height (cm)</label>
                   <Input
                     value={form.heightCm}
                     onChange={(event) => updateField("heightCm", event.target.value)}
@@ -263,7 +263,7 @@ export function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="mb-1 block text-sm font-medium text-boutique-700">Weight (kg)</label>
+                  <label className="mb-1 block text-sm font-medium text-dim">Weight (kg)</label>
                   <Input
                     value={form.weightKg}
                     onChange={(event) => updateField("weightKg", event.target.value)}
@@ -274,9 +274,9 @@ export function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Sex (optional)</label>
+                <label className="mb-1 block text-sm font-medium text-dim">Sex (optional)</label>
                 <select
-                  className="h-11 w-full rounded-2xl border border-boutique-300 bg-boutique-50 px-4 text-sm text-boutique-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-boutique-400"
+                  className="h-11 w-full rounded-lg border border-pebble bg-cream px-4 text-sm text-charcoal focus-visible:outline-none focus-visible:shadow-focus-warm"
                   value={form.sex}
                   onChange={(event) => updateField("sex", event.target.value)}
                 >
@@ -288,7 +288,7 @@ export function ProfilePage() {
               </div>
 
               <div>
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Style Preference (optional)</label>
+                <label className="mb-1 block text-sm font-medium text-dim">Style Preference (optional)</label>
                 <Textarea
                   value={form.styleNote}
                   onChange={(event) => updateField("styleNote", event.target.value)}
@@ -318,13 +318,13 @@ export function ProfilePage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2 lg:justify-self-end">
               <div className="space-y-2">
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Headshot (optional)</label>
-                <div className="group relative block h-[280px] w-[200px] overflow-hidden rounded-2xl border border-boutique-300 bg-boutique-100">
+                <label className="mb-1 block text-sm font-medium text-dim">Headshot (optional)</label>
+                <div className="group relative block h-[280px] w-[200px] overflow-hidden rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)]">
                   <img src={headshotDisplay} alt="Headshot preview" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
                   {form.headshotImageUrl ? (
                     <button
                       type="button"
-                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-boutique-50/95 text-lg leading-none text-boutique-800 shadow"
+                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-cream/95 text-lg leading-none text-charcoal shadow"
                       onClick={() => {
                         updateField("headshotImageUrl", "");
                         if (headshotInputRef.current) {
@@ -356,13 +356,13 @@ export function ProfilePage() {
               </div>
 
               <div className="space-y-2">
-                <label className="mb-1 block text-sm font-medium text-boutique-700">Full-body (required)</label>
-                <div className="group relative block h-[280px] w-[200px] overflow-hidden rounded-2xl border border-boutique-300 bg-boutique-100">
+                <label className="mb-1 block text-sm font-medium text-dim">Full-body (required)</label>
+                <div className="group relative block h-[280px] w-[200px] overflow-hidden rounded-xl border border-pebble bg-[rgba(28,28,28,0.04)]">
                   <img src={fullBodyDisplay} alt="Full-body preview" className="h-full w-full object-cover transition group-hover:scale-[1.02]" />
                   {form.fullBodyImageUrl ? (
                     <button
                       type="button"
-                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-boutique-50/95 text-lg leading-none text-boutique-800 shadow"
+                      className="absolute right-2 top-2 grid h-7 w-7 place-items-center rounded-full bg-cream/95 text-lg leading-none text-charcoal shadow"
                       onClick={() => {
                         updateField("fullBodyImageUrl", "");
                         if (fullBodyInputRef.current) {

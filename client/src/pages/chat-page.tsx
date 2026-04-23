@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../components/ui/button";
-import { Card } from "../components/ui/card";
 import {
   PromptInput,
   PromptInputAction,
@@ -32,21 +31,46 @@ interface OutfitGenerationState {
   isLoading: boolean;
 }
 
+// ── Icons ──────────────────────────────────────────────────────────────────────
+
+function PanelLeftIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+    </svg>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+    </svg>
+  );
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
 function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<string, OutfitGenerationState> {
   const nextStates: Record<string, OutfitGenerationState> = {};
-
   for (const message of messages) {
     for (const rec of message.recommendations ?? []) {
       if (rec.generation) {
-        nextStates[rec.id] = {
-          generatedImageUrl: rec.generation.imageUrl,
-          error: null,
-          isLoading: false
-        };
+        nextStates[rec.id] = { generatedImageUrl: rec.generation.imageUrl, error: null, isLoading: false };
       }
     }
   }
-
   return nextStates;
 }
 
@@ -72,24 +96,16 @@ function RecommendationCards({
   }, [closetItems]);
 
   return (
-    <div className="flex flex-col gap-3 w-full">
-      <p className="text-xs font-medium text-boutique-600 uppercase tracking-wide">Outfit Recommendations</p>
+    <div className="flex w-full flex-col gap-3">
+      <p className="text-xs font-medium uppercase tracking-wide text-dim">Outfit Recommendations</p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {recommendations.map((rec) => {
-          const generationState = generationStates[rec.id] ?? {
-            generatedImageUrl: null,
-            error: null,
-            isLoading: false
-          };
-
+          const generationState = generationStates[rec.id] ?? { generatedImageUrl: null, error: null, isLoading: false };
           const currentVote = voteStates[rec.id] ?? rec.vote ?? null;
 
           return (
-            <div
-              key={rec.id}
-              className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm"
-            >
-              <p className="font-display text-lg leading-snug text-boutique-900">{rec.outfitName}</p>
+            <div key={rec.id} className="flex flex-col gap-3 rounded-xl border border-pebble bg-cream p-4">
+              <p className="text-base font-medium leading-snug text-charcoal">{rec.outfitName}</p>
 
               <div className="flex flex-wrap gap-2">
                 {(rec.items ?? []).map((item) => {
@@ -100,13 +116,13 @@ function RecommendationCards({
                       src={closetItem.imageUrl}
                       alt={item.name}
                       title={item.name}
-                      className="h-16 w-16 rounded-xl border border-boutique-200 object-cover shadow-sm"
+                      className="h-16 w-16 rounded-lg border border-pebble object-cover"
                     />
                   ) : (
                     <div
                       key={item.id}
                       title={item.name}
-                      className="flex h-16 w-16 items-center justify-center rounded-xl border border-boutique-200 bg-boutique-100 text-xs text-boutique-500"
+                      className="flex h-16 w-16 items-center justify-center rounded-lg border border-pebble bg-[rgba(28,28,28,0.04)] text-xs text-dim"
                     >
                       ?
                     </div>
@@ -114,7 +130,7 @@ function RecommendationCards({
                 })}
               </div>
 
-              <p className="text-xs leading-relaxed text-boutique-700">{rec.reason}</p>
+              <p className="text-xs leading-relaxed text-dim">{rec.reason}</p>
 
               <div className="flex items-center gap-2">
                 <button
@@ -122,10 +138,10 @@ function RecommendationCards({
                   aria-label="Thumbs up"
                   onClick={() => { void onVote(rec.id, currentVote === "up" ? null : "up"); }}
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border text-base transition",
+                    "flex h-7 w-7 items-center justify-center rounded-full border text-sm transition",
                     currentVote === "up"
-                      ? "border-green-400 bg-green-100 text-green-700"
-                      : "border-boutique-200 bg-white text-boutique-500 hover:border-green-300 hover:bg-green-50 hover:text-green-600"
+                      ? "border-green-400 bg-green-50 text-green-700"
+                      : "border-pebble bg-cream text-dim hover:border-green-300 hover:bg-green-50 hover:text-green-600"
                   )}
                 >
                   👍
@@ -135,10 +151,10 @@ function RecommendationCards({
                   aria-label="Thumbs down"
                   onClick={() => { void onVote(rec.id, currentVote === "down" ? null : "down"); }}
                   className={cn(
-                    "flex h-8 w-8 items-center justify-center rounded-full border text-base transition",
+                    "flex h-7 w-7 items-center justify-center rounded-full border text-sm transition",
                     currentVote === "down"
-                      ? "border-red-400 bg-red-100 text-red-700"
-                      : "border-boutique-200 bg-white text-boutique-500 hover:border-red-300 hover:bg-red-50 hover:text-red-600"
+                      ? "border-red-400 bg-red-50 text-red-700"
+                      : "border-pebble bg-cream text-dim hover:border-red-300 hover:bg-red-50 hover:text-red-600"
                   )}
                 >
                   👎
@@ -146,7 +162,7 @@ function RecommendationCards({
               </div>
 
               {generationState.generatedImageUrl ? (
-                <div className="overflow-hidden rounded-2xl border border-boutique-200 bg-white/80">
+                <div className="overflow-hidden rounded-xl border border-pebble">
                   <img
                     src={generationState.generatedImageUrl}
                     alt={`${rec.outfitName} try-on`}
@@ -156,7 +172,7 @@ function RecommendationCards({
               ) : null}
 
               {generationState.error ? (
-                <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
+                <p className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs leading-relaxed text-red-700">
                   {generationState.error}
                 </p>
               ) : null}
@@ -166,9 +182,7 @@ function RecommendationCards({
                 size="sm"
                 disabled={generationState.isLoading || (rec.items ?? []).length === 0}
                 className="mt-auto w-full"
-                onClick={() => {
-                  void onGenerateTryOn(rec.id);
-                }}
+                onClick={() => { void onGenerateTryOn(rec.id); }}
               >
                 {generationState.isLoading ? (
                   <span className="inline-flex items-center gap-2">
@@ -190,36 +204,26 @@ function RecommendationCards({
 }
 
 function isRawOutfitJson(content: string): boolean {
-  return /```json[\s\S]*"outfits"/.test(content);
+  return content.includes("```json");
 }
 
 function createMessage(role: ChatMessage["role"], content: string): ChatMessage {
-  return {
-    id: crypto.randomUUID(),
-    role: role,
-    content: content
-  };
+  return { id: crypto.randomUUID(), role, content };
 }
 
 function formatConversationTime(iso: string): string {
   const date = new Date(iso);
-
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
+  if (Number.isNaN(date.getTime())) return "";
   const now = new Date();
   const isSameDay =
     date.getFullYear() === now.getFullYear() &&
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate();
-
-  if (isSameDay) {
-    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  }
-
+  if (isSameDay) return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   return date.toLocaleDateString();
 }
+
+// ── ChatPage ───────────────────────────────────────────────────────────────────
 
 export function ChatPage() {
   const { profile, user, token } = useAuth();
@@ -240,6 +244,7 @@ export function ChatPage() {
     []
   );
 
+  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [conversations, setConversations] = useState<ChatConversationSummary[]>([]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([greeting]);
@@ -258,11 +263,11 @@ export function ChatPage() {
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
+  const hasUserMessages = useMemo(() => messages.some((m) => m.role === "user"), [messages]);
+
   useEffect(() => {
     if (!token) return;
-    fetchClosetItems(token)
-      .then(setClosetItems)
-      .catch(() => {});
+    fetchClosetItems(token).then(setClosetItems).catch(() => {});
   }, [token]);
 
   useEffect(() => {
@@ -274,10 +279,7 @@ export function ChatPage() {
   }, [activeConversationId]);
 
   useEffect(() => {
-    if (!navigator.geolocation) {
-      return;
-    }
-
+    if (!navigator.geolocation) return;
     navigator.geolocation.getCurrentPosition(
       (position) => {
         setUserLocation({
@@ -286,9 +288,7 @@ export function ChatPage() {
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
       },
-      () => {
-        // Permission denied or unavailable — location stays null
-      },
+      () => {},
       { timeout: 10000 }
     );
   }, []);
@@ -309,16 +309,10 @@ export function ChatPage() {
     const loadHistory = async (): Promise<void> => {
       setIsLoadingHistory(true);
       setHistoryError(null);
-
       try {
         const list = await fetchChatConversations(token);
-
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         setConversations(list);
-
         if (list.length === 0) {
           setActiveConversationId(null);
           setMessages([greeting]);
@@ -326,23 +320,15 @@ export function ChatPage() {
           setVoteStates({});
           return;
         }
-
         const firstConversationId = list[0].id;
         const detail = await fetchChatConversation(token, firstConversationId);
-
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         setActiveConversationId(firstConversationId);
         setMessages(detail.messages);
         setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
         setAccessoryMode(detail.conversation.accessoryMode);
       } catch (error) {
-        if (!active) {
-          return;
-        }
-
+        if (!active) return;
         const message = error instanceof Error ? error.message : "Failed to load chat history.";
         setHistoryError(message);
         setActiveConversationId(null);
@@ -350,34 +336,25 @@ export function ChatPage() {
         setOutfitGenerationStates({});
         setVoteStates({});
       } finally {
-        if (active) {
-          setIsLoadingHistory(false);
-        }
+        if (active) setIsLoadingHistory(false);
       }
     };
 
     void loadHistory();
-
-    return () => {
-      active = false;
-    };
+    return () => { active = false; };
   }, [token, greeting]);
 
   const refreshConversationList = useCallback(
     async (nextActiveConversationId?: string): Promise<void> => {
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       try {
         const list = await fetchChatConversations(token);
         setConversations(list);
-
         if (nextActiveConversationId && list.some((entry) => entry.id === nextActiveConversationId)) {
           setActiveConversationId(nextActiveConversationId);
         }
       } catch {
-        // Do not interrupt active chat interaction if list refresh fails.
+        // Don't interrupt active chat if list refresh fails.
       }
     },
     [token]
@@ -385,13 +362,9 @@ export function ChatPage() {
 
   const loadConversation = useCallback(
     async (conversationId: string): Promise<void> => {
-      if (!token || isGenerating || deletingConversationId === conversationId) {
-        return;
-      }
-
+      if (!token || isGenerating || deletingConversationId === conversationId) return;
       setIsLoadingConversation(true);
       setHistoryError(null);
-
       try {
         const detail = await fetchChatConversation(token, conversationId);
         setActiveConversationId(conversationId);
@@ -409,10 +382,7 @@ export function ChatPage() {
   );
 
   const startNewChat = useCallback((): void => {
-    if (isGenerating) {
-      return;
-    }
-
+    if (isGenerating) return;
     setActiveConversationId(null);
     setMessages([greeting]);
     setOutfitGenerationStates({});
@@ -424,33 +394,21 @@ export function ChatPage() {
 
   const handleDeleteConversation = useCallback(
     async (conversationId: string): Promise<void> => {
-      if (!token || isGenerating || isLoadingConversation || deletingConversationId) {
-        return;
-      }
-
+      if (!token || isGenerating || isLoadingConversation || deletingConversationId) return;
       const target = conversations.find((entry) => entry.id === conversationId);
       const title = target?.title ?? "this conversation";
-      const confirmed = window.confirm(`Delete "${title}"? This action cannot be undone.`);
-
-      if (!confirmed) {
-        return;
-      }
-
+      if (!window.confirm(`Delete "${title}"? This action cannot be undone.`)) return;
       setDeletingConversationId(conversationId);
       setHistoryError(null);
-
       try {
         await deleteChatConversation(token, conversationId);
         const remainingConversations = conversations.filter((entry) => entry.id !== conversationId);
         setConversations(remainingConversations);
-
         if (activeConversationId === conversationId) {
           const nextConversationId = remainingConversations[0]?.id ?? null;
           setActiveConversationId(nextConversationId);
-
           if (nextConversationId) {
             setIsLoadingConversation(true);
-
             try {
               const detail = await fetchChatConversation(token, nextConversationId);
               setMessages(detail.messages);
@@ -503,38 +461,24 @@ export function ChatPage() {
 
   const appendChunkToMessage = (id: string, chunk: string): void => {
     setMessages((previous) =>
-      previous.map((message) => {
-        if (message.id !== id) {
-          return message;
-        }
-
-        return {
-          ...message,
-          content: `${message.content}${chunk}`
-        };
-      })
+      previous.map((message) =>
+        message.id !== id ? message : { ...message, content: `${message.content}${chunk}` }
+      )
     );
   };
 
   const sendMessage = async (): Promise<void> => {
     const nextInput = input.trim();
-
-    if (!token || !nextInput || isGenerating || isLoadingConversation) {
-      return;
-    }
-
+    if (!token || !nextInput || isGenerating || isLoadingConversation) return;
     const userMessage = createMessage("user", nextInput);
     const assistantMessage = createMessage("assistant", "");
-
     setMessages((previous) => [...previous, userMessage, assistantMessage]);
     setInput("");
-
     const controller = new AbortController();
     abortControllerRef.current = controller;
     setIsGenerating(true);
     let responseConversationId: string | null = activeConversationId;
     let shouldSyncConversation = false;
-
     try {
       await streamChatResponse(
         token,
@@ -542,12 +486,11 @@ export function ChatPage() {
           message: nextInput,
           conversationId: activeConversationId ?? undefined,
           accessoryMode,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           userLocation: userLocation ?? undefined
         },
         controller.signal,
-        (chunk) => {
-          appendChunkToMessage(assistantMessage.id, chunk);
-        },
+        (chunk) => { appendChunkToMessage(assistantMessage.id, chunk); },
         (conversationId) => {
           responseConversationId = conversationId;
           setActiveConversationId(conversationId);
@@ -558,10 +501,7 @@ export function ChatPage() {
       if (error instanceof DOMException && error.name === "AbortError") {
         appendChunkToMessage(assistantMessage.id, "\n\n(Stopped)");
       } else {
-        appendChunkToMessage(
-          assistantMessage.id,
-          "\n\nUnable to reach the AI service right now. Please check server status and try again."
-        );
+        appendChunkToMessage(assistantMessage.id, "\n\nUnable to reach the AI service right now. Please check server status and try again.");
       }
     } finally {
       abortControllerRef.current = null;
@@ -573,7 +513,7 @@ export function ChatPage() {
           setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
           setAccessoryMode(detail.conversation.accessoryMode);
         } catch {
-          // Keep the streamed local messages if the sync fails.
+          // Keep streamed local messages if sync fails.
         }
       }
       setIsGenerating(false);
@@ -588,29 +528,16 @@ export function ChatPage() {
 
   const handleGenerateTryOn = useCallback(
     async (recommendationId: string): Promise<void> => {
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       setOutfitGenerationStates((previous) => ({
         ...previous,
-        [recommendationId]: {
-          generatedImageUrl: previous[recommendationId]?.generatedImageUrl ?? null,
-          error: null,
-          isLoading: true
-        }
+        [recommendationId]: { generatedImageUrl: previous[recommendationId]?.generatedImageUrl ?? null, error: null, isLoading: true }
       }));
-
       try {
         const generatedImageUrl = await generateOutfit(token, recommendationId);
-
         setOutfitGenerationStates((previous) => ({
           ...previous,
-          [recommendationId]: {
-            generatedImageUrl,
-            error: null,
-            isLoading: false
-          }
+          [recommendationId]: { generatedImageUrl, error: null, isLoading: false }
         }));
       } catch (error) {
         setOutfitGenerationStates((previous) => ({
@@ -628,12 +555,8 @@ export function ChatPage() {
 
   const handleVote = useCallback(
     async (recommendationId: string, vote: "up" | "down" | null): Promise<void> => {
-      if (!token) {
-        return;
-      }
-
+      if (!token) return;
       setVoteStates((previous) => ({ ...previous, [recommendationId]: vote }));
-
       try {
         await voteRecommendation(token, recommendationId, vote);
       } catch {
@@ -644,217 +567,252 @@ export function ChatPage() {
   );
 
   return (
-    <section className="grid h-[calc(100vh-9.5rem)] w-full max-w-none gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-      <Card className="flex flex-col overflow-hidden p-3">
-        <Button className="w-full" onClick={startNewChat} disabled={isGenerating}>
-          New Chat
-        </Button>
-
-        <div className="mt-3 flex-1 space-y-2 overflow-y-auto rounded-2xl bg-boutique-50/60 p-2">
-          {isLoadingHistory ? (
-            <div className="flex items-center gap-2 px-2 py-3 text-sm text-boutique-700">
-              <ThinkingDots />
-              <span>Loading chat history...</span>
-            </div>
-          ) : conversations.length === 0 ? (
-            <p className="px-2 py-3 text-sm text-boutique-600">No conversations yet.</p>
-          ) : (
-            conversations.map((conversation) => (
-              <div
-                key={conversation.id}
-                className={cn(
-                  "flex items-start gap-2 rounded-xl px-2 py-2 transition",
-                  activeConversationId === conversation.id
-                    ? "bg-boutique-100/80 shadow-sm"
-                    : "bg-boutique-50 hover:bg-boutique-100/55"
-                )}
-              >
-                <button
-                  type="button"
-                  disabled={isGenerating || deletingConversationId === conversation.id}
-                  onClick={() => {
-                    void loadConversation(conversation.id);
-                  }}
-                  className="min-w-0 flex-1 text-left"
-                >
-                  <p className="truncate text-sm font-semibold text-boutique-900">{conversation.title}</p>
-                  <p className="mt-1 truncate text-xs text-boutique-600">
-                    {conversation.lastMessagePreview || "No preview available."}
-                  </p>
-                  <p className="mt-1 text-xs text-boutique-500">{formatConversationTime(conversation.updatedAt)}</p>
-                </button>
-
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="h-8 w-8 shrink-0 rounded-full px-0 text-boutique-600 hover:text-red-700"
-                  disabled={isGenerating || deletingConversationId === conversation.id}
-                  onClick={() => {
-                    void handleDeleteConversation(conversation.id);
-                  }}
-                  aria-label={`Delete ${conversation.title}`}
-                >
-                  x
-                </Button>
-              </div>
-            ))
-          )}
-
-          {historyError ? <p className="px-2 text-xs text-red-700">{historyError}</p> : null}
-        </div>
-      </Card>
-
-      <div className="flex min-h-0 flex-col gap-4">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-5xl leading-tight text-boutique-900">AI Stylist Chat</h1>
-            <p className="mt-1 text-sm text-boutique-700">Ask for outfit suggestions by weather, occasion, or style preference.</p>
+    <div className="flex h-full w-full bg-cream">
+      {/* ── Sidebar ─────────────────────────────────────────────────── */}
+      <aside
+        className={cn(
+          "flex-shrink-0 overflow-hidden border-r border-pebble bg-cream transition-[width] duration-200",
+          sidebarOpen ? "w-72" : "w-0"
+        )}
+      >
+        <div className="flex h-full w-72 flex-col px-2 py-3">
+          {/* Header */}
+          <div className="mb-1 flex items-center justify-between px-1">
+            <span className="text-[11px] font-medium uppercase tracking-wider text-dim">Conversations</span>
           </div>
+
+          {/* New conversation button */}
+          <button
+            onClick={startNewChat}
+            disabled={isGenerating}
+            className="mb-2 flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-charcoal transition hover:bg-[rgba(28,28,28,0.05)] disabled:opacity-50"
+          >
+            <PlusIcon />
+            <span>New conversation</span>
+          </button>
+
+          {/* Conversation list */}
+          <div className="flex-1 space-y-0.5 overflow-y-auto">
+            {isLoadingHistory ? (
+              <div className="flex items-center gap-2 px-3 py-2 text-xs text-dim">
+                <ThinkingDots />
+                <span>Loading...</span>
+              </div>
+            ) : conversations.length === 0 ? (
+              <p className="px-3 py-2 text-xs text-dim">No conversations yet.</p>
+            ) : (
+              conversations.map((conversation) => (
+                <div
+                  key={conversation.id}
+                  className={cn(
+                    "group relative flex items-stretch rounded-md transition",
+                    activeConversationId === conversation.id
+                      ? "bg-[rgba(28,28,28,0.08)]"
+                      : "hover:bg-[rgba(28,28,28,0.05)]",
+                    deletingConversationId === conversation.id && "opacity-50"
+                  )}
+                >
+                  <button
+                    type="button"
+                    disabled={isGenerating || deletingConversationId === conversation.id}
+                    onClick={() => { void loadConversation(conversation.id); }}
+                    className="min-w-0 flex-1 px-3 py-2 text-left"
+                  >
+                    <p className="truncate text-sm leading-snug text-charcoal">{conversation.title}</p>
+                    <p className="mt-0.5 text-xs text-dim">{formatConversationTime(conversation.updatedAt)}</p>
+                  </button>
+
+                  <button
+                    type="button"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded text-dim opacity-0 transition hover:bg-[rgba(220,38,38,0.08)] hover:text-red-600 group-hover:opacity-100"
+                    disabled={isGenerating || deletingConversationId === conversation.id}
+                    onClick={(e) => { e.stopPropagation(); void handleDeleteConversation(conversation.id); }}
+                    aria-label={`Delete ${conversation.title}`}
+                  >
+                    <TrashIcon />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+
+          {historyError ? <p className="mt-2 px-3 text-xs text-red-700">{historyError}</p> : null}
+        </div>
+      </aside>
+
+      {/* ── Main chat area ───────────────────────────────────────────── */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Control bar */}
+        <div className="flex h-11 flex-shrink-0 items-center justify-between border-b border-pebble px-4">
+          <button
+            onClick={() => setSidebarOpen((v) => !v)}
+            className="flex h-7 w-7 items-center justify-center rounded-md text-dim transition hover:bg-[rgba(28,28,28,0.05)] hover:text-charcoal"
+            title={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
+          >
+            <PanelLeftIcon />
+          </button>
 
           <div className="flex items-center gap-3">
-            <div className="flex flex-col items-end gap-1">
-              <label className="flex items-center gap-2 text-sm text-boutique-600 select-none">
-                <span>Accessories:</span>
-                <select
-                  value={accessoryMode}
-                  onChange={(e) => {
-                    void handleAccessoryModeChange(e.target.value as AccessoryMode);
-                  }}
-                  className="rounded-lg border border-boutique-200 bg-white px-2 py-1.5 text-sm text-boutique-800 shadow-sm"
-                >
-                  <option value="auto">AI decides</option>
-                  <option value="include">Include</option>
-                  <option value="exclude">Exclude</option>
-                </select>
-              </label>
-              {accessoryModeError ? (
-                <p className="text-xs text-red-700">{accessoryModeError}</p>
-              ) : null}
-            </div>
-            {activeConversationId ? (
-              <Button
-                variant="danger"
-                size="sm"
-                disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
-                onClick={() => {
-                  void handleDeleteConversation(activeConversationId);
+            <label className="flex select-none items-center gap-1.5 text-xs text-dim">
+              <span>Accessories:</span>
+              <select
+                value={accessoryMode}
+                onChange={(e) => {
+                  void handleAccessoryModeChange(e.target.value as AccessoryMode);
                 }}
+                className="rounded-md border border-pebble bg-cream px-2 py-1 text-xs text-charcoal outline-none transition focus:border-[rgba(28,28,28,0.4)]"
               >
-                Delete Chat
-              </Button>
+                <option value="auto">AI decides</option>
+                <option value="include">Include</option>
+                <option value="exclude">Exclude</option>
+              </select>
+            </label>
+
+            {activeConversationId ? (
+              <button
+                type="button"
+                className="flex h-7 items-center gap-1 rounded-md px-2 text-xs text-dim transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                disabled={isGenerating || isLoadingConversation || deletingConversationId === activeConversationId}
+                onClick={() => { void handleDeleteConversation(activeConversationId); }}
+              >
+                <TrashIcon />
+                <span>Delete</span>
+              </button>
             ) : null}
           </div>
-        </header>
+        </div>
 
-        <Card className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden">
-          <div className="flex-1 space-y-4 overflow-y-auto rounded-2xl border border-boutique-200 bg-boutique-50 p-4">
+        {accessoryModeError ? (
+          <div className="flex-shrink-0 border-b border-pebble px-4 py-1.5">
+            <p className="text-xs text-red-600">{accessoryModeError}</p>
+          </div>
+        ) : null}
+
+        {/* Messages scroll area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="mx-auto max-w-5xl px-4 py-8 md:px-6">
+            {/* Title — only shown before first user message */}
+            {!hasUserMessages && (
+              <div className="mb-10 text-center">
+                <h1 className="text-5xl font-semibold tracking-tight text-charcoal">AI Stylist Chat</h1>
+                <p className="mt-3 text-base text-dim">
+                  Ask for outfit suggestions by weather, occasion, or style preference.
+                </p>
+              </div>
+            )}
+
             {isLoadingConversation ? (
-              <div className="flex items-center gap-2 text-sm text-boutique-700">
+              <div className="flex items-center gap-2 py-4 text-sm text-dim">
                 <ThinkingDots />
                 <span>Loading conversation...</span>
               </div>
             ) : (
               messages.map((message, index) => {
                 const isThinking =
-                  message.role === "assistant" && message.content.length === 0 && isGenerating && index === messages.length - 1;
+                  message.role === "assistant" &&
+                  message.content.length === 0 &&
+                  isGenerating &&
+                  index === messages.length - 1;
 
                 return (
-                  <div key={message.id} className={cn("flex", message.role === "user" ? "justify-end" : "justify-start")}>
-                    <div
-                      className={cn(
-                        "max-w-[95%] rounded-2xl px-4 py-3 text-sm shadow-sm md:max-w-[88%]",
-                        message.role === "user"
-                          ? "bg-boutique-800 text-boutique-50"
-                          : "border border-boutique-200 bg-boutique-100/70 text-boutique-900"
-                      )}
-                    >
-                      {isThinking ? (
-                        <ThinkingDots />
-                      ) : (() => {
-                        const recommendations = message.recommendations;
-                        if (recommendations && recommendations.length > 0) {
-                          return (
-                            <RecommendationCards
-                              recommendations={recommendations}
-                              closetItems={closetItems}
-                              generationStates={outfitGenerationStates}
-                              voteStates={voteStates}
-                              onGenerateTryOn={handleGenerateTryOn}
-                              onVote={handleVote}
-                            />
-                          );
-                        }
-                        if (isRawOutfitJson(message.content)) {
-                          return (
-                            <span className="inline-flex items-center gap-2 text-boutique-600">
-                              <ThinkingDots />
-                              <span>Building outfit recommendations...</span>
-                            </span>
-                          );
-                        }
-                        return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
-                      })()}
-                    </div>
+                  <div
+                    key={message.id}
+                    className={cn("mb-6 flex", message.role === "user" ? "justify-end" : "justify-start")}
+                  >
+                    {message.role === "user" ? (
+                      <div className="max-w-[75%] rounded-2xl bg-[rgba(28,28,28,0.07)] px-4 py-2.5 text-sm text-charcoal">
+                        <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                      </div>
+                    ) : (
+                      <div className="w-full max-w-[88%] text-sm text-charcoal">
+                        {isThinking ? (
+                          <ThinkingDots />
+                        ) : (() => {
+                          const recommendations = message.recommendations;
+                          if (recommendations && recommendations.length > 0) {
+                            return (
+                              <RecommendationCards
+                                recommendations={recommendations}
+                                closetItems={closetItems}
+                                generationStates={outfitGenerationStates}
+                                voteStates={voteStates}
+                                onGenerateTryOn={handleGenerateTryOn}
+                                onVote={handleVote}
+                              />
+                            );
+                          }
+                          if (isRawOutfitJson(message.content)) {
+                            return (
+                              <span className="inline-flex items-center gap-2 text-dim">
+                                <ThinkingDots />
+                                <span>Building outfit recommendations...</span>
+                              </span>
+                            );
+                          }
+                          return <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>;
+                        })()}
+                      </div>
+                    )}
                   </div>
                 );
               })
             )}
             <div ref={scrollAnchorRef} />
           </div>
+        </div>
 
-          {!isGenerating && input.trim().length === 0 ? (
-            <PromptSuggestions className="px-1 pb-1">
-              {quickPrompts.map((prompt) => (
-                <PromptSuggestion
-                  key={prompt}
-                  onClick={() => {
-                    setInput(prompt);
-                  }}
-                >
-                  {prompt}
-                </PromptSuggestion>
-              ))}
-            </PromptSuggestions>
-          ) : null}
+        {/* Quick suggestions — shown above input in new sessions */}
+        {!hasUserMessages && !isGenerating && (
+          <div className="flex-shrink-0 px-4 pb-2 md:px-6">
+            <div className="mx-auto max-w-3xl">
+              <PromptSuggestions>
+                {quickPrompts.map((prompt) => (
+                  <PromptSuggestion key={prompt} onClick={() => { setInput(prompt); }}>
+                    {prompt}
+                  </PromptSuggestion>
+                ))}
+              </PromptSuggestions>
+            </div>
+          </div>
+        )}
 
-          <PromptInput
-            value={input}
-            onSubmit={() => {
-              void sendMessage();
-            }}
-            isLoading={isGenerating || isLoadingConversation}
-          >
-            <PromptInputTextarea
-              placeholder="Tell me what you want to wear today..."
+        {/* Input bar */}
+        <div className="flex-shrink-0 px-4 pb-16 pt-3 md:px-6">
+          <div className="mx-auto max-w-3xl">
+            <PromptInput
               value={input}
-              onValueChange={setInput}
+              onSubmit={() => { void sendMessage(); }}
               isLoading={isGenerating || isLoadingConversation}
-              maxHeight={180}
-              className="min-h-[44px]"
-            />
-
-            <PromptInputActions>
-              <PromptInputAction>
-                {isGenerating ? (
-                  <Button variant="danger" className="min-w-28" onClick={stopGeneration}>
-                    Stop
-                  </Button>
-                ) : (
-                  <Button
-                    className="min-w-28"
-                    onClick={() => {
-                      void sendMessage();
-                    }}
-                    disabled={!input.trim() || isLoadingConversation}
-                  >
-                    Send
-                  </Button>
-                )}
-              </PromptInputAction>
-            </PromptInputActions>
-          </PromptInput>
-        </Card>
+            >
+              <PromptInputTextarea
+                placeholder="Tell me what you want to wear today..."
+                value={input}
+                onValueChange={setInput}
+                isLoading={isGenerating || isLoadingConversation}
+                maxHeight={180}
+                className="min-h-[44px]"
+              />
+              <PromptInputActions>
+                <PromptInputAction>
+                  {isGenerating ? (
+                    <Button variant="danger" className="min-w-20" onClick={stopGeneration}>
+                      Stop
+                    </Button>
+                  ) : (
+                    <Button
+                      className="min-w-20"
+                      onClick={() => { void sendMessage(); }}
+                      disabled={!input.trim() || isLoadingConversation}
+                    >
+                      Send
+                    </Button>
+                  )}
+                </PromptInputAction>
+              </PromptInputActions>
+            </PromptInput>
+          </div>
+        </div>
       </div>
-    </section>
+    </div>
   );
 }
