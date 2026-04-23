@@ -9,7 +9,6 @@ import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
 import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
-import { createShopRoutes } from "./routes/shop-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
@@ -145,17 +144,6 @@ export function createApp() {
       r2StorageService,
       geminiExtractionService,
       geminiRecommendationService
-    })
-  );
-
-  app.use(
-    "/api",
-    createShopRoutes({
-      authService,
-      closetRepository,
-      geminiExtractionService,
-      geminiRecommendationService,
-      r2StorageService
     })
   );
 
