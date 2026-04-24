@@ -3,6 +3,7 @@ import { ClosetRepository } from "../repositories/closet-repository.js";
 import { ConversationRepository } from "../repositories/conversation-repository.js";
 import { GenerationRepository } from "../repositories/generation-repository.js";
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
+import { AccountDeletionRepository } from "../repositories/account-deletion-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
@@ -15,6 +16,7 @@ interface AccountRoutesDependencies {
   conversationRepository: ConversationRepository;
   recommendationRepository: RecommendationRepository;
   generationRepository: GenerationRepository;
+  accountDeletionRepository: AccountDeletionRepository;
   r2StorageService: R2StorageService;
 }
 
@@ -75,6 +77,7 @@ export function createAccountRoutes({
   conversationRepository,
   recommendationRepository,
   generationRepository,
+  accountDeletionRepository,
   r2StorageService
 }: AccountRoutesDependencies): Router {
   const router = Router();
@@ -111,17 +114,7 @@ export function createAccountRoutes({
         collectManagedGenerationImageUrls(generations, r2StorageService, managedImageUrls);
       }
 
-      await recommendationRepository.deleteByUser(userId);
-      await generationRepository.deleteByUser(userId);
-      await conversationRepository.deleteByUser(userId);
-      await closetRepository.deleteByUser(userId);
-
-      const deletedUser = await userRepository.deleteById(userId);
-
-      if (!deletedUser) {
-        res.status(500).json({ error: "Failed to delete account. Please try again." });
-        return;
-      }
+      await accountDeletionRepository.deleteUserData(userId);
 
       if (managedImageUrls.size > 0) {
         const managedImageUrlList = [...managedImageUrls];
