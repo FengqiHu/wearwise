@@ -416,6 +416,121 @@ describe("ChatPage", () => {
     });
   });
 
+  describe("conversational accessory mode switching UI (#259)", () => {
+    it("updates dropdown to Exclude and shows AI reply when mode change to exclude completes", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      apiMocks.streamChatResponse.mockImplementation(
+        async (
+          _token: string,
+          _payload: unknown,
+          _signal: unknown,
+          onChunk: (chunk: string) => void,
+          onConversationId: (id: string) => void
+        ) => {
+          onChunk("Got it — accessories excluded for future outfits.");
+          onConversationId("conv-1");
+        }
+      );
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "exclude" },
+        messages: [
+          { id: "m1", role: "user", content: "no accessories" },
+          { id: "m2", role: "assistant", content: "Got it — accessories excluded for future outfits." }
+        ]
+      });
+
+      renderChat();
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      expect(accessoryModeSelect).toHaveValue("auto");
+
+      const textarea = screen.getByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "no accessories");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(accessoryModeSelect).toHaveValue("exclude");
+      });
+      expect(screen.getByText(/accessories excluded/i)).toBeDefined();
+    });
+
+    it("shows add-back offer text in the message thread after AI switches to exclude", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      apiMocks.streamChatResponse.mockImplementation(
+        async (
+          _token: string,
+          _payload: unknown,
+          _signal: unknown,
+          _onChunk: unknown,
+          onConversationId: (id: string) => void
+        ) => {
+          onConversationId("conv-1");
+        }
+      );
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "exclude" },
+        messages: [
+          { id: "m1", role: "user", content: "no accessories" },
+          {
+            id: "m2",
+            role: "assistant",
+            content: "Here are your outfits.\nWould you like me to add accessories to these outfits? Say 'yes, all', 'the second one', or 'no thanks'."
+          }
+        ]
+      });
+
+      renderChat();
+
+      const textarea = await screen.findByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "no accessories");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Would you like me to add accessories/i)).toBeDefined();
+      });
+    });
+
+    it("keeps dropdown unchanged and shows option prompt when AI responds to ambiguous phrase", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      apiMocks.streamChatResponse.mockImplementation(
+        async (
+          _token: string,
+          _payload: unknown,
+          _signal: unknown,
+          _onChunk: unknown,
+          onConversationId: (id: string) => void
+        ) => {
+          onConversationId("conv-1");
+        }
+      );
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "auto" },
+        messages: [
+          { id: "m1", role: "user", content: "keep it minimal" },
+          {
+            id: "m2",
+            role: "assistant",
+            content: "Just to confirm — would you like me to (a) include accessories, (b) exclude accessories, or (c) let me decide? Reply with a, b, or c."
+          }
+        ]
+      });
+
+      renderChat();
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+
+      const textarea = screen.getByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "keep it minimal");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/Just to confirm/i)).toBeDefined();
+      });
+      expect(accessoryModeSelect).toHaveValue("auto");
+    });
+  });
+
   describe("outfit cards", () => {
     it("renders outfit cards when assistant message has recommendations", async () => {
       apiMocks.fetchChatConversations.mockResolvedValue([
