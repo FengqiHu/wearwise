@@ -1346,3 +1346,190 @@ describe("createChatRoutes POST /chat/conversations/:conversationId/mode", () =>
     expect(harness.spies.updateConversationFields).not.toHaveBeenCalled();
   });
 });
+
+describe("createChatRoutes POST /chat – conversational mode switching end-to-end (#258)", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("reflects futureAccessoryMode pending in the system prompt", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.createConversation.mockResolvedValue(
+      makeConversationRecord({
+        pendingConfirmation: { type: "futureAccessoryMode", createdAt: "2026-04-01T00:00:00.000Z" }
+      })
+    );
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "a" });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Pending confirmation state for this conversation: futureAccessoryMode");
+    expect(systemMessage).toContain("set_accessory_mode");
+  });
+
+  it("persists exclude mode and sets addAccessoriesOffer pending when LLM calls set_accessory_mode with exclude during streaming", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      await input.accessoryModeContext!.onModeChanged("exclude");
+      input.onChunk("Got it — accessories excluded.");
+      return { assistantText: "Got it — accessories excluded.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "No accessories please." });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(String),
+      {
+        accessoryMode: "exclude",
+        pendingConfirmation: { type: "addAccessoriesOffer", createdAt: expect.any(String) }
+      }
+    );
+  });
+
+  it("persists include mode and clears pending when LLM calls set_accessory_mode with include", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-acc", name: "Silver Watch", category: "accessories", analysisStatus: "ready" })
+      ]
+    });
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      await input.accessoryModeContext!.onModeChanged("include");
+      input.onChunk("Done — accessories included.");
+      return { assistantText: "Done — accessories included.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "Include accessories please." });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(String),
+      { accessoryMode: "include", pendingConfirmation: null }
+    );
+  });
+
+  it("clears futureAccessoryMode pending and persists mode when LLM calls set_accessory_mode on conversation with that pending state", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-acc", name: "Silver Watch", category: "accessories", analysisStatus: "ready" })
+      ]
+    });
+    harness.spies.appendMessage.mockResolvedValue(
+      makeConversationRecord({
+        id: "conv-existing",
+        accessoryMode: "exclude",
+        pendingConfirmation: { type: "futureAccessoryMode", createdAt: "2026-04-01T00:00:00.000Z" }
+      })
+    );
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      await input.accessoryModeContext!.onModeChanged("include");
+      input.onChunk("Future mode set to include.");
+      return { assistantText: "Future mode set to include.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "b", conversationId: "conv-existing" });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      "conv-existing",
+      { accessoryMode: "include", pendingConfirmation: null }
+    );
+  });
+
+  it("transitions pending to futureAccessoryMode when LLM calls add_accessories_to_recommendation", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-watch", name: "Silver Watch", category: "accessories", tags: ["silver"], analysisStatus: "ready" })
+      ]
+    });
+    harness.spies.findLatestAssistantRecommendationMessage.mockResolvedValue({
+      messageId: "assistant-msg-1",
+      recommendationIds: ["rec-1"]
+    });
+    harness.spies.findRecommendationById.mockResolvedValue({
+      id: "rec-1", userId: "user-1", outfitName: "Casual Look", reason: "Nice",
+      items: [{ id: "ready-top", name: "Ready Shirt" }], occasions: [], weather: null,
+      generation: null, vote: null, conversationId: "conversation-1",
+      messageId: "assistant-msg-1", createdAt: "2026-04-01T00:00:00.000Z", updatedAt: "2026-04-01T00:00:00.000Z"
+    });
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      await input.accessoryModeContext!.onAddBackRequested({});
+      input.onChunk("Here are your outfits with accessories.");
+      return { assistantText: "Here are your outfits with accessories.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "yes, add accessories" });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(String),
+      { pendingConfirmation: { type: "futureAccessoryMode", createdAt: expect.any(String) } }
+    );
+  });
+
+  it("passes targetOutfitIndex when LLM calls add_accessories_to_recommendation for a specific outfit", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-watch", name: "Silver Watch", category: "accessories", tags: ["silver"], analysisStatus: "ready" })
+      ]
+    });
+    harness.spies.findLatestAssistantRecommendationMessage.mockResolvedValue({
+      messageId: "assistant-msg-1",
+      recommendationIds: ["rec-1", "rec-2"]
+    });
+    harness.spies.findRecommendationById
+      .mockResolvedValueOnce({
+        id: "rec-1", userId: "user-1", outfitName: "Casual Look", reason: "Nice",
+        items: [{ id: "ready-top", name: "Ready Shirt" }], occasions: [], weather: null,
+        generation: null, vote: null, conversationId: "conversation-1",
+        messageId: "assistant-msg-1", createdAt: "2026-04-01T00:00:00.000Z", updatedAt: "2026-04-01T00:00:00.000Z"
+      })
+      .mockResolvedValueOnce({
+        id: "rec-2", userId: "user-1", outfitName: "Smart Look", reason: "Sharp",
+        items: [{ id: "ready-top", name: "Ready Shirt" }], occasions: [], weather: null,
+        generation: null, vote: null, conversationId: "conversation-1",
+        messageId: "assistant-msg-1", createdAt: "2026-04-01T00:00:00.000Z", updatedAt: "2026-04-01T00:00:00.000Z"
+      });
+    let capturedAddBackResult: unknown;
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      capturedAddBackResult = await input.accessoryModeContext!.onAddBackRequested({ outfitIndex: 1 });
+      input.onChunk("Here is your second outfit with accessories.");
+      return { assistantText: "Here is your second outfit with accessories.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "the second one" });
+    await response.text();
+
+    expect(capturedAddBackResult).toMatchObject({ ok: true, targetOutfitIndex: 1 });
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(String),
+      { pendingConfirmation: { type: "futureAccessoryMode", createdAt: expect.any(String) } }
+    );
+  });
+});
