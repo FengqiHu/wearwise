@@ -1532,4 +1532,31 @@ describe("createChatRoutes POST /chat – conversational mode switching end-to-e
       { pendingConfirmation: { type: "futureAccessoryMode", createdAt: expect.any(String) } }
     );
   });
+
+  it("does not update accessoryMode or pendingConfirmation when LLM replies with text only and calls no accessory tool", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      input.onChunk("Just to confirm — would you like to (a) include accessories, (b) exclude, or (c) let me decide?");
+      return {
+        assistantText: "Just to confirm — would you like to (a) include accessories, (b) exclude, or (c) let me decide?",
+        recommendationWeatherSummary: null
+      };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "keep it minimal" });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ accessoryMode: expect.anything() })
+    );
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ pendingConfirmation: expect.anything() })
+    );
+  });
 });
