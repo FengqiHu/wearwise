@@ -252,9 +252,11 @@ export async function deleteChatConversation(token: string, conversationId: stri
 }
 
 export class AccessoryModeUpdateError extends Error {
-  constructor(public readonly code: string, message: string) {
+  readonly code: string;
+  constructor(code: string, message: string) {
     super(message);
     this.name = "AccessoryModeUpdateError";
+    this.code = code;
   }
 }
 
