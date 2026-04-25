@@ -180,10 +180,6 @@ export function ShopPage() {
   const findOutfits = async () => {
     if (!selectedFile || !token || isLoading) return;
 
-    // Capture before async ops so the product thumbnail stays correct even if
-    // the user somehow triggers a re-render mid-flight.
-    const localPreviewUrl = previewUrl;
-
     setIsLoading(true);
     setError(null);
     setResult(null);
