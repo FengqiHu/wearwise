@@ -11,6 +11,10 @@ import type { ReviewedImageStorageService } from "../services/reviewed-image-sto
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { ClosetItemRecord, UserRecord } from "../types/domain.js";
+import {
+  ImageModerationRejectedError,
+  ImageModerationUnavailableError
+} from "../services/image-moderation-service.js";
 
 function makeUserRecord(): UserRecord {
   return {
@@ -89,7 +93,8 @@ function makeRouteHarness(options: {
     listByUser: vi.fn().mockResolvedValue([]),
     create: vi.fn().mockResolvedValue(makeClosetItem()),
     findById: vi.fn().mockResolvedValue(makeClosetItem()),
-    updateExtraction: vi.fn().mockResolvedValue(makeClosetItem({ analysisStatus: "ready" }))
+    updateExtraction: vi.fn().mockResolvedValue(makeClosetItem({ analysisStatus: "ready" })),
+    updateImage: vi.fn().mockResolvedValue(makeClosetItem())
   } as unknown as ClosetRepository;
 
   const r2StorageService = {
@@ -136,7 +141,9 @@ function makeRouteHarness(options: {
       create: (closetRepository as unknown as { create: ReturnType<typeof vi.fn> }).create,
       findById: (closetRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
       updateExtraction: (closetRepository as unknown as { updateExtraction: ReturnType<typeof vi.fn> }).updateExtraction,
+      updateImage: (closetRepository as unknown as { updateImage: ReturnType<typeof vi.fn> }).updateImage,
       storeUserImage: (reviewedImageStorageService as unknown as { storeUserImage: ReturnType<typeof vi.fn> }).storeUserImage,
+      deleteObject: (r2StorageService as unknown as { deleteObject: ReturnType<typeof vi.fn> }).deleteObject,
       analyzeClothingImage: (geminiExtractionService as unknown as { analyzeClothingImage: ReturnType<typeof vi.fn> }).analyzeClothingImage
     }
   };
@@ -265,6 +272,235 @@ describe("createClosetRoutes", () => {
       expect(response.status).toBe(400);
       expect(typeof body.error).toBe("string");
       expect(body.error as string).toContain("text/plain");
+    });
+
+    it("returns 422 when moderation rejects the image", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ImageModerationRejectedError(
+          "This image could not be uploaded because it appears to violate WearWise's image safety policy. Please choose a different image.",
+          ["adult"],
+          { adult: "VERY_LIKELY" }
+        )
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(typeof body.error).toBe("string");
+    });
+
+    it("does not create a closet item when moderation rejects", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ImageModerationRejectedError("Rejected", ["adult"], {})
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      await fetch(`${started.baseUrl}/api/closet/items`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+
+      expect(harness.spies.create).not.toHaveBeenCalled();
+    });
+
+    it("returns 503 when moderation service is unavailable", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ImageModerationUnavailableError(
+          "Image review is temporarily unavailable. Please try uploading again later."
+        )
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(typeof body.error).toBe("string");
+    });
+  });
+
+  describe("PUT /closet/items/:id/image", () => {
+    it("returns 200 with updated item on success", async () => {
+      const harness = makeRouteHarness();
+      const updated = makeClosetItem({ imageUrl: "https://cdn.example.com/user-1/new-image.jpg" });
+      harness.spies.updateImage.mockResolvedValue(updated);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(200);
+      expect(body.item).toBeDefined();
+    });
+
+    it("stores image then updates closet item image", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+
+      expect(harness.spies.storeUserImage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-1",
+          folder: "closet",
+          contentType: "image/jpeg"
+        })
+      );
+      expect(harness.spies.updateImage).toHaveBeenCalledWith(
+        "user-1",
+        "item-1",
+        "https://cdn.example.com/user-1/item-1.jpg"
+      );
+    });
+
+    it("returns 401 when not authenticated", async () => {
+      const harness = makeRouteHarness({ authenticated: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 503 when image upload is not configured", async () => {
+      const harness = makeRouteHarness({ isR2Configured: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(body.error).toBe("Image upload is temporarily unavailable. Please try again later.");
+    });
+
+    it("returns 404 when item is not found", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(null);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/nonexistent/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(404);
+      expect(body.error).toBe("Closet item not found.");
+    });
+
+    it("returns 400 for invalid image content type", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "text/plain" },
+        body: "not-an-image"
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(400);
+      expect(typeof body.error).toBe("string");
+    });
+
+    it("returns 422 when moderation rejects the replacement image", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ImageModerationRejectedError(
+          "This image could not be uploaded because it appears to violate WearWise's image safety policy. Please choose a different image.",
+          ["adult"],
+          { adult: "VERY_LIKELY" }
+        )
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(typeof body.error).toBe("string");
+    });
+
+    it("returns 503 when moderation service is unavailable", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ImageModerationUnavailableError(
+          "Image review is temporarily unavailable. Please try uploading again later."
+        )
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(typeof body.error).toBe("string");
+    });
+
+    it("cleans up uploaded image when updateImage throws", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.updateImage.mockRejectedValue(new Error("DB write failed"));
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+
+      expect(response.status).toBe(500);
+      expect(harness.spies.deleteObject).toHaveBeenCalled();
     });
   });
 
