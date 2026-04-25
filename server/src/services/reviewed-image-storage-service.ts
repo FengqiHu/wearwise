@@ -17,6 +17,13 @@ interface StoreReviewedImageParams {
   buffer: Buffer;
 }
 
+interface StoreReviewedShopImageParams {
+  userId: string;
+  fileName?: string | null;
+  contentType: string;
+  buffer: Buffer;
+}
+
 function getFileExtension(contentType: string): string {
   const [, subtype = "bin"] = contentType.toLowerCase().split("/");
 
@@ -121,6 +128,32 @@ export class ReviewedImageStorageService {
     const extension = getFileExtension(params.contentType);
     const safeFileName = sanitizeFileName(params.fileName, extension);
     const key = `${params.userId}/${params.folder}/${crypto.randomUUID()}-${safeFileName}`;
+    const publicUrl = await this.r2StorageService.uploadBuffer(key, params.buffer, params.contentType);
+
+    return { key, publicUrl };
+  }
+
+  async storeUserShopImage(params: StoreReviewedShopImageParams): Promise<{ key: string; publicUrl: string }> {
+    if (!isAllowedMimeType(params.contentType)) {
+      throw new Error(
+        `Invalid content type '${params.contentType}'. Allowed: image/jpeg, image/png, image/webp.`
+      );
+    }
+
+    if (params.buffer.length === 0) {
+      throw new Error("Image upload body is required.");
+    }
+
+    await this.imageModerationService.reviewImage(params.buffer);
+    if (!this.clothingPresenceService?.isConfigured()) {
+      throw new ClothingPresenceUnavailableError();
+    }
+
+    await this.clothingPresenceService.assertClothingPresent(params.buffer, params.contentType);
+
+    const extension = getFileExtension(params.contentType);
+    const safeFileName = sanitizeFileName(params.fileName, extension);
+    const key = `${params.userId}/online-items/${crypto.randomUUID()}-${safeFileName}`;
     const publicUrl = await this.r2StorageService.uploadBuffer(key, params.buffer, params.contentType);
 
     return { key, publicUrl };

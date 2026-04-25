@@ -195,6 +195,7 @@ export function createApp() {
       geminiExtractionService,
       geminiRecommendationService,
       r2StorageService,
+      reviewedImageStorageService,
       userRepository,
       imageGenerationService,
       generationRepository,

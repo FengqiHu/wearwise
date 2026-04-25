@@ -537,6 +537,113 @@ describe("ReviewedImageStorageService", () => {
     });
   });
 
+  describe("storeUserShopImage()", () => {
+    it("runs SafeSearch, then Gemini clothing review, then R2 upload under online-items", async () => {
+      const r2 = makeR2StorageService();
+      const moderation = makeImageModerationService();
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
+      const callOrder: string[] = [];
+
+      getReviewImageSpy(moderation).mockImplementation(async () => {
+        callOrder.push("reviewImage");
+        return {};
+      });
+      getClothingPresenceSpy(clothingPresence).mockImplementation(async () => {
+        callOrder.push("assertClothingPresent");
+      });
+      getUploadBufferSpy(r2).mockImplementation(async () => {
+        callOrder.push("uploadBuffer");
+        return "https://cdn.example.com/key";
+      });
+
+      const result = await service.storeUserShopImage({
+        userId: "user-1",
+        fileName: "shop-item.png",
+        contentType: "image/png",
+        buffer: Buffer.from("image-data")
+      });
+
+      expect(callOrder).toEqual(["reviewImage", "assertClothingPresent", "uploadBuffer"]);
+      expect(result.key).toMatch(/^user-1\/online-items\//);
+    });
+
+    it("passes the original buffer and content type to Gemini clothing review", async () => {
+      const r2 = makeR2StorageService();
+      const moderation = makeImageModerationService();
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
+      const buffer = Buffer.from("shop-image-data");
+
+      await service.storeUserShopImage({
+        userId: "user-1",
+        contentType: "image/webp",
+        buffer
+      });
+
+      expect(getClothingPresenceSpy(clothingPresence)).toHaveBeenCalledWith(buffer, "image/webp");
+    });
+
+    it("does not call Gemini or R2 when SafeSearch rejects", async () => {
+      const r2 = makeR2StorageService();
+      const moderation = makeImageModerationService();
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
+      getReviewImageSpy(moderation).mockRejectedValue(
+        new ImageModerationRejectedError("Rejected", ["adult"], {})
+      );
+
+      await expect(
+        service.storeUserShopImage({
+          userId: "user-1",
+          contentType: "image/jpeg",
+          buffer: Buffer.from("image-data")
+        })
+      ).rejects.toThrow(ImageModerationRejectedError);
+
+      expect(getClothingPresenceSpy(clothingPresence)).not.toHaveBeenCalled();
+      expect(getUploadBufferSpy(r2)).not.toHaveBeenCalled();
+    });
+
+    it("does not call R2 when Gemini rejects missing clothing presence", async () => {
+      const r2 = makeR2StorageService();
+      const moderation = makeImageModerationService();
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
+      getClothingPresenceSpy(clothingPresence).mockRejectedValue(
+        new ClothingPresenceRejectedError("No clothing item is visible.")
+      );
+
+      await expect(
+        service.storeUserShopImage({
+          userId: "user-1",
+          contentType: "image/jpeg",
+          buffer: Buffer.from("image-data")
+        })
+      ).rejects.toThrow(ClothingPresenceRejectedError);
+
+      expect(getUploadBufferSpy(r2)).not.toHaveBeenCalled();
+    });
+
+    it("does not call R2 when Gemini clothing review is unavailable", async () => {
+      const r2 = makeR2StorageService();
+      const moderation = makeImageModerationService();
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
+      getClothingPresenceSpy(clothingPresence).mockRejectedValue(new ClothingPresenceUnavailableError());
+
+      await expect(
+        service.storeUserShopImage({
+          userId: "user-1",
+          contentType: "image/jpeg",
+          buffer: Buffer.from("image-data")
+        })
+      ).rejects.toThrow(ClothingPresenceUnavailableError);
+
+      expect(getUploadBufferSpy(r2)).not.toHaveBeenCalled();
+    });
+  });
+
   describe("normalizeManagedUploadFolder()", () => {
     it.each([
       ["avatar", "avatar"],

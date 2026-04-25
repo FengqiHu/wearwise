@@ -13,7 +13,16 @@ import {
   type RecommendationItemContext
 } from "../services/gemini-recommendation-service.js";
 import type { ImageGenerationService } from "../services/image-generation-service.js";
+import {
+  ImageModerationRejectedError,
+  ImageModerationUnavailableError
+} from "../services/image-moderation-service.js";
 import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
+import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError
+} from "../services/gemini-clothing-presence-service.js";
+import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { GenerateOutfitResponse, OutfitItem } from "../types/domain.js";
 
 interface ShopRoutesDependencies {
@@ -22,6 +31,7 @@ interface ShopRoutesDependencies {
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
   r2StorageService: R2StorageService;
+  reviewedImageStorageService: ReviewedImageStorageService;
   userRepository: UserRepository;
   imageGenerationService: ImageGenerationService;
   generationRepository: GenerationRepository;
@@ -65,6 +75,7 @@ export function createShopRoutes({
   geminiExtractionService,
   geminiRecommendationService,
   r2StorageService,
+  reviewedImageStorageService,
   userRepository,
   imageGenerationService,
   generationRepository,
@@ -76,7 +87,7 @@ export function createShopRoutes({
    * POST /api/shop/recommend
    *
    * Accepts a multipart image upload of a product the user is considering buying.
-   * Stores the image in R2 under a `shop/` prefix (not added to the wardrobe),
+   * Reviews and stores the image in R2 under an `online-items/` prefix (not added to the wardrobe),
    * runs Gemini extraction to identify the item, and returns outfit recommendations
    * pairing it with the user's existing closet.
    *
@@ -111,8 +122,8 @@ export function createShopRoutes({
       }
 
       // 3. Check service availability
-      if (!r2StorageService.isConfigured()) {
-        res.status(503).json({ error: "Storage service is not configured." });
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
+        res.status(503).json({ error: "Image review service is not configured." });
         return;
       }
       if (!geminiExtractionService.isConfigured()) {
@@ -124,12 +135,13 @@ export function createShopRoutes({
         return;
       }
 
-      // 4. Upload image to R2 under `shop/` prefix (not the closet collection)
-      const { publicUrl: imageUrl, key } = await r2StorageService.uploadShopImage(
-        user.id,
-        req.file.buffer,
-        mimeType
-      );
+      // 4. SafeSearch and Gemini clothing review, then upload outside the closet collection.
+      const { publicUrl: imageUrl, key } = await reviewedImageStorageService.storeUserShopImage({
+        userId: user.id,
+        fileName: req.file.originalname,
+        contentType: mimeType,
+        buffer: req.file.buffer
+      });
 
       try {
         // 5. Analyze the product image with Gemini
@@ -258,6 +270,31 @@ export function createShopRoutes({
         throw postUploadError;
       }
     } catch (error) {
+      if (error instanceof ImageModerationRejectedError) {
+        console.warn("Shop image upload rejected by SafeSearch.", {
+          findings: error.findings,
+          annotation: error.annotation
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+      if (error instanceof ImageModerationUnavailableError) {
+        console.error("Shop image upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+      if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Shop image upload rejected because no clothing item was detected.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+      if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Shop image upload blocked because clothing validation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
       console.error("Shop recommend error:", error);
       res.status(500).json({ error: "Failed to generate shop recommendations." });
     }
