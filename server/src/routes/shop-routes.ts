@@ -426,7 +426,7 @@ export function createShopRoutes({
 
       // 10. Save recommendation record so the try-on appears in history
       const recommendationItems = [
-        { id: productKey, name: productName },
+        { id: productKey, name: productName, imageUrl: productImageUrl },
         ...fetchedWardrobeItems
       ];
       const label = outfitName || productName;

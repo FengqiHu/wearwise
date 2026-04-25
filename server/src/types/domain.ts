@@ -166,6 +166,7 @@ export interface GenerationRecord {
 export interface RecommendationItem {
   id: string;
   name: string;
+  imageUrl?: string | null;
 }
 
 export interface RecommendationGeneration {
