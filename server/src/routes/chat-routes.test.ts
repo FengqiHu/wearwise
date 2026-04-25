@@ -1559,4 +1559,97 @@ describe("createChatRoutes POST /chat – conversational mode switching end-to-e
       expect.objectContaining({ pendingConfirmation: expect.anything() })
     );
   });
+
+  it("persists exclude mode when user confirms after accessoryMode pending round-trip", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "ready-acc", name: "Silver Watch", category: "accessories", analysisStatus: "ready" })
+      ]
+    });
+    // Simulate a conversation where the AI previously asked "Got it — exclude accessories, correct?"
+    // and set accessoryMode pending; user now confirms with "b"
+    harness.spies.appendMessage.mockResolvedValue(
+      makeConversationRecord({
+        id: "conv-awaiting-confirm",
+        pendingConfirmation: { type: "accessoryMode", requestedMode: "exclude", createdAt: "2026-04-01T00:00:00.000Z" }
+      })
+    );
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      await input.accessoryModeContext!.onModeChanged("exclude");
+      input.onChunk("Confirmed — accessories excluded.");
+      return { assistantText: "Confirmed — accessories excluded.", recommendationWeatherSummary: null };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "b", conversationId: "conv-awaiting-confirm" });
+    await response.text();
+
+    expect(harness.spies.updateConversationFields).toHaveBeenCalledWith(
+      "user-1",
+      "conv-awaiting-confirm",
+      {
+        accessoryMode: "exclude",
+        pendingConfirmation: { type: "addAccessoriesOffer", createdAt: expect.any(String) }
+      }
+    );
+  });
+
+  it("reflects addAccessoriesOffer pending in the system prompt and preserves it when LLM answers off-topic without calling a tool", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.appendMessage.mockResolvedValue(
+      makeConversationRecord({
+        id: "conv-offer-pending",
+        accessoryMode: "exclude",
+        pendingConfirmation: { type: "addAccessoriesOffer", createdAt: "2026-04-01T00:00:00.000Z" }
+      })
+    );
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "What is the capital of France?",
+      conversationId: "conv-offer-pending"
+    });
+    await response.text();
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Pending confirmation state for this conversation: addAccessoriesOffer");
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ pendingConfirmation: expect.anything() })
+    );
+  });
+
+  it("passes wardrobeHasAccessories=false to streamChat and does not persist accessoryMode when wardrobe has no ready accessories", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "ready-top", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "pending-acc", category: "accessories", analysisStatus: "pending" })
+      ]
+    });
+    let capturedHasAccessories: boolean | undefined;
+    harness.spies.streamChat.mockImplementation(async (input: StreamChatInput) => {
+      capturedHasAccessories = input.accessoryModeContext?.wardrobeHasAccessories;
+      input.onChunk("You have no accessories in your wardrobe. Please upload some first.");
+      return {
+        assistantText: "You have no accessories in your wardrobe. Please upload some first.",
+        recommendationWeatherSummary: null
+      };
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, { message: "include accessories please" });
+    await response.text();
+
+    expect(capturedHasAccessories).toBe(false);
+    expect(harness.spies.updateConversationFields).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.anything(),
+      expect.objectContaining({ accessoryMode: expect.anything() })
+    );
+  });
 });
