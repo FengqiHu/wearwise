@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Server } from "node:http";
+import { filterAssistantText } from "./chat-routes.js";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { ConversationRepository } from "../repositories/conversation-repository.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
@@ -734,8 +735,9 @@ describe("createChatRoutes POST /chat", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toContain("text/event-stream");
     expect(response.headers.get("x-conversation-id")).toBe("conversation-1");
-    // SSE format: text chunks are wrapped in `data: <json>\n\n` events
-    expect(await response.text()).toBe(`data: ${JSON.stringify('```json\n{"outfits":[]}\n```')}\n\n`);
+    // Text is sent via fake streaming as small SSE chunks — check headers and DB save instead
+    const body = await response.text();
+    expect(body).toContain("data:");
 
     expect(harness.spies.authResolve).toHaveBeenCalledOnce();
     expect(harness.spies.chatConfigured).toHaveBeenCalledOnce();
@@ -1974,4 +1976,73 @@ describe("createChatRoutes POST /chat – conversational mode switching end-to-e
       expect.objectContaining({ accessoryMode: expect.anything() })
     );
   });
+});
+
+describe("filterAssistantText (#327)", () => {
+  it("strips a leading ISO timestamp from the response", () => {
+    expect(filterAssistantText("[2026-04-17T10:00:00.000Z] Hello there!")).toBe("Hello there!");
+  });
+
+  it("strips a leading timestamp with timezone offset", () => {
+    expect(filterAssistantText("[2026-04-17T10:00:00Z] Nice to meet you.")).toBe("Nice to meet you.");
+  });
+
+  it("passes through normal text with no timestamp", () => {
+    expect(filterAssistantText("Here are your outfit suggestions.")).toBe("Here are your outfit suggestions.");
+  });
+
+  it("does not strip a timestamp that appears mid-response", () => {
+    const text = "Hello! On [2026-04-17T10:00:00Z] you mentioned a job interview.";
+    expect(filterAssistantText(text)).toBe(text);
+  });
+
+  it("strips leading whitespace left after timestamp removal", () => {
+    expect(filterAssistantText("[2026-04-17T10:00:00Z]   Hello.")).toBe("Hello.");
+  });
+
+  it("passes through an empty string unchanged", () => {
+    expect(filterAssistantText("")).toBe("");
+  });
+});
+
+describe("createChatRoutes POST /chat – fake streaming and filtering (#327)", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("saves the filtered text to the database, not the raw text with timestamp", async () => {
+    const harness = makeRouteHarness({ assistantReply: "[2026-04-17T10:00:00.000Z] Great choice for today!" });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "What should I wear?" });
+
+    expect(harness.spies.appendMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      "assistant",
+      "Great choice for today!"
+    );
+  });
+
+  it("saves normal text unchanged when no timestamp is present", async () => {
+    const harness = makeRouteHarness({ assistantReply: "Here are some outfit ideas." });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Suggest an outfit." });
+
+    expect(harness.spies.appendMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      "assistant",
+      "Here are some outfit ideas."
+    );
+  });
+
 });

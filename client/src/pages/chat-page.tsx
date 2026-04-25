@@ -796,9 +796,11 @@ export function ChatPage() {
                             const stillStreaming = isGenerating && index === messages.length - 1;
                             return (
                               <div className="flex flex-col gap-2">
-                                {message.content.trim().length > 0 && (
+                                {message.content.trim().length > 0 ? (
                                   <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                                )}
+                                ) : stillStreaming ? (
+                                  <ThinkingDots />
+                                ) : null}
                                 <RecommendationCards
                                   recommendations={streamingRecs}
                                   closetItems={closetItems}
