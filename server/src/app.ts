@@ -5,23 +5,30 @@ import { ClosetRepository } from "./repositories/closet-repository.js";
 import { ConversationRepository } from "./repositories/conversation-repository.js";
 import { GenerationRepository } from "./repositories/generation-repository.js";
 import { RecommendationRepository } from "./repositories/recommendation-repository.js";
+import { AccountDeletionRepository } from "./repositories/account-deletion-repository.js";
 import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
 import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
+import { createShopRoutes } from "./routes/shop-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
+import { createAccountRoutes } from "./routes/account-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
+import { GeminiClothingPresenceService } from "./services/gemini-clothing-presence-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
+import { GeminiHumanPresenceService } from "./services/gemini-human-presence-service.js";
 import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
+import { ImageModerationService } from "./services/image-moderation-service.js";
 import { ImageGenerationService } from "./services/image-generation-service.js";
 import { OpenWeatherService } from "./services/openweather-service.js";
 import { R2StorageService } from "./services/r2-storage-service.js";
+import { ReviewedImageStorageService } from "./services/reviewed-image-storage-service.js";
 import { SessionService } from "./services/session-service.js";
 
 export function createApp() {
@@ -63,6 +70,15 @@ export function createApp() {
     databaseName: env.mongoDatabaseName,
     collectionName: env.mongoRecommendationsCollection
   });
+  const accountDeletionRepository = new AccountDeletionRepository({
+    mongoUri: env.mongoUri,
+    databaseName: env.mongoDatabaseName,
+    usersCollectionName: env.mongoUsersCollection,
+    closetCollectionName: env.mongoClosetCollection,
+    conversationsCollectionName: env.mongoConversationsCollection,
+    recommendationsCollectionName: env.mongoRecommendationsCollection,
+    generationsCollectionName: env.mongoGenerationsCollection
+  });
   const r2StorageService = new R2StorageService({
     bucket: env.s3Bucket,
     region: env.s3Region,
@@ -75,6 +91,16 @@ export function createApp() {
   const authService = new AuthService(sessionService, userRepository);
   const openWeatherService = new OpenWeatherService(env.openWeatherApiKey);
   const chatService = new ChatService(env.openaiApiKey, openWeatherService);
+  const imageModerationService = new ImageModerationService({
+    apiKey: env.googleCloudVisionApiKey,
+    timeoutMs: env.uploadModerationTimeoutMs
+  });
+  const reviewedImageStorageService = new ReviewedImageStorageService(
+    r2StorageService,
+    imageModerationService,
+    new GeminiHumanPresenceService({ apiKey: env.geminiApiKey }),
+    new GeminiClothingPresenceService({ apiKey: env.geminiApiKey })
+  );
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
   const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
   const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
@@ -106,8 +132,21 @@ export function createApp() {
 
   app.use(
     "/api",
+    createAccountRoutes({
+      authService,
+      closetRepository,
+      recommendationRepository,
+      generationRepository,
+      accountDeletionRepository,
+      r2StorageService
+    })
+  );
+
+  app.use(
+    "/api",
     createUploadsRoutes({
-      authService
+      authService,
+      reviewedImageStorageService
     })
   );
 
@@ -142,8 +181,24 @@ export function createApp() {
       authService,
       closetRepository,
       r2StorageService,
+      reviewedImageStorageService,
       geminiExtractionService,
       geminiRecommendationService
+    })
+  );
+
+  app.use(
+    "/api",
+    createShopRoutes({
+      authService,
+      closetRepository,
+      geminiExtractionService,
+      geminiRecommendationService,
+      r2StorageService,
+      userRepository,
+      imageGenerationService,
+      generationRepository,
+      recommendationRepository
     })
   );
 

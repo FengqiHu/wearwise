@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
 import { getGoogleOAuthUrl } from "../lib/google-auth";
+import { consumeAccountDeletedNotice } from "../lib/storage";
 
 function WardrobeIcon() {
   return (
@@ -75,6 +76,11 @@ const steps = [
 export function WelcomePage() {
   const { isAuthenticated, isBootstrapping, profile } = useAuth();
   const [configError, setConfigError] = useState<string | null>(null);
+  const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
+
+  useEffect(() => {
+    setAccountDeletedNotice(consumeAccountDeletedNotice());
+  }, []);
 
   if (isBootstrapping) {
     return (
@@ -127,6 +133,12 @@ export function WelcomePage() {
             AI-Powered Personal Styling
           </div>
 
+          {accountDeletedNotice ? (
+            <div className="mx-auto mb-6 max-w-2xl rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+              Your WearWise account and WearWise-managed data were permanently deleted. Your Google account was not changed.
+            </div>
+          ) : null}
+
           <h1 className="mb-5 text-5xl font-semibold leading-tight tracking-tight text-charcoal md:text-[3.75rem]">
             Your personal cloud<br />wardrobe, reimagined.
           </h1>
@@ -145,9 +157,6 @@ export function WelcomePage() {
               }}
             >
               Continue with Google
-            </Button>
-            <Button size="lg" variant="outline">
-              Explore features
             </Button>
           </div>
 

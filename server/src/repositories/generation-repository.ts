@@ -66,4 +66,13 @@ export class GenerationRepository {
     await collection.insertOne(document);
     return toGenerationRecord(document);
   }
+
+  async listAllByUser(userId: string): Promise<GenerationRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection
+      .find({ userId })
+      .sort({ createdAt: -1 })
+      .toArray();
+    return documents.map(toGenerationRecord);
+  }
 }

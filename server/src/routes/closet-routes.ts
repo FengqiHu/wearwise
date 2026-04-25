@@ -1,5 +1,4 @@
-import type { Request, Response } from "express";
-import { Router } from "express";
+import express, { type Request, type Response, Router } from "express";
 import { z } from "zod";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
@@ -10,16 +9,38 @@ import {
   type OutfitCategory,
   type RecommendationItemContext
 } from "../services/gemini-recommendation-service.js";
+import {
+  ImageModerationRejectedError,
+  ImageModerationUnavailableError
+} from "../services/image-moderation-service.js";
+import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError
+} from "../services/gemini-clothing-presence-service.js";
 import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
+import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { ClosetItemRecord, RecommendOutfitResponse } from "../types/domain.js";
 
 interface ClosetRoutesDependencies {
   authService: AuthService;
   closetRepository: ClosetRepository;
   r2StorageService: R2StorageService;
+  reviewedImageStorageService: ReviewedImageStorageService;
   geminiExtractionService: GeminiExtractionService;
   geminiRecommendationService: GeminiRecommendationService;
 }
+
+const IMAGE_UPLOAD_LIMIT = "20mb";
+
+function normalizeImageContentType(rawHeader: string | string[] | undefined): string {
+  const value = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  return (value ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
+}
+
+const rawImageBodyParser = express.raw({
+  limit: IMAGE_UPLOAD_LIMIT,
+  type: (req) => normalizeImageContentType(req.headers["content-type"]).startsWith("image/")
+});
 
 /**
  * Narrows a raw ClosetItemRecord to a fully-ready item with non-null
@@ -85,6 +106,7 @@ export function createClosetRoutes({
   authService,
   closetRepository,
   r2StorageService,
+  reviewedImageStorageService,
   geminiExtractionService,
   geminiRecommendationService
 }: ClosetRoutesDependencies): Router {
@@ -122,34 +144,25 @@ export function createClosetRoutes({
   /**
    * POST /api/closet/items
    *
-   * Creates a closet item record and returns a presigned R2 upload URL.
-   * The client uses the uploadUrl to PUT the image directly to R2.
+   * Reviews the uploaded image, stores it in R2, and creates a new closet item.
    *
-   * Request body (JSON): { contentType: string }
-   *   - contentType: MIME type of the image (image/jpeg, image/png, image/webp)
-   *
-   * Response 201: { item: ClosetItemRecord, uploadUrl: string }
-   *   - item: the newly created closet item record (analysisStatus: "pending")
-   *   - uploadUrl: presigned R2 URL (valid for 5 minutes); client must PUT the file to this URL
+   * Request body: raw image bytes (image/jpeg, image/png, image/webp)
+   * Response 201: { item: ClosetItemRecord }
    */
-  router.post("/closet/items", async (req, res): Promise<void> => {
+  router.post("/closet/items", rawImageBodyParser, async (req, res): Promise<void> => {
     try {
-      // 1. Authenticate
       const user = await requireAuth(req, res);
       if (!user) return;
 
-      // 2. Guard: storage must be configured
-      if (!r2StorageService.isConfigured()) {
-        res.status(503).json({ error: "Storage service is not configured." });
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
+        res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
         return;
       }
 
-      // 3. Parse and validate request body
-      const body = (req.body as { contentType?: unknown } | undefined) ?? {};
-      const contentType = typeof body.contentType === "string" ? body.contentType.trim().toLowerCase() : "";
+      const contentType = normalizeImageContentType(req.headers["content-type"]);
 
       if (!contentType) {
-        res.status(400).json({ error: "Missing required field: contentType." });
+        res.status(400).json({ error: "Invalid image content type." });
         return;
       }
 
@@ -160,17 +173,64 @@ export function createClosetRoutes({
         return;
       }
 
-      // 4. Generate presigned upload URL and target public URL
-      const { uploadUrl, publicUrl } = await r2StorageService.presignClosetImageUpload(
-        user.id,
-        contentType
-      );
+      const buffer = Buffer.isBuffer(req.body) ? req.body : null;
+      if (!buffer || buffer.length === 0) {
+        res.status(400).json({ error: "Image upload body is required." });
+        return;
+      }
 
-      // 5. Persist ClosetItem record in MongoDB (imageUrl points to where the file will be)
-      const item = await closetRepository.create(user.id, publicUrl);
+      const uploadedImage = await reviewedImageStorageService.storeUserImage({
+        userId: user.id,
+        folder: "closet",
+        fileName: typeof req.query.fileName === "string" ? req.query.fileName : null,
+        contentType,
+        buffer
+      });
 
-      res.status(201).json({ item, uploadUrl });
+      try {
+        const item = await closetRepository.create(user.id, uploadedImage.publicUrl);
+        res.status(201).json({ item });
+      } catch (persistError) {
+        if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(uploadedImage.publicUrl)) {
+          try {
+            await r2StorageService.deleteObject(uploadedImage.publicUrl);
+          } catch (cleanupError) {
+            console.error("Failed to clean up rejected closet upload.", cleanupError);
+          }
+        }
+
+        throw persistError;
+      }
     } catch (error) {
+      if (error instanceof ImageModerationRejectedError) {
+        console.warn("Closet image upload rejected by SafeSearch.", {
+          findings: error.findings,
+          annotation: error.annotation
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ImageModerationUnavailableError) {
+        console.error("Closet image upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Closet image upload rejected by Gemini clothing-presence review.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Closet image upload blocked because clothing-presence review is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
       console.error("Closet item upload error:", error);
       res.status(500).json({ error: "Failed to create closet item." });
     }
@@ -327,19 +387,19 @@ export function createClosetRoutes({
   /**
    * PUT /api/closet/items/:id/image
    *
-   * Replaces the image of a closet item. Deletes the old R2 object, generates a
-   * new presigned upload URL, and resets the item's analysisStatus to "pending".
+   * Reviews and replaces the image of a closet item, then resets the item's
+   * analysis status to "pending".
    *
-   * Request body (JSON): { contentType: string }
-   * Response 200: { item: ClosetItemRecord, uploadUrl: string }
+   * Request body: raw image bytes (image/jpeg, image/png, image/webp)
+   * Response 200: { item: ClosetItemRecord }
    */
-  router.put("/closet/items/:id/image", async (req, res): Promise<void> => {
+  router.put("/closet/items/:id/image", rawImageBodyParser, async (req, res): Promise<void> => {
     try {
       const user = await requireAuth(req, res);
       if (!user) return;
 
-      if (!r2StorageService.isConfigured()) {
-        res.status(503).json({ error: "Storage service is not configured." });
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
+        res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
         return;
       }
 
@@ -355,11 +415,10 @@ export function createClosetRoutes({
         return;
       }
 
-      const body = (req.body as { contentType?: unknown } | undefined) ?? {};
-      const contentType = typeof body.contentType === "string" ? body.contentType.trim().toLowerCase() : "";
+      const contentType = normalizeImageContentType(req.headers["content-type"]);
 
       if (!contentType) {
-        res.status(400).json({ error: "Missing required field: contentType." });
+        res.status(400).json({ error: "Invalid image content type." });
         return;
       }
 
@@ -370,17 +429,85 @@ export function createClosetRoutes({
         return;
       }
 
-      await r2StorageService.deleteObject(item.imageUrl);
+      const buffer = Buffer.isBuffer(req.body) ? req.body : null;
+      if (!buffer || buffer.length === 0) {
+        res.status(400).json({ error: "Image upload body is required." });
+        return;
+      }
 
-      const { uploadUrl, publicUrl } = await r2StorageService.presignClosetImageUpload(
-        user.id,
-        contentType
-      );
+      const uploadedImage = await reviewedImageStorageService.storeUserImage({
+        userId: user.id,
+        folder: "closet",
+        fileName: typeof req.query.fileName === "string" ? req.query.fileName : null,
+        contentType,
+        buffer
+      });
 
-      const updated = await closetRepository.updateImage(user.id, itemId, publicUrl);
+      try {
+        const updated = await closetRepository.updateImage(user.id, itemId, uploadedImage.publicUrl);
+        if (!updated) {
+          if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(uploadedImage.publicUrl)) {
+            try {
+              await r2StorageService.deleteObject(uploadedImage.publicUrl);
+            } catch (cleanupError) {
+              console.error("Failed to clean up closet replacement upload.", cleanupError);
+            }
+          }
 
-      res.json({ item: updated, uploadUrl });
+          res.status(404).json({ error: "Closet item not found." });
+          return;
+        }
+
+        if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(item.imageUrl)) {
+          try {
+            await r2StorageService.deleteObject(item.imageUrl);
+          } catch (cleanupError) {
+            console.error("Failed to delete replaced closet image.", cleanupError);
+          }
+        }
+
+        res.json({ item: updated });
+      } catch (persistError) {
+        if (r2StorageService.isConfigured() && r2StorageService.ownsPublicUrl(uploadedImage.publicUrl)) {
+          try {
+            await r2StorageService.deleteObject(uploadedImage.publicUrl);
+          } catch (cleanupError) {
+            console.error("Failed to clean up closet replacement upload.", cleanupError);
+          }
+        }
+
+        throw persistError;
+      }
     } catch (error) {
+      if (error instanceof ImageModerationRejectedError) {
+        console.warn("Closet replacement upload rejected by SafeSearch.", {
+          findings: error.findings,
+          annotation: error.annotation
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ImageModerationUnavailableError) {
+        console.error("Closet replacement upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Closet replacement upload rejected by Gemini clothing-presence review.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Closet replacement upload blocked because clothing-presence review is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
       console.error("Closet item replace image error:", error);
       res.status(500).json({ error: "Failed to replace closet item image." });
     }

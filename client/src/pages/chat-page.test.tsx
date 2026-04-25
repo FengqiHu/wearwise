@@ -612,6 +612,116 @@ describe("ChatPage", () => {
     });
   });
 
+  describe("outfit card count (#267, #270)", () => {
+    it.each([1, 2, 3, 4, 5])(
+      "renders exactly %i outfit card(s) when assistant message has that many recommendations",
+      async (count) => {
+        const now = new Date().toISOString();
+        const recommendations = Array.from({ length: count }, (_, i) => ({
+          id: `rec-${i + 1}`,
+          userId: "u1",
+          outfitName: `Outfit ${i + 1}`,
+          reason: `Reason ${i + 1}`,
+          items: [{ id: `item-${i + 1}`, name: `Item ${i + 1}` }],
+          occasions: [],
+          generation: null,
+          vote: null,
+          conversationId: "conv-1",
+          messageId: "m1",
+          createdAt: now,
+          updatedAt: now
+        }));
+
+        apiMocks.fetchChatConversations.mockResolvedValue([
+          { id: "conv-1", title: "Outfit Suggestions", lastMessagePreview: "", updatedAt: now }
+        ]);
+        apiMocks.fetchChatConversation.mockResolvedValue({
+          conversation: { id: "conv-1", accessoryMode: "auto" },
+          messages: [
+            {
+              id: "m1",
+              role: "assistant",
+              content: `Here are ${count} outfit${count === 1 ? "" : "s"}.`,
+              recommendationIds: recommendations.map((r) => r.id),
+              recommendations
+            }
+          ]
+        });
+
+        renderChat();
+
+        for (const rec of recommendations) {
+          await screen.findByText(rec.outfitName);
+        }
+      }
+    );
+  });
+
+  describe("streaming outfit cards (#269, #270)", () => {
+    it("renders the first streamed outfit card before the stream completes", async () => {
+      const user = userEvent.setup();
+      let capturedOnOutfit: ((outfit: unknown) => void) | undefined;
+      let resolveStream: (() => void) | undefined;
+
+      apiMocks.streamChatResponse.mockImplementation(
+        (
+          _token: string,
+          _payload: unknown,
+          _signal: AbortSignal,
+          _onChunk: (chunk: string) => void,
+          _onConversationId: (id: string) => void,
+          onOutfit: (outfit: unknown) => void
+        ) => {
+          capturedOnOutfit = onOutfit;
+          return new Promise<void>((resolve) => {
+            resolveStream = resolve;
+          });
+        }
+      );
+
+      renderChat();
+
+      const textarea = await screen.findByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "Suggest a couple of outfits");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(capturedOnOutfit).toBeDefined();
+      });
+
+      const now = new Date().toISOString();
+      const makeStreamedOutfit = (n: number) => ({
+        id: `stream-rec-${n}`,
+        userId: "u1",
+        outfitName: `Streamed Outfit ${n}`,
+        reason: `Streamed reason ${n}`,
+        items: [{ id: `stream-item-${n}`, name: `Streamed Item ${n}` }],
+        occasions: [],
+        generation: null,
+        vote: null,
+        conversationId: "conv-1",
+        messageId: "streaming-msg",
+        createdAt: now,
+        updatedAt: now
+      });
+
+      // Emit first outfit; it must render while the stream is still pending
+      capturedOnOutfit!(makeStreamedOutfit(1));
+      await screen.findByText("Streamed Outfit 1");
+
+      // Second outfit is emitted later in the same stream; it also appears without
+      // waiting for the stream to finish
+      capturedOnOutfit!(makeStreamedOutfit(2));
+      await screen.findByText("Streamed Outfit 2");
+
+      // Now resolve the stream — send button should come back
+      resolveStream!();
+      await waitFor(() => {
+        expect(screen.getByRole("button", { name: /send/i })).toBeDefined();
+      });
+    });
+  });
+
   describe("outfit cards", () => {
     it("renders outfit cards when assistant message has recommendations", async () => {
       apiMocks.fetchChatConversations.mockResolvedValue([
