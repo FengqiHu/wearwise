@@ -5,9 +5,9 @@ import { ConversationRepository } from "../repositories/conversation-repository.
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
-import type { AccessoryMode, ChatRequest, ClosetItemRecord, UserProfile } from "../types/domain.js";
+import type { AccessoryMode, ChatRequest, ClosetItemRecord, PendingConfirmation, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
-import type { PrefetchedContext, SubmitOutfitArgs } from "../services/chat-service.js";
+import type { AccessoryModeContext, AddBackResult, PrefetchedContext, SubmitOutfitArgs } from "../services/chat-service.js";
 
 interface ChatRoutesDependencies {
   authService: AuthService;
@@ -19,7 +19,62 @@ interface ChatRoutesDependencies {
 }
 
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, userTimezone?: string, presetContext?: PrefetchedContext, hasUserLocation?: boolean): string {
+function buildAccessoryModeSection(
+  accessoryMode: AccessoryMode,
+  pendingConfirmation: PendingConfirmation | undefined
+): string {
+  return `## Accessory Mode Intent Recognition
+
+Current accessoryMode for this conversation: ${accessoryMode}.
+
+The user can change their accessory preference (include / exclude / auto) by speaking naturally. Follow this flow strictly:
+
+1. If the user clearly expresses a preference, reply with a short confirmation question (e.g. "Got it — you want to exclude accessories for future outfits, correct?") and WAIT for their next turn. Do NOT call set_accessory_mode yet.
+   - "include / want accessories / add accessories" → target = include
+   - "no / exclude / skip / remove accessories" → target = exclude
+   - "you decide / whatever / let AI pick" → target = auto
+
+2. If the phrasing is ambiguous ("keep it minimal", "simple look", "maybe"), DO NOT guess. Reply with this exact format and STOP — do not call any tool:
+   "Just to confirm — would you like me to (a) include accessories, (b) exclude accessories, or (c) let me decide? Reply with a, b, or c."
+
+3. Once the user confirms in the NEXT turn (e.g. "yes", "b", "exclude accessories"), call set_accessory_mode({ mode: X }) with their confirmed choice. Then continue with whatever the user originally asked for in the same reply.
+
+4. NEVER call set_accessory_mode without an explicit confirmation in the most recent user turn.
+
+5. If the user rejects the confirmation ("no, never mind"), do not call the tool. The mode stays as it was — acknowledge their decision briefly and move on.
+
+6. If the user asks to switch to "include" but set_accessory_mode returns { ok: false, error: "no_accessories_in_wardrobe" }, DO NOT retry the tool. Reply: "You have no accessories in your wardrobe. Please upload some first — otherwise I can't generate recommendations or try-on images with accessories." The mode stays as it was.
+
+## Add-accessories-back flow
+
+Pending confirmation state for this conversation: ${pendingConfirmation?.type ?? "none"}.
+
+When pending = "addAccessoriesOffer" (the user recently switched to exclude and this is their first outfit-related turn since):
+- Generate outfits as usual via submit_outfit (no accessories, per current mode).
+- After all submit_outfit calls, append ONE plain-text sentence on its own line: "Would you like me to add accessories to these outfits? Say 'yes, all', 'the second one', or 'no thanks'."
+- Do NOT call add_accessories_to_recommendation yet — wait for the user's confirmation in the NEXT turn.
+
+When pending = "addAccessoriesOffer" AND the user's latest turn confirms add-back (e.g. "yes", "yes all", "the second one", "add accessories"):
+- Call add_accessories_to_recommendation. Pass outfitIndex (0-based) if they named a specific outfit (e.g. "the second" → 1, "the third" → 2); omit outfitIndex to add to all outfits.
+- The tool returns { ok: true, originalOutfits, availableAccessories, targetOutfitIndex? }.
+  - If targetOutfitIndex is set: produce exactly 1 outfit (via submit_outfit) that copies every item in originalOutfits[targetOutfitIndex] AND adds at least one accessory from availableAccessories.
+  - Otherwise: produce exactly 3 outfits (one submit_outfit call each) — one for each entry in originalOutfits — each preserving the original items AND adding at least one accessory from availableAccessories.
+- Preserve original item IDs exactly. Only use accessory IDs from availableAccessories.
+- After the submit_outfit calls, append this one-sentence plain-text question on its own line: "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?"
+- If the tool returns { ok: false, error: "no_recent_recommendation" }: reply "I don't see a recent outfit recommendation to add accessories to. Ask me for an outfit first." and do not retry.
+- If the tool returns { ok: false, error: "no_accessories_in_wardrobe" }: reply "You have no accessories in your wardrobe. Please upload some first — otherwise I can't add accessories to your outfits." and do not retry.
+
+When pending = "futureAccessoryMode" and the user's latest turn picks a future mode (e.g. "a" / "let me decide" → auto, "b" / "always include" → include):
+- Call set_accessory_mode with "auto" or "include" accordingly. Then acknowledge briefly.
+
+When pending = "addAccessoriesOffer" AND the user declines add-back (e.g. "no", "no thanks", "skip"):
+- Briefly acknowledge (e.g. "Got it — no accessories added."). The server will clear the pending state.
+
+When the user's latest turn is off-topic while pending is "addAccessoriesOffer" or "futureAccessoryMode":
+- Answer the off-topic request first, then RE-ASK the pending question once at the end of your reply. Only re-ask once per pending state.`;
+}
+
+function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, pendingConfirmation: PendingConfirmation | undefined, userTimezone?: string, presetContext?: PrefetchedContext, hasUserLocation?: boolean): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}
@@ -49,6 +104,8 @@ ${readyItems
 ${profileSection}
 
 ${wardrobeSection}
+
+${buildAccessoryModeSection(accessoryMode, pendingConfirmation)}
 
 ## Tone and response style
 
@@ -215,7 +272,8 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           title: conversation.title,
           createdAt: conversation.createdAt,
           updatedAt: conversation.updatedAt,
-          lastMessageAt: conversation.lastMessageAt
+          lastMessageAt: conversation.lastMessageAt,
+          accessoryMode: conversation.accessoryMode
         },
         messages: messagesWithRecommendations
       });
@@ -299,10 +357,15 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       }
 
       const userId = authResolution.user.id;
+      const validModes = ["include", "exclude", "auto"] as const;
+      const requestMode: AccessoryMode | undefined =
+        typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode)
+          ? (accessoryMode as AccessoryMode)
+          : undefined;
       // check if it is a new conversation or an existing conversation
       let conversation = trimmedConversationId
         ? await conversationRepository.appendMessage(userId, trimmedConversationId, "user", trimmedMessage)
-        : await conversationRepository.createWithFirstUserMessage(userId, trimmedMessage);
+        : await conversationRepository.createWithFirstUserMessage(userId, trimmedMessage, requestMode ?? "auto");
 
       if (!conversation) {
         res.status(404).json({ error: "Conversation not found." });
@@ -322,11 +385,67 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           ? chatService.prefetchWeatherAndTime(browserLocation).catch(() => undefined)
           : Promise.resolve(undefined)
       ]);
-      const validModes = ["include", "exclude", "auto"] as const;
-      const resolvedMode: AccessoryMode = typeof accessoryMode === "string" && (validModes as readonly string[]).includes(accessoryMode) ? accessoryMode as AccessoryMode : "auto";
+      // For existing conversations, the persisted accessoryMode is the source of truth.
+      // For new conversations, the body's mode was already seeded into the conversation above.
+      const resolvedMode: AccessoryMode = conversation.accessoryMode ?? "auto";
+      const wardrobeHasAccessories = closetItems.some(
+        (item) => item.analysisStatus === "ready" && item.category === "accessories"
+      );
       const resolvedTimezone = userLocation?.timezone ?? (typeof timezone === "string" && timezone.trim() ? timezone.trim() : undefined);
       const hasUserLocation = userLocation !== null && userLocation !== undefined;
-      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, resolvedTimezone, presetContext, hasUserLocation);
+      const wardrobeSystemMessage = buildWardrobeSystemMessage(userRecord?.profile ?? null, closetItems, resolvedMode, conversation.pendingConfirmation, resolvedTimezone, presetContext, hasUserLocation);
+
+      const accessoryModeContext: AccessoryModeContext = {
+        wardrobeHasAccessories,
+        onModeChanged: async (mode: AccessoryMode) => {
+          const updates: { accessoryMode: AccessoryMode; pendingConfirmation: PendingConfirmation | null } = {
+            accessoryMode: mode,
+            pendingConfirmation:
+              mode === "exclude"
+                ? { type: "addAccessoriesOffer", createdAt: new Date().toISOString() }
+                : null
+          };
+          await conversationRepository.updateConversationFields(userId, conversationIdForSave, updates);
+        },
+        onAddBackRequested: async ({ outfitIndex }): Promise<AddBackResult> => {
+          const latest = await conversationRepository.findLatestAssistantRecommendationMessage(
+            userId,
+            conversationIdForSave
+          );
+          if (!latest || latest.recommendationIds.length === 0) {
+            return { ok: false, error: "no_recent_recommendation" };
+          }
+          const recommendations = await Promise.all(
+            latest.recommendationIds.map((id) => recommendationRepository.findById(userId, id))
+          );
+          const originalOutfits = recommendations
+            .filter((rec): rec is NonNullable<typeof rec> => rec !== null)
+            .map((rec) => ({
+              outfitName: rec.outfitName,
+              items: rec.items.map((item) => ({ id: item.id, name: item.name }))
+            }));
+          if (originalOutfits.length === 0) {
+            return { ok: false, error: "no_recent_recommendation" };
+          }
+          const availableAccessories = closetItems
+            .filter((item) => item.analysisStatus === "ready" && item.category === "accessories")
+            .map((item) => ({
+              id: item.id,
+              name: item.name ?? "Unnamed",
+              category: item.category ?? "accessories",
+              tags: item.tags
+            }));
+          if (availableAccessories.length === 0) {
+            return { ok: false, error: "no_accessories_in_wardrobe" };
+          }
+          await conversationRepository.updateConversationFields(userId, conversationIdForSave, {
+            pendingConfirmation: { type: "futureAccessoryMode", createdAt: new Date().toISOString() }
+          });
+          return outfitIndex !== undefined
+            ? { ok: true, originalOutfits, availableAccessories, targetOutfitIndex: outfitIndex }
+            : { ok: true, originalOutfits, availableAccessories };
+        }
+      };
 
       // set headers for SSE
       res.setHeader("Content-Type", "text/event-stream");
@@ -385,6 +504,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           ],
           ...(browserLocation ? { userLocation: browserLocation } : {}),
           ...(presetContext ? { presetContext } : {}),
+          accessoryModeContext,
           signal: abortController.signal,
           onChunk: (chunk) => {
             assistantText += chunk;
@@ -473,6 +593,68 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       if (!res.writableEnded && shouldCloseResponse) {
         res.end();
       }
+    }
+  });
+
+  router.post("/chat/conversations/:conversationId/mode", async (req, res): Promise<void> => {
+    try {
+      const authResolution = await authService.resolveAuthenticatedUser(req);
+
+      if (!authResolution.user || authResolution.error) {
+        res.status(authResolution.error?.status ?? 401).json({
+          error: authResolution.error?.message ?? "Unauthorized."
+        });
+        return;
+      }
+
+      const conversationId = (req.params.conversationId ?? "").trim();
+
+      if (!conversationId) {
+        res.status(400).json({ error: "conversationId is required." });
+        return;
+      }
+
+      const body = req.body as { mode?: unknown };
+      const validModes = ["include", "exclude", "auto"] as const;
+      if (typeof body.mode !== "string" || !(validModes as readonly string[]).includes(body.mode)) {
+        res.status(400).json({ error: "mode must be one of: include, exclude, auto." });
+        return;
+      }
+      const mode = body.mode as AccessoryMode;
+
+      const userId = authResolution.user.id;
+      const conversation = await conversationRepository.findById(userId, conversationId);
+
+      if (!conversation) {
+        res.status(404).json({ error: "Conversation not found." });
+        return;
+      }
+
+      if (mode === "include") {
+        const closetItems = await closetRepository.listByUser(userId);
+        const hasAccessories = closetItems.some(
+          (item) => item.analysisStatus === "ready" && item.category === "accessories"
+        );
+        if (!hasAccessories) {
+          res.status(409).json({ error: "no_accessories_in_wardrobe" });
+          return;
+        }
+      }
+
+      const nextPending: PendingConfirmation | null =
+        mode === "exclude"
+          ? { type: "addAccessoriesOffer", createdAt: new Date().toISOString() }
+          : null;
+
+      await conversationRepository.updateConversationFields(userId, conversationId, {
+        accessoryMode: mode,
+        pendingConfirmation: nextPending
+      });
+
+      res.json({ accessoryMode: mode });
+    } catch (error) {
+      console.error("Chat mode update error:", error);
+      res.status(500).json({ error: "Failed to update accessory mode." });
     }
   });
 

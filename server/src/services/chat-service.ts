@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 import { z } from "zod";
-import type { ChatRole } from "../types/domain.js";
+import type { AccessoryMode, ChatRole } from "../types/domain.js";
 import { CurrentTimeService } from "./current-time-service.js";
 import { OpenWeatherService, type OpenWeatherToolResult } from "./openweather-service.js";
 import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
@@ -18,12 +18,40 @@ export interface SubmitOutfitArgs {
   weatherSummary?: string;
 }
 
+export interface AddBackOriginalOutfit {
+  outfitName: string;
+  items: Array<{ id: string; name: string }>;
+}
+
+export interface AddBackAvailableAccessory {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+}
+
+export type AddBackResult =
+  | {
+      ok: true;
+      originalOutfits: AddBackOriginalOutfit[];
+      availableAccessories: AddBackAvailableAccessory[];
+      targetOutfitIndex?: number;
+    }
+  | { ok: false; error: "no_recent_recommendation" | "no_accessories_in_wardrobe" };
+
+export interface AccessoryModeContext {
+  onModeChanged: (mode: AccessoryMode) => Promise<void>;
+  wardrobeHasAccessories: boolean;
+  onAddBackRequested: (args: { outfitIndex?: number }) => Promise<AddBackResult>;
+}
+
 interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
   onOutfit?: (outfit: SubmitOutfitArgs) => void | Promise<void>;
   signal?: AbortSignal;
   userLocation?: BrowserLocation;
+  accessoryModeContext?: AccessoryModeContext;
   presetContext?: PrefetchedContext;
 }
 
@@ -81,6 +109,48 @@ const weatherToolInputSchema = z
   });
 
 type WeatherToolArgs = z.infer<typeof weatherToolInputSchema>;
+
+const accessoryModeToolParameters = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    mode: {
+      type: "string",
+      enum: ["include", "exclude", "auto"],
+      description:
+        "Accessory mode the user has just confirmed. " +
+        "Use include when they want accessories, exclude when they don't, auto when they let you decide."
+    }
+  },
+  required: ["mode"]
+};
+
+const accessoryModeToolInputSchema = z.object({
+  mode: z.enum(["include", "exclude", "auto"])
+});
+
+type AccessoryModeToolArgs = z.infer<typeof accessoryModeToolInputSchema>;
+
+const addAccessoriesToolParameters = {
+  type: "object",
+  additionalProperties: false,
+  properties: {
+    outfitIndex: {
+      type: "integer",
+      minimum: 0,
+      description:
+        "0-based index of a specific outfit from the most recent recommendation to extend with accessories. " +
+        "Omit to add accessories to all outfits in that recommendation."
+    }
+  },
+  required: []
+};
+
+const addAccessoriesToolInputSchema = z.object({
+  outfitIndex: z.number().int().min(0).optional()
+});
+
+type AddAccessoriesToolArgs = z.infer<typeof addAccessoriesToolInputSchema>;
 
 interface RunnerToolCall {
   id?: string;
@@ -303,6 +373,7 @@ export class ChatService {
     }
 
     const userLocation = input.userLocation;
+    const accessoryModeContext = input.accessoryModeContext;
 
     let assistantText = "";
     const runner = this.client.chat.completions.runTools(
@@ -386,6 +457,67 @@ export class ChatService {
               }
             }
           },
+          ...(accessoryModeContext
+            ? [
+                {
+                  type: "function" as const,
+                  function: {
+                    name: "set_accessory_mode",
+                    description:
+                      "Persist the user's confirmed accessory mode preference for this conversation. " +
+                      "Only call AFTER the user has explicitly confirmed their choice in the most recent turn. " +
+                      "Do not call this tool to guess a preference or to 'try' a mode.",
+                    parameters: accessoryModeToolParameters,
+                    parse: (rawArguments: string) =>
+                      accessoryModeToolInputSchema.parse(JSON.parse(rawArguments)),
+                    function: async (args: AccessoryModeToolArgs) => {
+                      if (args.mode === "include" && !accessoryModeContext.wardrobeHasAccessories) {
+                        return { ok: false, error: "no_accessories_in_wardrobe" };
+                      }
+                      try {
+                        await accessoryModeContext.onModeChanged(args.mode);
+                        return { ok: true, newMode: args.mode };
+                      } catch (error) {
+                        return {
+                          ok: false,
+                          error:
+                            error instanceof Error ? error.message : "Failed to update accessory mode."
+                        };
+                      }
+                    }
+                  }
+                },
+                {
+                  type: "function" as const,
+                  function: {
+                    name: "add_accessories_to_recommendation",
+                    description:
+                      "Generate a new outfit recommendation that adds accessories to the user's most recent outfit(s). " +
+                      "Call this AFTER the user has explicitly confirmed they want accessories added. " +
+                      "Pass outfitIndex (0-based) when the user named a specific outfit (e.g. 'the second one' -> 1); " +
+                      "omit outfitIndex to add accessories to all outfits in the most recent recommendation.",
+                    parameters: addAccessoriesToolParameters,
+                    parse: (rawArguments: string) =>
+                      addAccessoriesToolInputSchema.parse(JSON.parse(rawArguments)),
+                    function: async (args: AddAccessoriesToolArgs) => {
+                      try {
+                        return await accessoryModeContext.onAddBackRequested(
+                          args.outfitIndex !== undefined ? { outfitIndex: args.outfitIndex } : {}
+                        );
+                      } catch (error) {
+                        return {
+                          ok: false as const,
+                          error:
+                            error instanceof Error
+                              ? error.message
+                              : "Failed to fetch accessories for add-back."
+                        };
+                      }
+                    }
+                  }
+                }
+              ]
+            : []),
           {
             type: "function",
             function: {

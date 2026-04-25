@@ -1,4 +1,5 @@
 import type {
+  AccessoryMode,
   AuthenticatedUser,
   ChatConversationDetail,
   ChatConversationSummary,
@@ -12,6 +13,8 @@ import type {
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
 
+export type { AccessoryMode } from "../types";
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:3001";
 
 export interface UserLocation {
@@ -19,8 +22,6 @@ export interface UserLocation {
   lon: number;
   timezone: string;
 }
-
-export type AccessoryMode = "include" | "exclude" | "auto";
 
 interface ChatStreamPayload {
   message: string;
@@ -247,6 +248,42 @@ export async function deleteChatConversation(token: string, conversationId: stri
   if (!response.ok) {
     const message = await parseResponseError(response, "Failed to delete conversation.");
     throw new Error(message);
+  }
+}
+
+export class AccessoryModeUpdateError extends Error {
+  constructor(public readonly code: string, message: string) {
+    super(message);
+    this.name = "AccessoryModeUpdateError";
+  }
+}
+
+export async function setConversationAccessoryMode(
+  token: string,
+  conversationId: string,
+  mode: AccessoryMode
+): Promise<void> {
+  const response = await fetch(
+    `${API_BASE_URL}/api/chat/conversations/${encodeURIComponent(conversationId)}/mode`,
+    {
+      method: "POST",
+      headers: createAuthHeaders(token),
+      body: JSON.stringify({ mode })
+    }
+  );
+
+  if (!response.ok) {
+    let code = "";
+    try {
+      const payload = (await response.clone().json()) as { error?: unknown };
+      if (typeof payload.error === "string") {
+        code = payload.error;
+      }
+    } catch {
+      // Ignore parse errors; code stays empty.
+    }
+    const message = await parseResponseError(response, "Failed to update accessory mode.");
+    throw new AccessoryModeUpdateError(code, message);
   }
 }
 

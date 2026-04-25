@@ -305,4 +305,237 @@ describe("ConversationRepository", () => {
       expect(result).toBe(false);
     });
   });
+
+  describe("accessoryMode persistence", () => {
+    it("defaults accessoryMode to 'auto' for new conversations", async () => {
+      const repo = makeRepo();
+      mockCollection.insertOne.mockResolvedValue({ acknowledged: true });
+
+      const result = await repo.createWithFirstUserMessage("user-1", "Hello");
+
+      expect(result.accessoryMode).toBe("auto");
+      expect(mockCollection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({ accessoryMode: "auto" })
+      );
+    });
+
+    it("persists an explicit accessoryMode when provided at creation", async () => {
+      const repo = makeRepo();
+      mockCollection.insertOne.mockResolvedValue({ acknowledged: true });
+
+      const result = await repo.createWithFirstUserMessage("user-1", "No accessories", "exclude");
+
+      expect(result.accessoryMode).toBe("exclude");
+      expect(mockCollection.insertOne).toHaveBeenCalledWith(
+        expect.objectContaining({ accessoryMode: "exclude" })
+      );
+    });
+
+    it("defaults accessoryMode to 'auto' when reading a legacy doc without the field", async () => {
+      const repo = makeRepo();
+      mockCollection.findOne.mockResolvedValue(makeDoc());
+
+      const result = await repo.findById("user-1", "conv-1");
+
+      expect(result?.accessoryMode).toBe("auto");
+    });
+
+    it("surfaces stored accessoryMode from the document", async () => {
+      const repo = makeRepo();
+      mockCollection.findOne.mockResolvedValue(makeDoc({ accessoryMode: "include" }));
+
+      const result = await repo.findById("user-1", "conv-1");
+
+      expect(result?.accessoryMode).toBe("include");
+    });
+
+    it("surfaces a stored pendingConfirmation", async () => {
+      const repo = makeRepo();
+      const pending = {
+        type: "accessoryMode" as const,
+        requestedMode: "exclude" as const,
+        createdAt: "2026-04-16T00:00:00.000Z"
+      };
+      mockCollection.findOne.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      const result = await repo.findById("user-1", "conv-1");
+
+      expect(result?.pendingConfirmation).toEqual(pending);
+    });
+  });
+
+  describe("updateConversationFields", () => {
+    it("sets accessoryMode via $set with a refreshed updatedAt", async () => {
+      const repo = makeRepo();
+      const updated = makeDoc({ accessoryMode: "exclude", updatedAt: "2026-04-17T00:00:00.000Z" });
+      mockCollection.findOneAndUpdate.mockResolvedValue(updated);
+
+      const result = await repo.updateConversationFields("user-1", "conv-1", { accessoryMode: "exclude" });
+
+      expect(mockCollection.findOneAndUpdate).toHaveBeenCalledWith(
+        { _id: "conv-1", userId: "user-1" },
+        expect.objectContaining({
+          $set: expect.objectContaining({ accessoryMode: "exclude", updatedAt: expect.any(String) })
+        }),
+        { returnDocument: "after" }
+      );
+      expect(result?.accessoryMode).toBe("exclude");
+    });
+
+    it("clears pendingConfirmation via $unset when null is passed", async () => {
+      const repo = makeRepo();
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ accessoryMode: "exclude" }));
+
+      await repo.updateConversationFields("user-1", "conv-1", {
+        accessoryMode: "exclude",
+        pendingConfirmation: null
+      });
+
+      const call = mockCollection.findOneAndUpdate.mock.calls[0];
+      const update = call?.[1] as { $set?: unknown; $unset?: Record<string, string> };
+      expect(update.$unset).toEqual({ pendingConfirmation: "" });
+      expect((update.$set as Record<string, unknown>).accessoryMode).toBe("exclude");
+    });
+
+    it("stores a pendingConfirmation via $set when an object is passed", async () => {
+      const repo = makeRepo();
+      const pending = {
+        type: "accessoryMode" as const,
+        requestedMode: "include" as const,
+        createdAt: "2026-04-17T00:00:00.000Z"
+      };
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
+
+      const call = mockCollection.findOneAndUpdate.mock.calls[0];
+      const update = call?.[1] as { $set?: Record<string, unknown>; $unset?: Record<string, string> };
+      expect(update.$set?.pendingConfirmation).toEqual(pending);
+      expect(update.$unset).toBeUndefined();
+    });
+
+    it("returns null when the conversation does not exist", async () => {
+      const repo = makeRepo();
+      mockCollection.findOneAndUpdate.mockResolvedValue(null);
+
+      const result = await repo.updateConversationFields("user-1", "missing", { accessoryMode: "auto" });
+
+      expect(result).toBeNull();
+    });
+
+    it("returns the current record without writing when no updates are requested", async () => {
+      const repo = makeRepo();
+      mockCollection.findOne.mockResolvedValue(makeDoc({ accessoryMode: "auto" }));
+
+      const result = await repo.updateConversationFields("user-1", "conv-1", {});
+
+      expect(mockCollection.findOneAndUpdate).not.toHaveBeenCalled();
+      expect(result?.accessoryMode).toBe("auto");
+    });
+
+    it("stores pendingConfirmation of type addAccessoriesOffer", async () => {
+      const repo = makeRepo();
+      const pending = { type: "addAccessoriesOffer" as const, createdAt: "2026-04-18T00:00:00.000Z" };
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
+
+      const update = mockCollection.findOneAndUpdate.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
+      expect(update.$set.pendingConfirmation).toEqual(pending);
+    });
+
+    it("stores pendingConfirmation of type futureAccessoryMode", async () => {
+      const repo = makeRepo();
+      const pending = { type: "futureAccessoryMode" as const, createdAt: "2026-04-18T00:00:00.000Z" };
+      mockCollection.findOneAndUpdate.mockResolvedValue(makeDoc({ pendingConfirmation: pending }));
+
+      await repo.updateConversationFields("user-1", "conv-1", { pendingConfirmation: pending });
+
+      const update = mockCollection.findOneAndUpdate.mock.calls[0]?.[1] as { $set: Record<string, unknown> };
+      expect(update.$set.pendingConfirmation).toEqual(pending);
+    });
+  });
+
+  describe("findLatestAssistantRecommendationMessage", () => {
+    it("returns the most recent assistant message with recommendationIds", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          { id: "msg-1", role: "user", content: "outfit please", createdAt: "2026-04-18T00:00:00.000Z" },
+          {
+            id: "msg-2",
+            role: "assistant",
+            content: "old rec",
+            createdAt: "2026-04-18T00:00:01.000Z",
+            recommendationIds: ["rec-old-1"]
+          },
+          { id: "msg-3", role: "user", content: "another", createdAt: "2026-04-18T00:00:02.000Z" },
+          {
+            id: "msg-4",
+            role: "assistant",
+            content: "new rec",
+            createdAt: "2026-04-18T00:00:03.000Z",
+            recommendationIds: ["rec-new-1", "rec-new-2", "rec-new-3"]
+          },
+          { id: "msg-5", role: "user", content: "follow-up", createdAt: "2026-04-18T00:00:04.000Z" }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toEqual({ messageId: "msg-4", recommendationIds: ["rec-new-1", "rec-new-2", "rec-new-3"] });
+    });
+
+    it("returns null when no assistant message has recommendationIds", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          { id: "msg-1", role: "user", content: "hi", createdAt: "2026-04-18T00:00:00.000Z" },
+          { id: "msg-2", role: "assistant", content: "plain text reply", createdAt: "2026-04-18T00:00:01.000Z" }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toBeNull();
+    });
+
+    it("returns null when the conversation does not exist", async () => {
+      const repo = makeRepo();
+      mockCollection.findOne.mockResolvedValue(null);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "missing");
+
+      expect(result).toBeNull();
+    });
+
+    it("skips assistant messages with empty recommendationIds arrays", async () => {
+      const repo = makeRepo();
+      const doc = makeDoc({
+        messages: [
+          {
+            id: "msg-2",
+            role: "assistant",
+            content: "has recs",
+            createdAt: "2026-04-18T00:00:01.000Z",
+            recommendationIds: ["rec-1"]
+          },
+          {
+            id: "msg-3",
+            role: "assistant",
+            content: "no recs",
+            createdAt: "2026-04-18T00:00:02.000Z",
+            recommendationIds: []
+          }
+        ]
+      });
+      mockCollection.findOne.mockResolvedValue(doc);
+
+      const result = await repo.findLatestAssistantRecommendationMessage("user-1", "conv-1");
+
+      expect(result).toEqual({ messageId: "msg-2", recommendationIds: ["rec-1"] });
+    });
+  });
 });

@@ -12,17 +12,19 @@ import {
 import { ThinkingDots } from "../components/thinking-dots";
 import { useAuth } from "../context/auth-context";
 import {
+  AccessoryModeUpdateError,
   deleteChatConversation,
   fetchChatConversation,
   fetchChatConversations,
   fetchClosetItems,
   generateOutfit,
+  setConversationAccessoryMode,
   streamChatResponse,
   voteRecommendation,
   type UserLocation
 } from "../lib/api";
 import { cn } from "../lib/cn";
-import type { ChatConversationSummary, ChatMessage, ClothingItem, Recommendation } from "../types";
+import type { AccessoryMode, ChatConversationSummary, ChatMessage, ClothingItem, Recommendation } from "../types";
 
 interface OutfitGenerationState {
   generatedImageUrl: string | null;
@@ -275,7 +277,8 @@ export function ChatPage() {
   const [voteStates, setVoteStates] = useState<Record<string, "up" | "down" | null>>({});
   const [streamingOutfits, setStreamingOutfits] = useState<Map<string, Recommendation[]>>(new Map());
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
-  const [accessoryMode, setAccessoryMode] = useState<"include" | "exclude" | "auto">("auto");
+  const [accessoryMode, setAccessoryMode] = useState<AccessoryMode>("auto");
+  const [accessoryModeError, setAccessoryModeError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const scrollAnchorRef = useRef<HTMLDivElement | null>(null);
 
@@ -289,6 +292,10 @@ export function ChatPage() {
   useEffect(() => {
     scrollAnchorRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isGenerating]);
+
+  useEffect(() => {
+    setAccessoryModeError(null);
+  }, [activeConversationId]);
 
   useEffect(() => {
     if (!navigator.geolocation) return;
@@ -338,6 +345,7 @@ export function ChatPage() {
         setActiveConversationId(firstConversationId);
         setMessages(detail.messages);
         setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+        setAccessoryMode(detail.conversation.accessoryMode);
       } catch (error) {
         if (!active) return;
         const message = error instanceof Error ? error.message : "Failed to load chat history.";
@@ -381,6 +389,7 @@ export function ChatPage() {
         setActiveConversationId(conversationId);
         setMessages(detail.messages);
         setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+        setAccessoryMode(detail.conversation.accessoryMode);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Failed to load conversation.";
         setHistoryError(message);
@@ -399,6 +408,7 @@ export function ChatPage() {
     setVoteStates({});
     setInput("");
     setHistoryError(null);
+    setAccessoryMode("auto");
   }, [greeting, isGenerating]);
 
   const handleDeleteConversation = useCallback(
@@ -422,6 +432,7 @@ export function ChatPage() {
               const detail = await fetchChatConversation(token, nextConversationId);
               setMessages(detail.messages);
               setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+              setAccessoryMode(detail.conversation.accessoryMode);
             } finally {
               setIsLoadingConversation(false);
             }
@@ -429,6 +440,7 @@ export function ChatPage() {
             setMessages([greeting]);
             setOutfitGenerationStates({});
             setVoteStates({});
+            setAccessoryMode("auto");
           }
         }
       } catch (error) {
@@ -440,6 +452,31 @@ export function ChatPage() {
     },
     [token, isGenerating, isLoadingConversation, deletingConversationId, conversations, activeConversationId, greeting]
   );
+
+  const handleAccessoryModeChange = async (nextMode: AccessoryMode): Promise<void> => {
+    const previousMode = accessoryMode;
+    if (nextMode === previousMode) {
+      return;
+    }
+
+    setAccessoryModeError(null);
+    setAccessoryMode(nextMode);
+
+    if (!token || !activeConversationId) {
+      return;
+    }
+
+    try {
+      await setConversationAccessoryMode(token, activeConversationId, nextMode);
+    } catch (error) {
+      setAccessoryMode(previousMode);
+      if (error instanceof AccessoryModeUpdateError && error.code === "no_accessories_in_wardrobe") {
+        setAccessoryModeError("You have no accessories in your wardrobe. Please upload some first.");
+      } else {
+        setAccessoryModeError("Failed to update accessory mode. Please try again.");
+      }
+    }
+  };
 
   const appendChunkToMessage = (id: string, chunk: string): void => {
     setMessages((previous) =>
@@ -511,6 +548,7 @@ export function ChatPage() {
           setActiveConversationId(detail.conversation.id);
           setMessages(detail.messages);
           setOutfitGenerationStates(buildGenerationStatesFromMessages(detail.messages));
+          setAccessoryMode(detail.conversation.accessoryMode);
         } catch {
           // Keep streamed local messages if sync fails.
         }
@@ -657,7 +695,9 @@ export function ChatPage() {
               <span>Accessories:</span>
               <select
                 value={accessoryMode}
-                onChange={(e) => setAccessoryMode(e.target.value as "include" | "exclude" | "auto")}
+                onChange={(e) => {
+                  void handleAccessoryModeChange(e.target.value as AccessoryMode);
+                }}
                 className="rounded-md border border-pebble bg-cream px-2 py-1 text-xs text-charcoal outline-none transition focus:border-[rgba(28,28,28,0.4)]"
               >
                 <option value="auto">AI decides</option>
@@ -679,6 +719,12 @@ export function ChatPage() {
             ) : null}
           </div>
         </div>
+
+        {accessoryModeError ? (
+          <div className="flex-shrink-0 border-b border-pebble px-4 py-1.5">
+            <p className="text-xs text-red-600">{accessoryModeError}</p>
+          </div>
+        ) : null}
 
         {/* Messages scroll area */}
         <div className="flex-1 overflow-y-auto">

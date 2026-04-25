@@ -153,6 +153,8 @@ export interface ChatConversationSummary {
   messageCount: number;
 }
 
+export type AccessoryMode = "include" | "exclude" | "auto";
+
 export interface ChatConversationDetail {
   conversation: {
     id: string;
@@ -160,6 +162,7 @@ export interface ChatConversationDetail {
     createdAt: string;
     updatedAt: string;
     lastMessageAt: string;
+    accessoryMode: AccessoryMode;
   };
   messages: ChatMessage[];
 }
