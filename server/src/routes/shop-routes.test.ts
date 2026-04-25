@@ -10,7 +10,15 @@ import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
+import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError
+} from "../services/gemini-clothing-presence-service.js";
 import type { ImageGenerationService } from "../services/image-generation-service.js";
+import {
+  ImageModerationRejectedError,
+  ImageModerationUnavailableError
+} from "../services/image-moderation-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
 import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { ClosetItemRecord, RecommendationRecord, UserRecord } from "../types/domain.js";
@@ -166,10 +174,15 @@ function makeHarness(options: {
   } as unknown as RecommendationRepository;
 
   const reviewedImageStorageService = {
+    isClothingImageReviewConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
     isClosetImageReviewConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
     storeUserImage: vi.fn().mockResolvedValue({
       key: "user-1/closet/test-upload.jpg",
       publicUrl: "https://cdn.example.com/user-1/closet/test-upload.jpg"
+    }),
+    storeUserShopImage: vi.fn().mockResolvedValue({
+      key: "user-1/online-items/product.png",
+      publicUrl: "https://cdn.example.com/user-1/online-items/product.png"
     })
   } as unknown as ReviewedImageStorageService;
 
@@ -193,6 +206,7 @@ function makeHarness(options: {
       importClosetItems: closetRepository.importMany as ReturnType<typeof vi.fn>,
       findClosetItem: closetRepository.findById as ReturnType<typeof vi.fn>,
       uploadShopImage: r2StorageService.uploadShopImage as ReturnType<typeof vi.fn>,
+      storeUserShopImage: (reviewedImageStorageService as unknown as { storeUserShopImage: ReturnType<typeof vi.fn> }).storeUserShopImage,
       analyzeImage: geminiExtractionService.analyzeClothingImage as ReturnType<typeof vi.fn>,
       recommendShopOutfits: geminiRecommendationService.recommendShopOutfits as ReturnType<typeof vi.fn>,
       generateImage: imageGenerationService.generateOutfitImage as ReturnType<typeof vi.fn>,
@@ -279,7 +293,7 @@ describe("createShopRoutes POST /shop/recommend", () => {
 
     expect(response.status).toBe(400);
     expect(body.error).toContain("Unsupported image type");
-    expect(harness.spies.uploadShopImage).not.toHaveBeenCalled();
+    expect(harness.spies.storeUserShopImage).not.toHaveBeenCalled();
   });
 
   it("returns 401 for an unauthenticated request", async () => {
@@ -290,7 +304,7 @@ describe("createShopRoutes POST /shop/recommend", () => {
     const response = await postRecommend(started.baseUrl, imageFormData());
 
     expect(response.status).toBe(401);
-    expect(harness.spies.uploadShopImage).not.toHaveBeenCalled();
+    expect(harness.spies.storeUserShopImage).not.toHaveBeenCalled();
   });
 
   it("returns a product-only outfit when the user wardrobe has no ready pairings", async () => {
@@ -317,7 +331,12 @@ describe("createShopRoutes POST /shop/recommend", () => {
 
     await postRecommend(started.baseUrl, imageFormData("image/webp"));
 
-    expect(harness.spies.uploadShopImage).toHaveBeenCalledWith("user-1", expect.any(Buffer), "image/webp");
+    expect(harness.spies.storeUserShopImage).toHaveBeenCalledWith({
+      userId: "user-1",
+      fileName: "product.png",
+      contentType: "image/webp",
+      buffer: expect.any(Buffer)
+    });
     expect(harness.spies.analyzeImage).toHaveBeenCalledWith(
       "https://cdn.example.com/user-1/online-items/product.png",
       "image/webp"
@@ -359,5 +378,81 @@ describe("createShopRoutes POST /shop/recommend", () => {
     expect(closetBody.items.some((item) => item.imageUrl.includes("online-items"))).toBe(false);
     expect(harness.spies.createClosetItem).not.toHaveBeenCalled();
     expect(harness.spies.importClosetItems).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when reviewed shop image storage is not configured", async () => {
+    const harness = makeHarness({ storageConfigured: false });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postRecommend(started.baseUrl, imageFormData());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toContain("Image review service");
+    expect(harness.spies.storeUserShopImage).not.toHaveBeenCalled();
+    expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
+  });
+
+  it("returns 422 when SafeSearch rejects the shop image", async () => {
+    const harness = makeHarness();
+    harness.spies.storeUserShopImage.mockRejectedValue(
+      new ImageModerationRejectedError("Image failed SafeSearch review.", ["adult"], {})
+    );
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postRecommend(started.baseUrl, imageFormData());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(422);
+    expect(body.error).toContain("SafeSearch");
+    expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
+    expect(harness.spies.recommendShopOutfits).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when SafeSearch is unavailable for the shop image", async () => {
+    const harness = makeHarness();
+    harness.spies.storeUserShopImage.mockRejectedValue(new ImageModerationUnavailableError("SafeSearch unavailable."));
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postRecommend(started.baseUrl, imageFormData());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toContain("SafeSearch unavailable");
+    expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
+  });
+
+  it("returns 422 when Gemini rejects the shop image because no clothing is visible", async () => {
+    const harness = makeHarness();
+    harness.spies.storeUserShopImage.mockRejectedValue(
+      new ClothingPresenceRejectedError("No clothing item is visible.")
+    );
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postRecommend(started.baseUrl, imageFormData());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(422);
+    expect(body.error).toContain("no clothing item was detected");
+    expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
+    expect(harness.spies.recommendShopOutfits).not.toHaveBeenCalled();
+  });
+
+  it("returns 503 when Gemini clothing validation is unavailable for the shop image", async () => {
+    const harness = makeHarness();
+    harness.spies.storeUserShopImage.mockRejectedValue(new ClothingPresenceUnavailableError());
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postRecommend(started.baseUrl, imageFormData());
+    const body = await response.json() as { error: string };
+
+    expect(response.status).toBe(503);
+    expect(body.error).toContain("temporarily unavailable");
+    expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
   });
 });
