@@ -529,6 +529,87 @@ describe("ChatPage", () => {
       });
       expect(accessoryModeSelect).toHaveValue("auto");
     });
+
+    it("clears add-back offer and resets dropdown when switching away from a conversation with pending offer", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([
+        { id: "conv-exclude", title: "Exclude Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() },
+        { id: "conv-auto", title: "Auto Chat", lastMessagePreview: "", updatedAt: new Date().toISOString() }
+      ]);
+      apiMocks.fetchChatConversation.mockImplementation(async (_token: string, id: string) => {
+        if (id === "conv-exclude") {
+          return {
+            conversation: { id: "conv-exclude", accessoryMode: "exclude" },
+            messages: [
+              { id: "m1", role: "user", content: "no accessories" },
+              {
+                id: "m2",
+                role: "assistant",
+                content: "Here are your outfits.\nWould you like me to add accessories to these outfits? Say 'yes, all', 'the second one', or 'no thanks'."
+              }
+            ]
+          };
+        }
+        return {
+          conversation: { id: "conv-auto", accessoryMode: "auto" },
+          messages: [{ id: "m3", role: "assistant", content: "Hello! How can I help?" }]
+        };
+      });
+
+      renderChat();
+
+      await screen.findByText(/Would you like me to add accessories/i);
+      const accessoryModeSelect = screen.getByRole("combobox", { name: /accessories/i });
+      expect(accessoryModeSelect).toHaveValue("exclude");
+
+      await user.click(screen.getByText("Auto Chat"));
+
+      await waitFor(() => {
+        expect(screen.queryByText(/Would you like me to add accessories/i)).toBeNull();
+      });
+      expect(accessoryModeSelect).toHaveValue("auto");
+      expect(screen.getByText(/Hello! How can I help/i)).toBeDefined();
+    });
+
+    it("shows refusal in chat and keeps dropdown unchanged when wardrobe has no accessories during conversational include request", async () => {
+      const user = userEvent.setup();
+      apiMocks.fetchChatConversations.mockResolvedValue([]);
+      apiMocks.streamChatResponse.mockImplementation(
+        async (
+          _token: string,
+          _payload: unknown,
+          _signal: unknown,
+          _onChunk: unknown,
+          onConversationId: (id: string) => void
+        ) => {
+          onConversationId("conv-1");
+        }
+      );
+      apiMocks.fetchChatConversation.mockResolvedValue({
+        conversation: { id: "conv-1", accessoryMode: "auto" },
+        messages: [
+          { id: "m1", role: "user", content: "add accessories to my outfits" },
+          {
+            id: "m2",
+            role: "assistant",
+            content: "You have no accessories in your wardrobe. Please upload some first — otherwise I can't generate recommendations with accessories."
+          }
+        ]
+      });
+
+      renderChat();
+      const accessoryModeSelect = await screen.findByRole("combobox", { name: /accessories/i });
+      expect(accessoryModeSelect).toHaveValue("auto");
+
+      const textarea = screen.getByPlaceholderText(/tell me what you want/i);
+      await user.type(textarea, "add accessories to my outfits");
+      await user.click(screen.getByRole("button", { name: /send/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText(/no accessories in your wardrobe/i)).toBeDefined();
+      });
+      expect(accessoryModeSelect).toHaveValue("auto");
+    });
   });
 
   describe("outfit cards", () => {
