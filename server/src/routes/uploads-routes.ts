@@ -5,6 +5,10 @@ import {
   ImageModerationUnavailableError
 } from "../services/image-moderation-service.js";
 import {
+  HumanPresenceRejectedError,
+  HumanPresenceUnavailableError
+} from "../services/gemini-human-presence-service.js";
+import {
   normalizeManagedUploadFolder,
   ReviewedImageStorageService
 } from "../services/reviewed-image-storage-service.js";
@@ -33,7 +37,7 @@ export function createUploadsRoutes({
   const router = Router();
 
   router.post("/uploads/images", rawImageBodyParser, async (req, res): Promise<void> => {
-    if (!reviewedImageStorageService.isConfigured()) {
+    if (!reviewedImageStorageService.isProfileImageReviewConfigured()) {
       res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
       return;
     }
@@ -67,7 +71,7 @@ export function createUploadsRoutes({
       }
 
       const fileName = typeof req.query.fileName === "string" ? req.query.fileName : null;
-      const uploadedImage = await reviewedImageStorageService.storeUserImage({
+      const uploadedImage = await reviewedImageStorageService.storeUserProfileImage({
         userId: authResolution.user.id,
         folder,
         fileName,
@@ -88,6 +92,20 @@ export function createUploadsRoutes({
 
       if (error instanceof ImageModerationUnavailableError) {
         console.error("Managed image upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof HumanPresenceRejectedError) {
+        console.warn("Managed profile image upload rejected by Gemini human-presence review.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof HumanPresenceUnavailableError) {
+        console.error("Managed profile image upload blocked because Gemini human-presence review is unavailable.", error.cause);
         res.status(503).json({ error: error.message });
         return;
       }
