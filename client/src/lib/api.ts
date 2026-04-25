@@ -273,8 +273,17 @@ export async function setConversationAccessoryMode(
   );
 
   if (!response.ok) {
+    let code = "";
+    try {
+      const payload = (await response.clone().json()) as { error?: unknown };
+      if (typeof payload.error === "string") {
+        code = payload.error;
+      }
+    } catch {
+      // Ignore parse errors; code stays empty.
+    }
     const message = await parseResponseError(response, "Failed to update accessory mode.");
-    throw new AccessoryModeUpdateError(message, message);
+    throw new AccessoryModeUpdateError(code, message);
   }
 }
 
