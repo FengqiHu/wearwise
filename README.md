@@ -15,17 +15,31 @@ WearWise is a personal cloud clothing library that lets you upload your wardrobe
 
 | Layer | Technology |
 |---|---|
-| Frontend | TypeScript, React |
-| Backend | TypeScript, Express, Vercel |
+| Frontend | TypeScript, React (Vite, React Router, Tailwind CSS) |
+| Backend | TypeScript, Express |
 | Database | MongoDB |
 | Image Storage | Cloudflare R2 |
 | Auth | Google OAuth 2.0 |
-| Content Review | Google Cloud Vision – SafeSearch |
+| Content Review | Google Cloud Vision SafeSearch |
 | Weather | OpenWeather API |
-| AI (Reasoning) | Gemini |
-| AI (Images) | Nano Banana |
-| Deployment | Firebase (web + serverless), Render (workers) |
+| Chat / Reasoning | OpenAI (gpt-5-mini) |
+| Outfit Logic & Style Notes | Gemini |
+| Try-on Image Generation | Gemini |
+| Frontend Hosting | Firebase |
+| Backend Hosting | Render |
 | Testing | Vitest |
+
+## Features
+
+- **Google sign-in** — Sign in with your Google account; your WearWise data stays scoped to WearWise.
+- **Personal closet** — Upload clothing photos, edit metadata (category, color, tags), replace or delete items.
+- **Smart outfit recommendations** — Chat with the AI about what to wear; it considers your wardrobe, weather, occasion, and body profile.
+- **Virtual try-on** — Generate a photorealistic image of any recommended outfit on your own body and headshot.
+- **Online product try-on** — Upload a product photo from any store, see how it pairs with your existing closet, and try it on virtually — without adding it to your wardrobe.
+- **Conversational accessory control** — Switch accessory inclusion in chat with natural language ("no accessories", "include accessories"); the dropdown stays in sync.
+- **Preference learning** — Vote on the outfits you like; future recommendations adapt to your taste over time.
+- **Image safety review** — Every uploaded image passes a content review before being stored.
+- **Permanent account deletion** — Delete your WearWise account and all associated data from your profile page.
 
 ## Setup
 
