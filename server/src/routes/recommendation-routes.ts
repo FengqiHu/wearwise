@@ -166,7 +166,7 @@ export function createRecommendationRoutes({
             items: recommendation.items.map((item) => ({
               id: item.id,
               name: item.name,
-              imageUrl: closetItemMap.get(item.id)?.imageUrl ?? null
+              imageUrl: closetItemMap.get(item.id)?.imageUrl ?? item.imageUrl ?? null
             })),
             occasions: normalizeOccasions(recommendation.occasions, conversationTitle),
             vote: recommendation.vote,
