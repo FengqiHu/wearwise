@@ -12,6 +12,7 @@ import { createChatRoutes } from "./routes/chat-routes.js";
 import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
+import { createShopRoutes } from "./routes/shop-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
 import { createAccountRoutes } from "./routes/account-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
@@ -181,6 +182,21 @@ export function createApp() {
       reviewedImageStorageService,
       geminiExtractionService,
       geminiRecommendationService
+    })
+  );
+
+  app.use(
+    "/api",
+    createShopRoutes({
+      authService,
+      closetRepository,
+      geminiExtractionService,
+      geminiRecommendationService,
+      r2StorageService,
+      userRepository,
+      imageGenerationService,
+      generationRepository,
+      recommendationRepository
     })
   );
 

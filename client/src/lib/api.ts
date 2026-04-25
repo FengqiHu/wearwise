@@ -7,6 +7,7 @@ import type {
   OutfitRecommendation,
   Recommendation,
   RecommendationHistoryEntry,
+  ShopRecommendResponse,
   UserProfile
 } from "../types";
 import { CLOTHING_CATEGORIES } from "../types";
@@ -632,6 +633,62 @@ export async function generateOutfit(
   }
 
   return data.result.imageUrl;
+}
+
+export async function shopTryOn(
+  token: string,
+  productKey: string,
+  clothingItemIds: string[],
+  outfitName?: string,
+  productName?: string
+): Promise<string> {
+  const response = await fetch(`${API_BASE_URL}/api/shop/try-on`, {
+    method: "POST",
+    headers: createAuthHeaders(token),
+    body: JSON.stringify({ productKey, clothingItemIds, outfitName, productName })
+  });
+
+  if (response.status === 422) {
+    const message = await parseResponseError(response, "Unable to generate a try-on image.");
+    if (/body.*(photo|image)/i.test(message)) {
+      throw new Error("You need to upload a full-body photo in your profile before generating a try-on image.");
+    }
+    throw new Error(message);
+  }
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, `Failed to generate try-on image (status ${response.status})`);
+    throw new Error(message);
+  }
+
+  const data = (await response.json()) as { success: boolean; result: { imageUrl: string } | null; message?: string };
+  if (!data.success || !data.result) {
+    throw new Error(data.message ?? "Image generation failed.");
+  }
+
+  return data.result.imageUrl;
+}
+
+export async function shopRecommend(
+  token: string,
+  imageFile: File
+): Promise<ShopRecommendResponse> {
+  const formData = new FormData();
+  formData.append("image", imageFile);
+
+  const response = await fetch(`${API_BASE_URL}/api/shop/recommend`, {
+    method: "POST",
+    // Do NOT set Content-Type — the browser sets it with the correct multipart boundary
+    headers: { Authorization: `Bearer ${token}` },
+    body: formData
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to get shop recommendations.");
+    throw new Error(message);
+  }
+
+  return (await response.json()) as ShopRecommendResponse;
 }
 
 export async function fetchRecommendationHistory(token: string): Promise<RecommendationHistoryEntry[]> {

@@ -158,9 +158,6 @@ export function WelcomePage() {
             >
               Continue with Google
             </Button>
-            <Button size="lg" variant="outline">
-              Explore features
-            </Button>
           </div>
 
           {configError ? <p className="mt-4 text-sm text-red-700">{configError}</p> : null}
