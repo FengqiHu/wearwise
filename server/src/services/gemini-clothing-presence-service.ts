@@ -4,12 +4,11 @@ import { z } from "zod";
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 const CLOTHING_PRESENCE_PROMPT =
-  "Review this image for WearWise before it is added to a clothing closet. Determine whether the image is a real-world photo that clearly contains at least one real clothing item, top, pant, outerwear, shoe, bag, hat, or wearable accessory. " +
-  "Reject images that contain no wearable item, only people without visible clothing focus, animals, empty scenes, documents, screenshots, food, furniture, or unrelated objects. " +
-  "Also reject non-real depictions of clothing, including cartoons, anime, illustrations, drawings, paintings, dolls, mannequins, game characters, avatars, rendered models, or clothing shown only on fictional or animated characters. Return JSON only.";
+  "Review this image for WearWise before it is added to a clothing closet. Determine whether the image clearly contains at least one clothing item, top, pant, outwear, shoes, or wearable accessory. " +
+  "Reject images that contain no wearable item, only people without visible clothing focus, animals, empty scenes, documents, screenshots, food, furniture, or unrelated objects. Return JSON only.";
 
 const clothingPresenceSchema = z.object({
-  hasClothing: z.boolean().describe("True only when at least one real wearable clothing item or accessory is clearly visible in a real-world photo."),
+  hasClothing: z.boolean().describe("True only when at least one wearable clothing item or accessory is clearly visible."),
   reason: z.string().describe("Short reason for the decision.")
 });
 
