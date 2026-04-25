@@ -950,6 +950,48 @@ describe("createChatRoutes POST /chat – submit_outfit tool behavior", () => {
   });
 });
 
+describe("createChatRoutes POST /chat – wardrobeItems passed to streamChat (#325)", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("passes wardrobeItems derived from closet items to streamChat", async () => {
+    const harness = makeRouteHarness({
+      closetItems: [
+        makeClosetItem({ id: "item-1", name: "Black Polo", category: "tops", analysisStatus: "ready" }),
+        makeClosetItem({ id: "item-2", name: "Slim Jeans", category: "pants", analysisStatus: "ready" })
+      ]
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Suggest an outfit." });
+
+    const wardrobeItems = harness.getCapturedStreamInput()?.wardrobeItems;
+    expect(wardrobeItems).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ id: "item-1", name: "Black Polo", category: "tops" }),
+        expect.objectContaining({ id: "item-2", name: "Slim Jeans", category: "pants" })
+      ])
+    );
+  });
+
+  it("passes empty wardrobeItems when the user has no closet items", async () => {
+    const harness = makeRouteHarness({ closetItems: [] });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Suggest an outfit." });
+
+    expect(harness.getCapturedStreamInput()?.wardrobeItems).toEqual([]);
+  });
+});
+
 describe("createChatRoutes POST /chat – variable outfit count end-to-end (#267, #270)", () => {
   let server: Server | null = null;
 

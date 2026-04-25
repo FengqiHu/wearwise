@@ -45,6 +45,12 @@ export interface AccessoryModeContext {
   onAddBackRequested: (args: { outfitIndex?: number }) => Promise<AddBackResult>;
 }
 
+export interface WardrobeItem {
+  id: string;
+  name: string | null;
+  category: string | null;
+}
+
 interface StreamChatInput {
   messages: ModelInputMessage[];
   onChunk: (chunk: string) => void;
@@ -53,6 +59,7 @@ interface StreamChatInput {
   userLocation?: BrowserLocation;
   accessoryModeContext?: AccessoryModeContext;
   presetContext?: PrefetchedContext;
+  wardrobeItems?: WardrobeItem[];
 }
 
 const CHAT_MODEL = "gpt-5-mini";
@@ -521,6 +528,39 @@ export class ChatService {
           {
             type: "function",
             function: {
+              name: "find_wardrobe_item",
+              description:
+                "Look up wardrobe items by name. Use this when you are unsure of an item's exact ID before calling submit_outfit. Returns all matching items with their exact IDs.",
+              parameters: {
+                type: "object",
+                additionalProperties: false,
+                properties: {
+                  name: {
+                    type: "string",
+                    description: "Full or partial item name to search for."
+                  }
+                },
+                required: ["name"]
+              },
+              parse: (rawArguments: string) => JSON.parse(rawArguments) as { name: string },
+              function: async (args: { name: string }) => {
+                const query = args.name.toLowerCase();
+                const matches = (input.wardrobeItems ?? []).filter(
+                  (item) => item.name?.toLowerCase().includes(query)
+                );
+                if (matches.length === 0) {
+                  return { found: false, message: "No wardrobe items matched that name." };
+                }
+                return {
+                  found: true,
+                  items: matches.map((i) => ({ id: i.id, name: i.name, category: i.category }))
+                };
+              }
+            }
+          },
+          {
+            type: "function",
+            function: {
               name: "submit_outfit",
               description:
                 "Submit a single outfit recommendation. Call this once for each outfit you want to recommend. The outfit will be displayed to the user immediately.",
@@ -563,6 +603,16 @@ export class ChatService {
               },
               parse: (rawArguments: string) => JSON.parse(rawArguments) as SubmitOutfitArgs,
               function: async (args: SubmitOutfitArgs) => {
+                if (input.wardrobeItems) {
+                  const validIds = new Set(input.wardrobeItems.map((i) => i.id));
+                  const invalid = args.items.filter((item) => !validIds.has(item.id));
+                  if (invalid.length > 0) {
+                    return {
+                      ok: false,
+                      error: `Unknown item IDs: ${invalid.map((i) => `"${i.id}" ("${i.name}")`).join(", ")}. Call find_wardrobe_item to look up the correct IDs first.`
+                    };
+                  }
+                }
                 try {
                   await input.onOutfit?.(args);
                   return { ok: true, submitted: args.outfitName };
