@@ -167,6 +167,12 @@ export class ClosetRepository {
     return documents.map(toClosetItemRecord);
   }
 
+  async listAllByUser(userId: string): Promise<ClosetItemRecord[]> {
+    const collection = await this.getCollection();
+    const documents = await collection.find({ userId }).sort({ createdAt: -1 }).toArray();
+    return documents.map(toClosetItemRecord);
+  }
+
   async updateMetadata(
     userId: string,
     itemId: string,
@@ -191,7 +197,6 @@ export class ClosetRepository {
     const result = await collection.deleteOne({ _id: itemId, userId });
     return result.deletedCount === 1;
   }
-
   async updateImage(userId: string, itemId: string, newImageUrl: string): Promise<ClosetItemRecord | null> {
     const collection = await this.getCollection();
     const result = await collection.findOneAndUpdate(

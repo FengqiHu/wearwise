@@ -3,6 +3,7 @@ import type { ClothingItem, ClothingStatus, UserProfile } from "../types";
 const AUTH_TOKEN_KEY = "wearwise.auth.token";
 const PROFILE_KEY = "wearwise.user.profile";
 const WARDROBE_KEY = "wearwise.wardrobe.items";
+const ACCOUNT_DELETED_NOTICE_KEY = "wearwise.account.deleted.notice";
 
 function readJson<T>(key: string, fallback: T): T {
   const rawValue = localStorage.getItem(key);
@@ -99,6 +100,20 @@ export function setAuthToken(token: string): void {
 
 export function clearAuthToken(): void {
   localStorage.removeItem(AUTH_TOKEN_KEY);
+}
+
+export function markAccountDeletedNotice(): void {
+  sessionStorage.setItem(ACCOUNT_DELETED_NOTICE_KEY, "1");
+}
+
+export function consumeAccountDeletedNotice(): boolean {
+  const hasNotice = sessionStorage.getItem(ACCOUNT_DELETED_NOTICE_KEY) === "1";
+
+  if (hasNotice) {
+    sessionStorage.removeItem(ACCOUNT_DELETED_NOTICE_KEY);
+  }
+
+  return hasNotice;
 }
 
 export function getUserProfile(): UserProfile | null {

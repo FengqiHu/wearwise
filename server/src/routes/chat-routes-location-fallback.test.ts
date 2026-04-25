@@ -28,6 +28,11 @@ function makeHarness() {
 
   const chatService = {
     isConfigured: vi.fn().mockReturnValue(true),
+    prefetchWeatherAndTime: vi.fn().mockResolvedValue({
+      weatherSummary: null,
+      currentTime: null,
+      locationLabel: null
+    }),
     streamChat: vi.fn(async (input: StreamChatInput) => {
       capturedStreamInput = input;
       input.onChunk('```json\n{"outfits":[]}\n```');
