@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { useAuth } from "../context/auth-context";
-import { analyzeClosetItem, createClosetItem, uploadFileToPresignedUrl } from "../lib/api";
+import { analyzeClosetItem, createClosetItem } from "../lib/api";
 
 export function AddPage() {
   const navigate = useNavigate();
@@ -77,8 +77,7 @@ export function AddPage() {
         setUploadProgress(`Uploading ${i + 1} of ${selectedFiles.length}...`);
 
         const contentType = file.type || "image/jpeg";
-        const { item, uploadUrl } = await createClosetItem(token, contentType);
-        await uploadFileToPresignedUrl(uploadUrl, file);
+        const { item } = await createClosetItem(token, file);
 
         setUploadProgress(`Analyzing ${i + 1} of ${selectedFiles.length}...`);
         await analyzeClosetItem(token, item.id, contentType);

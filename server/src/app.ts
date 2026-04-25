@@ -21,9 +21,11 @@ import { ChatService } from "./services/chat-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
 import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
 import { GoogleOAuthService } from "./services/google-oauth-service.js";
+import { ImageModerationService } from "./services/image-moderation-service.js";
 import { ImageGenerationService } from "./services/image-generation-service.js";
 import { OpenWeatherService } from "./services/openweather-service.js";
 import { R2StorageService } from "./services/r2-storage-service.js";
+import { ReviewedImageStorageService } from "./services/reviewed-image-storage-service.js";
 import { SessionService } from "./services/session-service.js";
 
 export function createApp() {
@@ -86,6 +88,14 @@ export function createApp() {
   const authService = new AuthService(sessionService, userRepository);
   const openWeatherService = new OpenWeatherService(env.openWeatherApiKey);
   const chatService = new ChatService(env.openaiApiKey, openWeatherService);
+  const imageModerationService = new ImageModerationService({
+    apiKey: env.googleCloudVisionApiKey,
+    timeoutMs: env.uploadModerationTimeoutMs
+  });
+  const reviewedImageStorageService = new ReviewedImageStorageService(
+    r2StorageService,
+    imageModerationService
+  );
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
   const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
   const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
@@ -130,7 +140,8 @@ export function createApp() {
   app.use(
     "/api",
     createUploadsRoutes({
-      authService
+      authService,
+      reviewedImageStorageService
     })
   );
 
@@ -165,6 +176,7 @@ export function createApp() {
       authService,
       closetRepository,
       r2StorageService,
+      reviewedImageStorageService,
       geminiExtractionService,
       geminiRecommendationService
     })

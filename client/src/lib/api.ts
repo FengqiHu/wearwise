@@ -47,20 +47,12 @@ interface GoogleExchangePayload {
   codeVerifier?: string;
 }
 
-interface PresignedUploadResponse {
-  uploadUrl: string;
+interface ManagedImageUploadResponse {
   publicUrl: string;
   key: string;
 }
 
 export type ImageUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
-const PRESIGNED_UPLOAD_MAX_ATTEMPTS = 4;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 function getErrorMessage(status: number, fallbackText: string): string {
   if (status === 401) {
@@ -113,6 +105,13 @@ function createAuthHeaders(token: string, includeContentType = true): HeadersIni
   return headers;
 }
 
+function createBinaryAuthHeaders(token: string, contentType: string): HeadersInit {
+  return {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": contentType
+  };
+}
+
 export async function exchangeGoogleCode(payload: GoogleExchangePayload): Promise<GoogleExchangeResponse> {
   const formBody = new URLSearchParams();
   formBody.set("code", payload.code);
@@ -151,62 +150,35 @@ export async function fetchCurrentSession(token: string): Promise<AuthEnvelope> 
   return (await response.json()) as AuthEnvelope;
 }
 
-export async function createPresignedImageUpload(
+export async function uploadManagedImage(
   token: string,
-  payload: { contentType: string; folder: ImageUploadFolder; fileName: string }
-): Promise<PresignedUploadResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/uploads/presign-image`, {
+  payload: { folder: ImageUploadFolder; file: File }
+): Promise<ManagedImageUploadResponse> {
+  const query = new URLSearchParams({
+    folder: payload.folder,
+    fileName: payload.file.name
+  });
+  const response = await fetch(`${API_BASE_URL}/api/uploads/images?${query.toString()}`, {
     method: "POST",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify(payload)
+    headers: createBinaryAuthHeaders(token, payload.file.type || "application/octet-stream"),
+    body: payload.file
   });
 
   if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to prepare image upload.");
+    const message = await parseResponseError(response, "Failed to upload image.");
     throw new Error(message);
   }
 
-  const parsed = (await response.json()) as Partial<PresignedUploadResponse>;
+  const parsed = (await response.json()) as Partial<ManagedImageUploadResponse>;
 
-  if (!parsed.uploadUrl || !parsed.publicUrl || !parsed.key) {
+  if (!parsed.publicUrl || !parsed.key) {
     throw new Error("Invalid upload response from server.");
   }
 
   return {
-    uploadUrl: parsed.uploadUrl,
     publicUrl: parsed.publicUrl,
     key: parsed.key
   };
-}
-
-export async function uploadFileToPresignedUrl(uploadUrl: string, file: File): Promise<void> {
-  let lastError: Error | null = null;
-
-  for (let attempt = 1; attempt <= PRESIGNED_UPLOAD_MAX_ATTEMPTS; attempt += 1) {
-    try {
-      const response = await fetch(uploadUrl, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "application/octet-stream"
-        },
-        body: file
-      });
-
-      if (!response.ok) {
-        throw new Error(`S3 upload failed with status ${response.status}.`);
-      }
-
-      return;
-    } catch (error) {
-      lastError = error instanceof Error ? error : new Error("Unknown upload error.");
-
-      if (attempt < PRESIGNED_UPLOAD_MAX_ATTEMPTS) {
-        await sleep(1000 * attempt);
-      }
-    }
-  }
-
-  throw new Error(`Upload failed after 3 retries: ${lastError?.message ?? "Unknown upload error."}`);
 }
 
 export async function saveProfileToApi(token: string, profile: UserProfile): Promise<AuthEnvelope> {
@@ -296,7 +268,6 @@ function closetItemToClothingItem(record: ClosetItemRecord): ClothingItem {
 
 interface CreateClosetItemResponse {
   item: ClosetItemRecord;
-  uploadUrl: string;
 }
 
 interface ImportTestClosetItemsPayload {
@@ -315,12 +286,15 @@ interface ImportTestClosetItemsPayload {
 
 export async function createClosetItem(
   token: string,
-  contentType: string
+  file: File
 ): Promise<CreateClosetItemResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items`, {
+  const query = new URLSearchParams({
+    fileName: file.name
+  });
+  const response = await fetch(`${API_BASE_URL}/api/closet/items?${query.toString()}`, {
     method: "POST",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify({ contentType })
+    headers: createBinaryAuthHeaders(token, file.type || "application/octet-stream"),
+    body: file
   });
 
   if (!response.ok) {
@@ -391,18 +365,20 @@ export async function deleteClosetItem(token: string, itemId: string): Promise<v
 
 interface ReplaceClosetItemImageResponse {
   item: ClosetItemRecord;
-  uploadUrl: string;
 }
 
 export async function replaceClosetItemImage(
   token: string,
   itemId: string,
-  contentType: string
+  file: File
 ): Promise<ReplaceClosetItemImageResponse> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/image`, {
+  const query = new URLSearchParams({
+    fileName: file.name
+  });
+  const response = await fetch(`${API_BASE_URL}/api/closet/items/${encodeURIComponent(itemId)}/image?${query.toString()}`, {
     method: "PUT",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify({ contentType })
+    headers: createBinaryAuthHeaders(token, file.type || "application/octet-stream"),
+    body: file
   });
 
   if (!response.ok) {

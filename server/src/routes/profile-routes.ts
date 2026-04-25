@@ -12,6 +12,48 @@ interface ProfileRoutesDependencies {
 }
 
 const PROFILE_IMAGE_FIELDS = ["avatarUrl", "headshotImageUrl", "fullBodyImageUrl"] as const;
+const PROFILE_IMAGE_FOLDER_BY_FIELD = {
+  avatarUrl: "avatar",
+  headshotImageUrl: "headshot",
+  fullBodyImageUrl: "full-body"
+} as const satisfies Record<(typeof PROFILE_IMAGE_FIELDS)[number], string>;
+
+function isExpectedManagedProfileImageUrl(
+  imageUrl: string,
+  userId: string,
+  expectedFolder: string,
+  r2StorageService: R2StorageService
+): boolean {
+  if (!r2StorageService.ownsPublicUrl(imageUrl)) {
+    return false;
+  }
+
+  try {
+    const pathParts = new URL(imageUrl).pathname.split("/").filter(Boolean);
+    return pathParts[0] === userId && pathParts[1] === expectedFolder && pathParts.length > 2;
+  } catch {
+    return false;
+  }
+}
+
+function validateManagedProfileImageUrls(
+  profile: UserProfile,
+  userId: string,
+  r2StorageService: R2StorageService
+): string | null {
+  for (const field of PROFILE_IMAGE_FIELDS) {
+    const imageUrl = profile[field];
+    if (!imageUrl) {
+      continue;
+    }
+
+    if (!isExpectedManagedProfileImageUrl(imageUrl, userId, PROFILE_IMAGE_FOLDER_BY_FIELD[field], r2StorageService)) {
+      return "Profile images must be uploaded through WearWise before saving.";
+    }
+  }
+
+  return null;
+}
 
 function findObsoleteManagedProfileImages(
   previousProfile: UserProfile | null,
@@ -77,6 +119,16 @@ export function createProfileRoutes({ authService, userRepository, r2StorageServ
 
       if (!parsed.profile) {
         res.status(400).json({ error: parsed.error ?? "Invalid profile payload." });
+        return;
+      }
+
+      const imageValidationError = validateManagedProfileImageUrls(
+        parsed.profile,
+        authResolution.user.id,
+        r2StorageService
+      );
+      if (imageValidationError) {
+        res.status(400).json({ error: imageValidationError });
         return;
       }
 

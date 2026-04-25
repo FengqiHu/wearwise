@@ -1,105 +1,40 @@
-import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { Router } from "express";
-import { env } from "../config/env.js";
+import express, { Router } from "express";
 import { AuthService } from "../services/auth-service.js";
+import {
+  ImageModerationRejectedError,
+  ImageModerationUnavailableError
+} from "../services/image-moderation-service.js";
+import {
+  normalizeManagedUploadFolder,
+  ReviewedImageStorageService
+} from "../services/reviewed-image-storage-service.js";
 
 interface UploadRoutesDependencies {
   authService: AuthService;
+  reviewedImageStorageService: ReviewedImageStorageService;
 }
 
-function getFileExtension(contentType: string): string {
-  const [, subtype = "bin"] = contentType.toLowerCase().split("/");
+const IMAGE_UPLOAD_LIMIT = "20mb";
 
-  if (subtype === "jpeg") {
-    return "jpg";
-  }
-
-  if (subtype.includes("svg")) {
-    return "svg";
-  }
-
-  return subtype.replace(/[^a-z0-9]/g, "") || "bin";
+function normalizeImageContentType(rawHeader: string | string[] | undefined): string {
+  const value = Array.isArray(rawHeader) ? rawHeader[0] : rawHeader;
+  return (value ?? "").split(";")[0]?.trim().toLowerCase() ?? "";
 }
 
-function normalizeImageKind(rawFolder: unknown): "avatar" | "headshot" | "fullbody" | "closet" {
-  if (typeof rawFolder !== "string") {
-    return "fullbody";
-  }
+const rawImageBodyParser = express.raw({
+  limit: IMAGE_UPLOAD_LIMIT,
+  type: (req) => normalizeImageContentType(req.headers["content-type"]).startsWith("image/")
+});
 
-  const trimmed = rawFolder.trim().toLowerCase();
-  if (trimmed === "avatar") {
-    return "avatar";
-  }
-
-  if (trimmed === "headshot") {
-    return "headshot";
-  }
-
-  if (trimmed === "closet") {
-    return "closet";
-  }
-
-  return "fullbody";
-}
-
-function sanitizeFileName(rawFileName: unknown, fallbackExtension: string): string {
-  if (typeof rawFileName !== "string" || !rawFileName.trim()) {
-    return `upload.${fallbackExtension}`;
-  }
-
-  const fileNameOnly = rawFileName.split(/[/\\]/).pop() ?? "";
-  const trimmed = fileNameOnly.trim();
-
-  if (!trimmed) {
-    return `upload.${fallbackExtension}`;
-  }
-
-  const lastDot = trimmed.lastIndexOf(".");
-  const basePart = lastDot > 0 ? trimmed.slice(0, lastDot) : trimmed;
-  const extPart = lastDot > 0 ? trimmed.slice(lastDot + 1) : fallbackExtension;
-  const safeBase = basePart.toLowerCase().replace(/[^a-z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-  const safeExt = extPart.toLowerCase().replace(/[^a-z0-9]/g, "");
-
-  return `${safeBase || "upload"}.${safeExt || fallbackExtension}`;
-}
-
-function assertS3Config(): string | null {
-  if (!env.s3Bucket || !env.s3AccessKeyId || !env.s3SecretAccessKey || !env.s3PublicBaseUrl) {
-    return "S3 upload is not configured on the server.";
-  }
-
-  return null;
-}
-
-export function createUploadsRoutes({ authService }: UploadRoutesDependencies): Router {
+export function createUploadsRoutes({
+  authService,
+  reviewedImageStorageService
+}: UploadRoutesDependencies): Router {
   const router = Router();
 
-  const configError = assertS3Config();
-
-  const s3Client = (() => {
-    if (configError !== null) {
-      return null;
-    }
-
-    const config: ConstructorParameters<typeof S3Client>[0] = {
-      region: env.s3Region,
-      credentials: {
-        accessKeyId: env.s3AccessKeyId,
-        secretAccessKey: env.s3SecretAccessKey
-      }
-    };
-
-    if (env.s3Endpoint) {
-      config.endpoint = env.s3Endpoint;
-    }
-
-    return new S3Client(config);
-  })();
-
-  router.post("/uploads/presign-image", async (req, res): Promise<void> => {
-    if (configError || !s3Client) {
-      res.status(500).json({ error: configError ?? "S3 upload is not configured on the server." });
+  router.post("/uploads/images", rawImageBodyParser, async (req, res): Promise<void> => {
+    if (!reviewedImageStorageService.isConfigured()) {
+      res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
       return;
     }
 
@@ -113,36 +48,52 @@ export function createUploadsRoutes({ authService }: UploadRoutesDependencies): 
         return;
       }
 
-      const payload = req.body as { contentType?: unknown; folder?: unknown; fileName?: unknown };
-      const contentType = typeof payload.contentType === "string" ? payload.contentType.trim().toLowerCase() : "";
-
+      const contentType = normalizeImageContentType(req.headers["content-type"]);
       if (!contentType.startsWith("image/")) {
         res.status(400).json({ error: "Invalid image content type." });
         return;
       }
 
-      const imageKind = normalizeImageKind(payload.folder);
-      const extension = getFileExtension(contentType);
-      const safeFileName = sanitizeFileName(payload.fileName, extension);
-      const key = `${authResolution.user.id}/${imageKind}/${safeFileName}`;
+      const folder = normalizeManagedUploadFolder(req.query.folder);
+      if (!folder || folder === "closet") {
+        res.status(400).json({ error: "Invalid upload folder. Allowed: avatar, headshot, full-body." });
+        return;
+      }
 
-      const command = new PutObjectCommand({
-        Bucket: env.s3Bucket,
-        Key: key,
-        ContentType: contentType
+      const buffer = Buffer.isBuffer(req.body) ? req.body : null;
+      if (!buffer || buffer.length === 0) {
+        res.status(400).json({ error: "Image upload body is required." });
+        return;
+      }
+
+      const fileName = typeof req.query.fileName === "string" ? req.query.fileName : null;
+      const uploadedImage = await reviewedImageStorageService.storeUserImage({
+        userId: authResolution.user.id,
+        folder,
+        fileName,
+        contentType,
+        buffer
       });
 
-      const uploadUrl = await getSignedUrl(s3Client, command, { expiresIn: 60 * 5 });
-      const publicUrl = `${env.s3PublicBaseUrl}/${key}`;
-
-      res.json({
-        uploadUrl,
-        publicUrl,
-        key
-      });
+      res.status(201).json(uploadedImage);
     } catch (error) {
-      console.error("Presign upload error:", error);
-      res.status(500).json({ error: "Failed to prepare image upload." });
+      if (error instanceof ImageModerationRejectedError) {
+        console.warn("Managed image upload rejected by SafeSearch.", {
+          findings: error.findings,
+          annotation: error.annotation
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ImageModerationUnavailableError) {
+        console.error("Managed image upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      console.error("Managed image upload error:", error);
+      res.status(500).json({ error: "Failed to upload image." });
     }
   });
 
