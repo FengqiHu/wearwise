@@ -88,7 +88,7 @@ describe("ImageModerationService", () => {
       const body = JSON.parse(options.body as string) as {
         requests: Array<{ image: { content: string } }>;
       };
-      expect(body.requests[0].image.content).toBe(buffer.toString("base64"));
+      expect(body.requests[0]!.image.content).toBe(buffer.toString("base64"));
     });
 
     it("includes SAFE_SEARCH_DETECTION feature in request", async () => {
@@ -101,7 +101,7 @@ describe("ImageModerationService", () => {
       const body = JSON.parse(options.body as string) as {
         requests: Array<{ features: Array<{ type: string }> }>;
       };
-      expect(body.requests[0].features).toContainEqual({ type: "SAFE_SEARCH_DETECTION" });
+      expect(body.requests[0]!.features).toContainEqual({ type: "SAFE_SEARCH_DETECTION" });
     });
 
     it("calls the Vision API URL", async () => {
@@ -146,9 +146,9 @@ describe("ImageModerationService", () => {
       const networkError = new Error("connection refused");
       mockFetch.mockRejectedValue(networkError);
 
-      const error = await service
+      const error = (await service
         .reviewImage(Buffer.from("test"))
-        .catch((e) => e as ImageModerationUnavailableError);
+        .catch((e) => e)) as ImageModerationUnavailableError;
 
       expect(error.cause).toBe(networkError);
     });
@@ -240,9 +240,9 @@ describe("ImageModerationService", () => {
           makeFetchResponse(true, makeVisionResponse({ ...makeSafeAnnotation(), adult: "LIKELY" }))
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.findings).toContain("adult");
       });
@@ -289,9 +289,9 @@ describe("ImageModerationService", () => {
           makeFetchResponse(true, makeVisionResponse({ ...makeSafeAnnotation(), violence: "POSSIBLE" }))
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.findings).toContain("violent");
       });
@@ -333,9 +333,9 @@ describe("ImageModerationService", () => {
           makeFetchResponse(true, makeVisionResponse({ ...makeSafeAnnotation(), racy: "VERY_LIKELY" }))
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.findings).toContain("sexually suggestive");
       });
@@ -351,9 +351,9 @@ describe("ImageModerationService", () => {
           )
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.findings).toContain("adult");
         expect(error.findings).toContain("violent");
@@ -365,9 +365,9 @@ describe("ImageModerationService", () => {
         const annotation = { ...makeSafeAnnotation(), adult: "VERY_LIKELY" as const };
         mockFetch.mockResolvedValue(makeFetchResponse(true, makeVisionResponse(annotation)));
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.annotation).toEqual(annotation);
       });
@@ -378,9 +378,9 @@ describe("ImageModerationService", () => {
           makeFetchResponse(true, makeVisionResponse({ ...makeSafeAnnotation(), adult: "POSSIBLE" }))
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.message.toLowerCase()).toContain("safety policy");
       });
@@ -393,9 +393,9 @@ describe("ImageModerationService", () => {
           makeFetchResponse(true, makeVisionResponse({ ...makeSafeAnnotation(), adult: "POSSIBLE" }))
         );
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationRejectedError);
+          .catch((e) => e)) as ImageModerationRejectedError;
 
         expect(error.name).toBe("ImageModerationRejectedError");
       });
@@ -404,9 +404,9 @@ describe("ImageModerationService", () => {
         const service = new ImageModerationService({ apiKey: "test-key" });
         mockFetch.mockRejectedValue(new Error("timeout"));
 
-        const error = await service
+        const error = (await service
           .reviewImage(Buffer.from("test"))
-          .catch((e) => e as ImageModerationUnavailableError);
+          .catch((e) => e)) as ImageModerationUnavailableError;
 
         expect(error.name).toBe("ImageModerationUnavailableError");
       });
