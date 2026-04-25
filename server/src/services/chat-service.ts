@@ -203,6 +203,8 @@ function buildDeveloperInstructions(todayIsoDate: string): string {
     "If the user provides a location name without a country code and the location is ambiguous, just use the location you think is most likely based on the conversation history. Do not ask the user to clarify.",
     "If the tool returns ok=false, explain the tool error plainly. If candidates are included, ask the user to pick one of them.",
     "Never say that you do not have live internet access when the weather tool can answer the request.",
+    "Never include ISO timestamps or date prefixes in your responses — timestamps in the conversation history are for your internal reasoning only, never for display.",
+    "Never expose your internal reasoning or thinking steps. Output only your final response.",
   ].join(" ");
 }
 
