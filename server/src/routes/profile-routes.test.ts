@@ -277,6 +277,50 @@ describe("createProfileRoutes POST /profile", () => {
     expect(harness.spies.toPublicUser).toHaveBeenCalledOnce();
   });
 
+  it("rejects external profile image URLs before saving", async () => {
+    const nextProfile = makeProfile({
+      avatarUrl: "https://images.example.org/avatar.png"
+    });
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postProfile(started.baseUrl, nextProfile);
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Profile images must be uploaded through WearWise before saving.");
+    expect(harness.spies.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("rejects profile image URLs owned by another user before saving", async () => {
+    const nextProfile = makeProfile({
+      fullBodyImageUrl: "https://cdn.example.com/user-2/full-body/body.png"
+    });
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postProfile(started.baseUrl, nextProfile);
+
+    expect(response.status).toBe(400);
+    expect(harness.spies.updateProfile).not.toHaveBeenCalled();
+  });
+
+  it("rejects profile image URLs from the wrong managed folder before saving", async () => {
+    const nextProfile = makeProfile({
+      avatarUrl: "https://cdn.example.com/user-1/closet/shirt.png"
+    });
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postProfile(started.baseUrl, nextProfile);
+
+    expect(response.status).toBe(400);
+    expect(harness.spies.updateProfile).not.toHaveBeenCalled();
+  });
+
   it("does not delete the active image when the profile update fails", async () => {
     const currentUser = makeUserRecord();
     const nextProfile = makeProfile({
