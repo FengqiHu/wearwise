@@ -123,7 +123,6 @@ describe("ReviewedImageStorageService", () => {
       );
 
       expect(service.isClosetImageReviewConfigured()).toBe(true);
-      expect(service.isClothingImageReviewConfigured()).toBe(true);
     });
 
     it("returns false for closet image review when clothing-presence service is not configured", () => {
@@ -135,7 +134,6 @@ describe("ReviewedImageStorageService", () => {
       );
 
       expect(service.isClosetImageReviewConfigured()).toBe(false);
-      expect(service.isClothingImageReviewConfigured()).toBe(false);
     });
   });
 

@@ -122,7 +122,7 @@ export function createShopRoutes({
       }
 
       // 3. Check service availability
-      if (!reviewedImageStorageService.isClothingImageReviewConfigured()) {
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
         res.status(503).json({ error: "Image review service is not configured." });
         return;
       }
@@ -270,23 +270,32 @@ export function createShopRoutes({
         throw postUploadError;
       }
     } catch (error) {
-      console.error("Shop recommend error:", error);
       if (error instanceof ImageModerationRejectedError) {
+        console.warn("Shop image upload rejected by SafeSearch.", {
+          findings: error.findings,
+          annotation: error.annotation
+        });
         res.status(422).json({ error: error.message });
         return;
       }
       if (error instanceof ImageModerationUnavailableError) {
+        console.error("Shop image upload blocked because moderation is unavailable.", error.cause);
         res.status(503).json({ error: error.message });
         return;
       }
       if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Shop image upload rejected because no clothing item was detected.", {
+          reason: error.reason
+        });
         res.status(422).json({ error: error.message });
         return;
       }
       if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Shop image upload blocked because clothing validation is unavailable.", error.cause);
         res.status(503).json({ error: error.message });
         return;
       }
+      console.error("Shop recommend error:", error);
       res.status(500).json({ error: "Failed to generate shop recommendations." });
     }
   });

@@ -102,10 +102,6 @@ export class ReviewedImageStorageService {
   }
 
   isClosetImageReviewConfigured(): boolean {
-    return this.isClothingImageReviewConfigured();
-  }
-
-  isClothingImageReviewConfigured(): boolean {
     return this.isConfigured() && Boolean(this.clothingPresenceService?.isConfigured());
   }
 

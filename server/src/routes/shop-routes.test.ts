@@ -118,10 +118,6 @@ function makeHarness(options: {
 
   const r2StorageService = {
     isConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
-    uploadShopImage: vi.fn().mockResolvedValue({
-      key: "user-1/online-items/product.png",
-      publicUrl: "https://cdn.example.com/user-1/online-items/product.png"
-    }),
     publicUrlForKey: vi.fn((key: string) => `https://cdn.example.com/${key}`),
     buildGeneratedImageKey: vi.fn().mockReturnValue("users/user-1/generated_images/shop-tryon.png"),
     uploadBuffer: vi.fn().mockResolvedValue("https://cdn.example.com/generated/shop-tryon.png"),
@@ -174,7 +170,6 @@ function makeHarness(options: {
   } as unknown as RecommendationRepository;
 
   const reviewedImageStorageService = {
-    isClothingImageReviewConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
     isClosetImageReviewConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
     storeUserImage: vi.fn().mockResolvedValue({
       key: "user-1/closet/test-upload.jpg",
@@ -205,7 +200,6 @@ function makeHarness(options: {
       createClosetItem: closetRepository.create as ReturnType<typeof vi.fn>,
       importClosetItems: closetRepository.importMany as ReturnType<typeof vi.fn>,
       findClosetItem: closetRepository.findById as ReturnType<typeof vi.fn>,
-      uploadShopImage: r2StorageService.uploadShopImage as ReturnType<typeof vi.fn>,
       storeUserShopImage: (reviewedImageStorageService as unknown as { storeUserShopImage: ReturnType<typeof vi.fn> }).storeUserShopImage,
       analyzeImage: geminiExtractionService.analyzeClothingImage as ReturnType<typeof vi.fn>,
       recommendShopOutfits: geminiRecommendationService.recommendShopOutfits as ReturnType<typeof vi.fn>,
@@ -397,7 +391,11 @@ describe("createShopRoutes POST /shop/recommend", () => {
   it("returns 422 when SafeSearch rejects the shop image", async () => {
     const harness = makeHarness();
     harness.spies.storeUserShopImage.mockRejectedValue(
-      new ImageModerationRejectedError("Image failed SafeSearch review.", ["adult"], {})
+      new ImageModerationRejectedError(
+        "This image could not be uploaded because it appears to violate WearWise's image safety policy. Please choose a different image.",
+        ["adult"],
+        {}
+      )
     );
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -406,7 +404,7 @@ describe("createShopRoutes POST /shop/recommend", () => {
     const body = await response.json() as { error: string };
 
     expect(response.status).toBe(422);
-    expect(body.error).toContain("SafeSearch");
+    expect(body.error).toContain("image safety policy");
     expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
     expect(harness.spies.recommendShopOutfits).not.toHaveBeenCalled();
   });
