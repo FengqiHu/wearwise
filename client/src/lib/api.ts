@@ -223,6 +223,18 @@ export async function saveProfileToApi(token: string, profile: UserProfile): Pro
   return (await response.json()) as AuthEnvelope;
 }
 
+export async function deleteAccountFromApi(token: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/api/account`, {
+    method: "DELETE",
+    headers: createAuthHeaders(token, false)
+  });
+
+  if (!response.ok) {
+    const message = await parseResponseError(response, "Failed to delete account.");
+    throw new Error(message);
+  }
+}
+
 export async function fetchChatConversations(token: string): Promise<ChatConversationSummary[]> {
   const response = await fetch(`${API_BASE_URL}/api/chat/conversations`, {
     method: "GET",

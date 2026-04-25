@@ -121,7 +121,6 @@ export class ConversationRepository {
     });
     return result.deletedCount === 1;
   }
-
   async createWithFirstUserMessage(userId: string, messageContent: string): Promise<ConversationRecord> {
     const now = nowIsoString();
     const userMessage = this.createMessage("user", messageContent);
