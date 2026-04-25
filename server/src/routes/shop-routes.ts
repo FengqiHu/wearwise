@@ -131,58 +131,91 @@ export function createShopRoutes({
         mimeType
       );
 
-      // 5. Analyze the product image with Gemini
-      const extraction = await geminiExtractionService.analyzeClothingImage(imageUrl, mimeType);
+      try {
+        // 5. Analyze the product image with Gemini
+        const extraction = await geminiExtractionService.analyzeClothingImage(imageUrl, mimeType);
 
-      const productCategory = extraction.category as OutfitCategory;
-      const product: ShopProductItem = {
-        key,
-        imageUrl,
-        name: extraction.name,
-        category: productCategory,
-        tags: extraction.tags,
-        description: extraction.description
-      };
+        const productCategory = extraction.category as OutfitCategory;
+        const product: ShopProductItem = {
+          key,
+          imageUrl,
+          name: extraction.name,
+          category: productCategory,
+          tags: extraction.tags,
+          description: extraction.description
+        };
 
-      const productContext: RecommendationItemContext = {
-        id: key,
-        category: productCategory,
-        name: extraction.name,
-        tags: extraction.tags,
-        description: extraction.description
-      };
+        const productContext: RecommendationItemContext = {
+          id: key,
+          category: productCategory,
+          name: extraction.name,
+          tags: extraction.tags,
+          description: extraction.description
+        };
 
-      // 6. Fetch the user's wardrobe and group ready items by category (skip product's category)
-      const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
+        // 6. Fetch the user's wardrobe and group ready items by category (skip product's category)
+        const allWardrobe = await closetRepository.listByUser(user.id, 1_000);
 
-      const wardrobeByCategory: Partial<Record<OutfitCategory, RecommendationItemContext[]>> = {};
-      for (const category of OUTFIT_CATEGORIES) {
-        if (category === productCategory) continue;
+        const wardrobeByCategory: Partial<Record<OutfitCategory, RecommendationItemContext[]>> = {};
+        for (const category of OUTFIT_CATEGORIES) {
+          if (category === productCategory) continue;
 
-        const candidates = allWardrobe
-          .filter(
-            (item) =>
-              item.analysisStatus === "ready" &&
-              item.category === category &&
-              item.name &&
-              item.description
-          )
-          .map<RecommendationItemContext>((item) => ({
-            id: item.id,
-            category,
-            name: item.name!,
-            tags: item.tags,
-            description: item.description!
-          }));
+          const candidates = allWardrobe
+            .filter(
+              (item) =>
+                item.analysisStatus === "ready" &&
+                item.category === category &&
+                item.name &&
+                item.description
+            )
+            .map<RecommendationItemContext>((item) => ({
+              id: item.id,
+              category,
+              name: item.name!,
+              tags: item.tags,
+              description: item.description!
+            }));
 
-        if (candidates.length > 0) {
-          wardrobeByCategory[category] = candidates;
+          if (candidates.length > 0) {
+            wardrobeByCategory[category] = candidates;
+          }
         }
-      }
 
-      // 7. If wardrobe is empty, return product-only outfit with a helpful note
-      if (Object.keys(wardrobeByCategory).length === 0) {
-        const outfitProductItem: OutfitItem = {
+        // 7. If wardrobe is empty, return product-only outfit with a helpful note
+        if (Object.keys(wardrobeByCategory).length === 0) {
+          const outfitProductItem: OutfitItem = {
+            id: key,
+            category: productCategory,
+            name: extraction.name,
+            imageUrl,
+            tags: extraction.tags,
+            description: extraction.description,
+            isUserSelected: true,
+            reason: null
+          };
+          const response: ShopRecommendResponse = {
+            product,
+            outfits: [
+              {
+                styleNote: "Add analyzed items to your wardrobe to see outfit pairings.",
+                items: [outfitProductItem]
+              }
+            ]
+          };
+          res.json(response);
+          return;
+        }
+
+        // 8. Ask Gemini for 1–3 distinct outfit suggestions
+        const geminiResult = await geminiRecommendationService.recommendShopOutfits({
+          productItem: productContext,
+          wardrobeByCategory
+        });
+
+        // 9. Map Gemini selections back to OutfitItem arrays (hallucination guard)
+        const wardrobeMap = new Map(allWardrobe.map((item) => [item.id, item]));
+
+        const productOutfitItem: OutfitItem = {
           id: key,
           category: productCategory,
           name: extraction.name,
@@ -192,63 +225,38 @@ export function createShopRoutes({
           isUserSelected: true,
           reason: null
         };
-        const response: ShopRecommendResponse = {
-          product,
-          outfits: [
-            {
-              styleNote: "Add analyzed items to your wardrobe to see outfit pairings.",
-              items: [outfitProductItem]
-            }
-          ]
-        };
+
+        const outfits = geminiResult.outfits.map((geminiOutfit) => {
+          const items: OutfitItem[] = [productOutfitItem];
+
+          for (const selection of geminiOutfit.selections) {
+            const wardrobeItem = wardrobeMap.get(selection.itemId);
+            if (!wardrobeItem) continue; // skip hallucinated IDs
+
+            items.push({
+              id: wardrobeItem.id,
+              category: wardrobeItem.category ?? selection.category,
+              name: wardrobeItem.name ?? "Unknown",
+              imageUrl: wardrobeItem.imageUrl,
+              tags: wardrobeItem.tags,
+              description: wardrobeItem.description ?? "",
+              isUserSelected: false,
+              reason: selection.reason
+            });
+          }
+
+          return { styleNote: geminiOutfit.styleNote, items };
+        });
+
+        const response: ShopRecommendResponse = { product, outfits };
         res.json(response);
-        return;
+      } catch (postUploadError) {
+        // Clean up the orphaned R2 object before propagating the error
+        await r2StorageService.deleteObject(imageUrl).catch((deleteErr) => {
+          console.error("Failed to clean up orphaned R2 object after error:", deleteErr);
+        });
+        throw postUploadError;
       }
-
-      // 8. Ask Gemini for 1–3 distinct outfit suggestions
-      const geminiResult = await geminiRecommendationService.recommendShopOutfits({
-        productItem: productContext,
-        wardrobeByCategory
-      });
-
-      // 9. Map Gemini selections back to OutfitItem arrays (hallucination guard)
-      const wardrobeMap = new Map(allWardrobe.map((item) => [item.id, item]));
-
-      const productOutfitItem: OutfitItem = {
-        id: key,
-        category: productCategory,
-        name: extraction.name,
-        imageUrl,
-        tags: extraction.tags,
-        description: extraction.description,
-        isUserSelected: true,
-        reason: null
-      };
-
-      const outfits = geminiResult.outfits.map((geminiOutfit) => {
-        const items: OutfitItem[] = [productOutfitItem];
-
-        for (const selection of geminiOutfit.selections) {
-          const wardrobeItem = wardrobeMap.get(selection.itemId);
-          if (!wardrobeItem) continue; // skip hallucinated IDs
-
-          items.push({
-            id: wardrobeItem.id,
-            category: wardrobeItem.category ?? selection.category,
-            name: wardrobeItem.name ?? "Unknown",
-            imageUrl: wardrobeItem.imageUrl,
-            tags: wardrobeItem.tags,
-            description: wardrobeItem.description ?? "",
-            isUserSelected: false,
-            reason: selection.reason
-          });
-        }
-
-        return { styleNote: geminiOutfit.styleNote, items };
-      });
-
-      const response: ShopRecommendResponse = { product, outfits };
-      res.json(response);
     } catch (error) {
       console.error("Shop recommend error:", error);
       res.status(500).json({ error: "Failed to generate shop recommendations." });
