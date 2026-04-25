@@ -172,13 +172,6 @@ export class RecommendationRepository {
     const result = await collection.deleteMany({ userId, conversationId });
     return result.deletedCount ?? 0;
   }
-
-  async deleteByUser(userId: string): Promise<number> {
-    const collection = await this.getCollection();
-    const result = await collection.deleteMany({ userId });
-    return result.deletedCount ?? 0;
-  }
-
   async updateGeneration(
     userId: string,
     recommendationId: string,

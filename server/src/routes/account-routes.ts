@@ -1,19 +1,15 @@
 import { Router } from "express";
 import { ClosetRepository } from "../repositories/closet-repository.js";
-import { ConversationRepository } from "../repositories/conversation-repository.js";
 import { GenerationRepository } from "../repositories/generation-repository.js";
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { AccountDeletionRepository } from "../repositories/account-deletion-repository.js";
-import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
 import type { GenerationRecord, RecommendationRecord, UserProfile } from "../types/domain.js";
 
 interface AccountRoutesDependencies {
   authService: AuthService;
-  userRepository: UserRepository;
   closetRepository: ClosetRepository;
-  conversationRepository: ConversationRepository;
   recommendationRepository: RecommendationRepository;
   generationRepository: GenerationRepository;
   accountDeletionRepository: AccountDeletionRepository;
@@ -72,9 +68,7 @@ function collectManagedGenerationImageUrls(
 
 export function createAccountRoutes({
   authService,
-  userRepository,
   closetRepository,
-  conversationRepository,
   recommendationRepository,
   generationRepository,
   accountDeletionRepository,
@@ -94,12 +88,13 @@ export function createAccountRoutes({
       }
 
       const userId = authResolution.user.id;
-      const closetItems = await closetRepository.listAllByUser(userId);
-      const recommendations = await recommendationRepository.listAllByUser(userId);
-      const generations = await generationRepository.listAllByUser(userId);
       const managedImageUrls = new Set<string>();
 
       if (r2StorageService.isConfigured()) {
+        const closetItems = await closetRepository.listAllByUser(userId);
+        const recommendations = await recommendationRepository.listAllByUser(userId);
+        const generations = await generationRepository.listAllByUser(userId);
+
         collectManagedProfileImageUrls(authResolution.user.profile, r2StorageService, managedImageUrls);
 
         for (const item of closetItems) {
@@ -134,7 +129,7 @@ export function createAccountRoutes({
       res.status(204).send();
     } catch (error) {
       console.error("Account deletion error:", error);
-      res.status(500).json({ error: "Failed to delete account. Please try again." });
+      res.status(500).json({ error: "Failed to delete account.", code: "ACCOUNT_DELETE_FAILED" });
     }
   });
 

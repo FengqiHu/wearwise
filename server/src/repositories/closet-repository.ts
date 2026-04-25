@@ -197,13 +197,6 @@ export class ClosetRepository {
     const result = await collection.deleteOne({ _id: itemId, userId });
     return result.deletedCount === 1;
   }
-
-  async deleteByUser(userId: string): Promise<number> {
-    const collection = await this.getCollection();
-    const result = await collection.deleteMany({ userId });
-    return result.deletedCount ?? 0;
-  }
-
   async updateImage(userId: string, itemId: string, newImageUrl: string): Promise<ClosetItemRecord | null> {
     const collection = await this.getCollection();
     const result = await collection.findOneAndUpdate(

@@ -119,9 +119,7 @@ export function createApp() {
     "/api",
     createAccountRoutes({
       authService,
-      userRepository,
       closetRepository,
-      conversationRepository,
       recommendationRepository,
       generationRepository,
       accountDeletionRepository,

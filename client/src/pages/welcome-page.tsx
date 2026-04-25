@@ -129,7 +129,7 @@ export function WelcomePage() {
         </div>
 
         <div className="relative mx-auto max-w-3xl px-4">
-        <div className="mb-6 inline-flex items-center rounded-full border border-pebble px-3 py-1 text-xs uppercase tracking-[0.14em] text-dim">
+          <div className="mb-6 inline-flex items-center rounded-full border border-pebble px-3 py-1 text-xs uppercase tracking-[0.14em] text-dim">
             AI-Powered Personal Styling
           </div>
 

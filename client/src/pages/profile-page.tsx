@@ -209,11 +209,7 @@ export function ProfilePage() {
       navigate("/", { replace: true });
     } catch (deleteAccountError) {
       const message = deleteAccountError instanceof Error ? deleteAccountError.message : "Failed to delete account.";
-      setDeleteError(
-        /please try again/i.test(message)
-          ? message
-          : `${message.replace(/[.\s]+$/, "")}. Please try again in a moment.`
-      );
+      setDeleteError(`${message.replace(/[.\s]+$/, "")}. Please try again in a moment.`);
     } finally {
       setIsDeletingAccount(false);
     }

@@ -20,22 +20,20 @@ interface UserDocument {
 }
 
 export class AccountDeletionRepository {
-  private readonly client: MongoClient;
-
-  constructor(private readonly options: AccountDeletionRepositoryOptions) {
-    this.client = new MongoClient(options.mongoUri, {
-      serverSelectionTimeoutMS: 10_000
-    });
-  }
+  constructor(private readonly options: AccountDeletionRepositoryOptions) {}
 
   async deleteUserData(userId: string): Promise<void> {
-    await this.client.connect();
+    const client = new MongoClient(this.options.mongoUri, {
+      serverSelectionTimeoutMS: 10_000
+    });
 
-    const session = this.client.startSession();
+    await client.connect();
+
+    const session = client.startSession();
 
     try {
       await session.withTransaction(async () => {
-        const database = this.client.db(this.options.databaseName);
+        const database = client.db(this.options.databaseName);
 
         await database.collection<UserScopedDocument>(this.options.recommendationsCollectionName).deleteMany({ userId }, { session });
         await database.collection<UserScopedDocument>(this.options.generationsCollectionName).deleteMany({ userId }, { session });
@@ -50,6 +48,7 @@ export class AccountDeletionRepository {
       });
     } finally {
       await session.endSession();
+      await client.close();
     }
   }
 }
