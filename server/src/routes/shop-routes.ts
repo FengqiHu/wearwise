@@ -311,6 +311,16 @@ export function createShopRoutes({
         return;
       }
 
+      const expectedPrefix = `${userId}/online-items/`;
+      if (!productKey.startsWith(expectedPrefix)) {
+        res.status(403).json({
+          success: false,
+          result: null,
+          message: "Access denied: productKey does not belong to the current user."
+        } satisfies GenerateOutfitResponse);
+        return;
+      }
+
       // 4. Fetch user profile for body image
       const user = await userRepository.findById(userId);
       const bodyImageUrl = user?.profile?.fullBodyImageUrl ?? null;
