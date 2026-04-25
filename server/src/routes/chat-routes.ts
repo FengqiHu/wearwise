@@ -511,6 +511,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           ...(browserLocation ? { userLocation: browserLocation } : {}),
           ...(presetContext ? { presetContext } : {}),
           accessoryModeContext,
+          wardrobeItems: closetItems.map((i) => ({ id: i.id, name: i.name, category: i.category })),
           signal: abortController.signal,
           onChunk: (chunk) => {
             assistantText += chunk;
