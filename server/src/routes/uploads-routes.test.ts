@@ -10,6 +10,10 @@ import {
   ImageModerationRejectedError,
   ImageModerationUnavailableError
 } from "../services/image-moderation-service.js";
+import {
+  HumanPresenceRejectedError,
+  HumanPresenceUnavailableError
+} from "../services/gemini-human-presence-service.js";
 import type { UserRecord } from "../types/domain.js";
 
 function makeUserRecord(): UserRecord {
@@ -64,8 +68,8 @@ function makeRouteHarness(
   } as unknown as AuthService;
 
   const reviewedImageStorageService = {
-    isConfigured: vi.fn().mockReturnValue(isConfigured),
-    storeUserImage: vi.fn().mockResolvedValue({
+    isProfileImageReviewConfigured: vi.fn().mockReturnValue(isConfigured),
+    storeUserProfileImage: vi.fn().mockResolvedValue({
       key: "user-1/avatar/uuid-photo.jpg",
       publicUrl: "https://cdn.example.com/user-1/avatar/uuid-photo.jpg"
     })
@@ -74,11 +78,11 @@ function makeRouteHarness(
   return {
     dependencies: { authService, reviewedImageStorageService },
     spies: {
-      storeUserImage: (
+      storeUserProfileImage: (
         reviewedImageStorageService as unknown as {
-          storeUserImage: ReturnType<typeof vi.fn>;
+          storeUserProfileImage: ReturnType<typeof vi.fn>;
         }
-      ).storeUserImage
+      ).storeUserProfileImage
     }
   };
 }
@@ -111,7 +115,7 @@ describe("createUploadsRoutes", () => {
       expect(body.publicUrl).toBe("https://cdn.example.com/user-1/avatar/uuid-photo.jpg");
     });
 
-    it("passes userId, folder, and contentType to storeUserImage", async () => {
+    it("passes userId, folder, and contentType to storeUserProfileImage", async () => {
       const harness = makeRouteHarness();
       const started = await startServer(harness.dependencies);
       server = started.server;
@@ -122,7 +126,7 @@ describe("createUploadsRoutes", () => {
         body: Buffer.from("test-image-data")
       });
 
-      expect(harness.spies.storeUserImage).toHaveBeenCalledWith(
+      expect(harness.spies.storeUserProfileImage).toHaveBeenCalledWith(
         expect.objectContaining({
           userId: "user-1",
           folder: "headshot",
@@ -131,7 +135,7 @@ describe("createUploadsRoutes", () => {
       );
     });
 
-    it("strips charset from content-type before passing to storeUserImage", async () => {
+    it("strips charset from content-type before passing to storeUserProfileImage", async () => {
       const harness = makeRouteHarness();
       const started = await startServer(harness.dependencies);
       server = started.server;
@@ -143,7 +147,7 @@ describe("createUploadsRoutes", () => {
       });
 
       expect(response.status).toBe(201);
-      expect(harness.spies.storeUserImage).toHaveBeenCalledWith(
+      expect(harness.spies.storeUserProfileImage).toHaveBeenCalledWith(
         expect.objectContaining({ contentType: "image/jpeg" })
       );
     });
@@ -243,7 +247,7 @@ describe("createUploadsRoutes", () => {
 
     it("returns 422 when moderation rejects the image", async () => {
       const harness = makeRouteHarness();
-      harness.spies.storeUserImage.mockRejectedValue(
+      harness.spies.storeUserProfileImage.mockRejectedValue(
         new ImageModerationRejectedError(
           "This image could not be uploaded because it appears to violate WearWise's image safety policy. Please choose a different image.",
           ["adult"],
@@ -266,7 +270,7 @@ describe("createUploadsRoutes", () => {
 
     it("returns 503 when moderation service is unavailable", async () => {
       const harness = makeRouteHarness();
-      harness.spies.storeUserImage.mockRejectedValue(
+      harness.spies.storeUserProfileImage.mockRejectedValue(
         new ImageModerationUnavailableError(
           "Image review is temporarily unavailable. Please try uploading again later."
         )
@@ -285,9 +289,45 @@ describe("createUploadsRoutes", () => {
       expect(typeof body.error).toBe("string");
     });
 
+    it("returns 422 when Gemini rejects an image without a real person", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserProfileImage.mockRejectedValue(
+        new HumanPresenceRejectedError("No real human person is visible.")
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/uploads/images?folder=headshot`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = (await response.json()) as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(body.error as string).toContain("no real person was detected");
+    });
+
+    it("returns 503 when Gemini human-presence review is unavailable", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserProfileImage.mockRejectedValue(new HumanPresenceUnavailableError());
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/uploads/images?folder=full-body`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = (await response.json()) as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(typeof body.error).toBe("string");
+    });
+
     it("returns 500 for unexpected errors", async () => {
       const harness = makeRouteHarness();
-      harness.spies.storeUserImage.mockRejectedValue(new Error("Unexpected storage failure"));
+      harness.spies.storeUserProfileImage.mockRejectedValue(new Error("Unexpected storage failure"));
       const started = await startServer(harness.dependencies);
       server = started.server;
 

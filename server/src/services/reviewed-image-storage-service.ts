@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { isAllowedMimeType, R2StorageService } from "./r2-storage-service.js";
 import { ImageModerationService } from "./image-moderation-service.js";
+import type { GeminiHumanPresenceService } from "./gemini-human-presence-service.js";
 
 export type ManagedUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
 
@@ -76,11 +77,16 @@ export function normalizeManagedUploadFolder(rawFolder: unknown): ManagedUploadF
 export class ReviewedImageStorageService {
   constructor(
     private readonly r2StorageService: R2StorageService,
-    private readonly imageModerationService: ImageModerationService
+    private readonly imageModerationService: ImageModerationService,
+    private readonly humanPresenceService?: GeminiHumanPresenceService
   ) {}
 
   isConfigured(): boolean {
     return this.r2StorageService.isConfigured() && this.imageModerationService.isConfigured();
+  }
+
+  isProfileImageReviewConfigured(): boolean {
+    return this.isConfigured() && Boolean(this.humanPresenceService?.isConfigured());
   }
 
   async storeUserImage(params: StoreReviewedImageParams): Promise<{ key: string; publicUrl: string }> {
@@ -95,6 +101,36 @@ export class ReviewedImageStorageService {
     }
 
     await this.imageModerationService.reviewImage(params.buffer);
+
+    const extension = getFileExtension(params.contentType);
+    const safeFileName = sanitizeFileName(params.fileName, extension);
+    const key = `${params.userId}/${params.folder}/${crypto.randomUUID()}-${safeFileName}`;
+    const publicUrl = await this.r2StorageService.uploadBuffer(key, params.buffer, params.contentType);
+
+    return { key, publicUrl };
+  }
+
+  async storeUserProfileImage(params: StoreReviewedImageParams): Promise<{ key: string; publicUrl: string }> {
+    if (params.folder === "closet") {
+      throw new Error("Profile image uploads cannot use the closet folder.");
+    }
+
+    if (!this.humanPresenceService?.isConfigured()) {
+      throw new Error("Profile image review is temporarily unavailable. Please try uploading again later.");
+    }
+
+    if (!isAllowedMimeType(params.contentType)) {
+      throw new Error(
+        `Invalid content type '${params.contentType}'. Allowed: image/jpeg, image/png, image/webp.`
+      );
+    }
+
+    if (params.buffer.length === 0) {
+      throw new Error("Image upload body is required.");
+    }
+
+    await this.imageModerationService.reviewImage(params.buffer);
+    await this.humanPresenceService.assertRealHumanPresent(params.buffer, params.contentType);
 
     const extension = getFileExtension(params.contentType);
     const safeFileName = sanitizeFileName(params.fileName, extension);
