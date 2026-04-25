@@ -12,6 +12,7 @@ import type { GeminiExtractionService } from "../services/gemini-extraction-serv
 import type { GeminiRecommendationService } from "../services/gemini-recommendation-service.js";
 import type { ImageGenerationService } from "../services/image-generation-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
+import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { ClosetItemRecord, RecommendationRecord, UserRecord } from "../types/domain.js";
 import { createClosetRoutes } from "./closet-routes.js";
 import { createShopRoutes } from "./shop-routes.js";
@@ -164,6 +165,14 @@ function makeHarness(options: {
     updateGeneration: vi.fn().mockResolvedValue(makeRecommendationRecord())
   } as unknown as RecommendationRepository;
 
+  const reviewedImageStorageService = {
+    isClosetImageReviewConfigured: vi.fn().mockReturnValue(options.storageConfigured ?? true),
+    storeUserImage: vi.fn().mockResolvedValue({
+      key: "user-1/closet/test-upload.jpg",
+      publicUrl: "https://cdn.example.com/user-1/closet/test-upload.jpg"
+    })
+  } as unknown as ReviewedImageStorageService;
+
   return {
     dependencies: {
       authService,
@@ -174,7 +183,8 @@ function makeHarness(options: {
       userRepository,
       imageGenerationService,
       generationRepository,
-      recommendationRepository
+      recommendationRepository,
+      reviewedImageStorageService
     },
     spies: {
       authResolve: authService.resolveAuthenticatedUser as ReturnType<typeof vi.fn>,

@@ -15,6 +15,10 @@ import {
   ImageModerationRejectedError,
   ImageModerationUnavailableError
 } from "../services/image-moderation-service.js";
+import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError
+} from "../services/gemini-clothing-presence-service.js";
 
 function makeUserRecord(): UserRecord {
   return {
@@ -109,6 +113,7 @@ function makeRouteHarness(options: {
 
   const reviewedImageStorageService = {
     isConfigured: vi.fn().mockReturnValue(isR2Configured),
+    isClosetImageReviewConfigured: vi.fn().mockReturnValue(isR2Configured),
     storeUserImage: vi.fn().mockResolvedValue({
       key: "user-1/closet/test-upload.jpg",
       publicUrl: "https://cdn.example.com/user-1/item-1.jpg"
@@ -334,6 +339,43 @@ describe("createClosetRoutes", () => {
       expect(response.status).toBe(503);
       expect(typeof body.error).toBe("string");
     });
+
+    it("returns 422 when Gemini rejects an upload without clothing", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ClothingPresenceRejectedError("No clothing item is visible.")
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(body.error as string).toContain("no clothing item was detected");
+      expect(harness.spies.create).not.toHaveBeenCalled();
+    });
+
+    it("returns 503 when Gemini clothing review is unavailable", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(new ClothingPresenceUnavailableError());
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items`, {
+        method: "POST",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("test-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(typeof body.error).toBe("string");
+    });
   });
 
   describe("PUT /closet/items/:id/image", () => {
@@ -473,6 +515,43 @@ describe("createClosetRoutes", () => {
           "Image review is temporarily unavailable. Please try uploading again later."
         )
       );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(typeof body.error).toBe("string");
+    });
+
+    it("returns 422 when Gemini rejects a replacement image without clothing", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(
+        new ClothingPresenceRejectedError("No clothing item is visible.")
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1/image`, {
+        method: "PUT",
+        headers: { "Content-Type": "image/jpeg" },
+        body: Buffer.from("replacement-image-data")
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(body.error as string).toContain("no clothing item was detected");
+      expect(harness.spies.updateImage).not.toHaveBeenCalled();
+    });
+
+    it("returns 503 when Gemini clothing review is unavailable for replacement", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.storeUserImage.mockRejectedValue(new ClothingPresenceUnavailableError());
       const started = await startServer(harness.dependencies);
       server = started.server;
 

@@ -13,6 +13,10 @@ import {
   ImageModerationRejectedError,
   ImageModerationUnavailableError
 } from "../services/image-moderation-service.js";
+import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError
+} from "../services/gemini-clothing-presence-service.js";
 import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
 import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { ClosetItemRecord, RecommendOutfitResponse } from "../types/domain.js";
@@ -150,7 +154,7 @@ export function createClosetRoutes({
       const user = await requireAuth(req, res);
       if (!user) return;
 
-      if (!reviewedImageStorageService.isConfigured()) {
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
         res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
         return;
       }
@@ -209,6 +213,20 @@ export function createClosetRoutes({
 
       if (error instanceof ImageModerationUnavailableError) {
         console.error("Closet image upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Closet image upload rejected by Gemini clothing-presence review.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Closet image upload blocked because clothing-presence review is unavailable.", error.cause);
         res.status(503).json({ error: error.message });
         return;
       }
@@ -380,7 +398,7 @@ export function createClosetRoutes({
       const user = await requireAuth(req, res);
       if (!user) return;
 
-      if (!reviewedImageStorageService.isConfigured()) {
+      if (!reviewedImageStorageService.isClosetImageReviewConfigured()) {
         res.status(503).json({ error: "Image upload is temporarily unavailable. Please try again later." });
         return;
       }
@@ -472,6 +490,20 @@ export function createClosetRoutes({
 
       if (error instanceof ImageModerationUnavailableError) {
         console.error("Closet replacement upload blocked because moderation is unavailable.", error.cause);
+        res.status(503).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceRejectedError) {
+        console.warn("Closet replacement upload rejected by Gemini clothing-presence review.", {
+          reason: error.reason
+        });
+        res.status(422).json({ error: error.message });
+        return;
+      }
+
+      if (error instanceof ClothingPresenceUnavailableError) {
+        console.error("Closet replacement upload blocked because clothing-presence review is unavailable.", error.cause);
         res.status(503).json({ error: error.message });
         return;
       }

@@ -5,6 +5,11 @@ import {
 } from "./image-moderation-service.js";
 import type { ImageModerationService } from "./image-moderation-service.js";
 import {
+  ClothingPresenceRejectedError,
+  ClothingPresenceUnavailableError,
+  type GeminiClothingPresenceService
+} from "./gemini-clothing-presence-service.js";
+import {
   HumanPresenceRejectedError,
   HumanPresenceUnavailableError,
   type GeminiHumanPresenceService
@@ -40,6 +45,13 @@ function makeHumanPresenceService(configured = true): GeminiHumanPresenceService
   } as unknown as GeminiHumanPresenceService;
 }
 
+function makeClothingPresenceService(configured = true): GeminiClothingPresenceService {
+  return {
+    isConfigured: vi.fn().mockReturnValue(configured),
+    assertClothingPresent: vi.fn().mockResolvedValue(undefined)
+  } as unknown as GeminiClothingPresenceService;
+}
+
 function getUploadBufferSpy(r2: R2StorageService) {
   return (r2 as unknown as { uploadBuffer: ReturnType<typeof vi.fn> }).uploadBuffer;
 }
@@ -50,6 +62,10 @@ function getReviewImageSpy(moderation: ImageModerationService) {
 
 function getHumanPresenceSpy(humanPresence: GeminiHumanPresenceService) {
   return (humanPresence as unknown as { assertRealHumanPresent: ReturnType<typeof vi.fn> }).assertRealHumanPresent;
+}
+
+function getClothingPresenceSpy(clothingPresence: GeminiClothingPresenceService) {
+  return (clothingPresence as unknown as { assertClothingPresent: ReturnType<typeof vi.fn> }).assertClothingPresent;
 }
 
 describe("ReviewedImageStorageService", () => {
@@ -97,13 +113,35 @@ describe("ReviewedImageStorageService", () => {
 
       expect(service.isProfileImageReviewConfigured()).toBe(false);
     });
+
+    it("requires the clothing-presence service for closet image review", () => {
+      const service = new ReviewedImageStorageService(
+        makeR2StorageService(true),
+        makeImageModerationService(true),
+        undefined,
+        makeClothingPresenceService(true)
+      );
+
+      expect(service.isClosetImageReviewConfigured()).toBe(true);
+    });
+
+    it("returns false for closet image review when clothing-presence service is not configured", () => {
+      const service = new ReviewedImageStorageService(
+        makeR2StorageService(true),
+        makeImageModerationService(true),
+        undefined,
+        makeClothingPresenceService(false)
+      );
+
+      expect(service.isClosetImageReviewConfigured()).toBe(false);
+    });
   });
 
   describe("storeUserImage()", () => {
     it("returns key and publicUrl on success", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, makeClothingPresenceService());
 
       const result = await service.storeUserImage({
         userId: "user-1",
@@ -133,15 +171,19 @@ describe("ReviewedImageStorageService", () => {
       expect(result.key).toMatch(/^user-42\/avatar\//);
     });
 
-    it("calls reviewImage before uploadBuffer", async () => {
+    it("calls reviewImage and clothing validation before uploadBuffer for closet images", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const clothingPresence = makeClothingPresenceService();
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, clothingPresence);
 
       const callOrder: string[] = [];
       getReviewImageSpy(moderation).mockImplementation(async () => {
         callOrder.push("reviewImage");
         return {};
+      });
+      getClothingPresenceSpy(clothingPresence).mockImplementation(async () => {
+        callOrder.push("assertClothingPresent");
       });
       getUploadBufferSpy(r2).mockImplementation(async () => {
         callOrder.push("uploadBuffer");
@@ -155,13 +197,13 @@ describe("ReviewedImageStorageService", () => {
         buffer: Buffer.from("image-data")
       });
 
-      expect(callOrder).toEqual(["reviewImage", "uploadBuffer"]);
+      expect(callOrder).toEqual(["reviewImage", "assertClothingPresent", "uploadBuffer"]);
     });
 
     it("passes the buffer to reviewImage", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, makeClothingPresenceService());
       const buffer = Buffer.from("specific-image-bytes");
 
       await service.storeUserImage({
@@ -177,7 +219,7 @@ describe("ReviewedImageStorageService", () => {
     it("passes key, buffer, and contentType to uploadBuffer", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, makeClothingPresenceService());
       const buffer = Buffer.from("image-data");
 
       const result = await service.storeUserImage({
@@ -193,7 +235,7 @@ describe("ReviewedImageStorageService", () => {
     it("sanitizes path traversal sequences from fileName", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, makeClothingPresenceService());
 
       const result = await service.storeUserImage({
         userId: "user-1",
@@ -210,7 +252,7 @@ describe("ReviewedImageStorageService", () => {
     it("uses fallback filename when fileName is null", async () => {
       const r2 = makeR2StorageService();
       const moderation = makeImageModerationService();
-      const service = new ReviewedImageStorageService(r2, moderation);
+      const service = new ReviewedImageStorageService(r2, moderation, undefined, makeClothingPresenceService());
 
       const result = await service.storeUserImage({
         userId: "user-1",

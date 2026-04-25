@@ -1,6 +1,10 @@
 import crypto from "node:crypto";
 import { isAllowedMimeType, R2StorageService } from "./r2-storage-service.js";
 import { ImageModerationService } from "./image-moderation-service.js";
+import {
+  ClothingPresenceUnavailableError,
+  type GeminiClothingPresenceService
+} from "./gemini-clothing-presence-service.js";
 import type { GeminiHumanPresenceService } from "./gemini-human-presence-service.js";
 
 export type ManagedUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
@@ -78,7 +82,8 @@ export class ReviewedImageStorageService {
   constructor(
     private readonly r2StorageService: R2StorageService,
     private readonly imageModerationService: ImageModerationService,
-    private readonly humanPresenceService?: GeminiHumanPresenceService
+    private readonly humanPresenceService?: GeminiHumanPresenceService,
+    private readonly clothingPresenceService?: GeminiClothingPresenceService
   ) {}
 
   isConfigured(): boolean {
@@ -87,6 +92,10 @@ export class ReviewedImageStorageService {
 
   isProfileImageReviewConfigured(): boolean {
     return this.isConfigured() && Boolean(this.humanPresenceService?.isConfigured());
+  }
+
+  isClosetImageReviewConfigured(): boolean {
+    return this.isConfigured() && Boolean(this.clothingPresenceService?.isConfigured());
   }
 
   async storeUserImage(params: StoreReviewedImageParams): Promise<{ key: string; publicUrl: string }> {
@@ -101,6 +110,13 @@ export class ReviewedImageStorageService {
     }
 
     await this.imageModerationService.reviewImage(params.buffer);
+    if (params.folder === "closet") {
+      if (!this.clothingPresenceService?.isConfigured()) {
+        throw new ClothingPresenceUnavailableError();
+      }
+
+      await this.clothingPresenceService.assertClothingPresent(params.buffer, params.contentType);
+    }
 
     const extension = getFileExtension(params.contentType);
     const safeFileName = sanitizeFileName(params.fileName, extension);

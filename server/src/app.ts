@@ -19,6 +19,7 @@ import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
 import { ChatService } from "./services/chat-service.js";
+import { GeminiClothingPresenceService } from "./services/gemini-clothing-presence-service.js";
 import { GeminiExtractionService } from "./services/gemini-extraction-service.js";
 import { GeminiHumanPresenceService } from "./services/gemini-human-presence-service.js";
 import { GeminiRecommendationService } from "./services/gemini-recommendation-service.js";
@@ -97,7 +98,8 @@ export function createApp() {
   const reviewedImageStorageService = new ReviewedImageStorageService(
     r2StorageService,
     imageModerationService,
-    new GeminiHumanPresenceService({ apiKey: env.geminiApiKey })
+    new GeminiHumanPresenceService({ apiKey: env.geminiApiKey }),
+    new GeminiClothingPresenceService({ apiKey: env.geminiApiKey })
   );
   const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
   const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
