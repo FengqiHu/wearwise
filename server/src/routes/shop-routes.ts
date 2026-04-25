@@ -1,5 +1,5 @@
 import multer from "multer";
-import { Router } from "express";
+import { Router, type NextFunction, type Request, type Response } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { GenerationRepository } from "../repositories/generation-repository.js";
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
@@ -420,6 +420,21 @@ export function createShopRoutes({
         message: "Failed to generate try-on image."
       } satisfies GenerateOutfitResponse);
     }
+  });
+
+  // Multer errors (fileFilter rejection, LIMIT_FILE_SIZE) bypass the route handler's
+  // try/catch because multer calls next(err) before the handler runs.
+  router.use((err: unknown, _req: Request, res: Response, next: NextFunction) => {
+    if (err instanceof multer.MulterError) {
+      const status = err.code === "LIMIT_FILE_SIZE" ? 413 : 400;
+      res.status(status).json({ error: err.message });
+      return;
+    }
+    if (err instanceof Error) {
+      res.status(400).json({ error: err.message });
+      return;
+    }
+    next(err);
   });
 
   return router;
