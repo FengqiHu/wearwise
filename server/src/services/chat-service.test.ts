@@ -200,3 +200,62 @@ describe("submit_outfit ID validation (#325)", () => {
     expect(onOutfitNoWardrobe).toHaveBeenCalledOnce();
   });
 });
+
+describe("submit_outfit category uniqueness validation (#325)", () => {
+  const onOutfit = vi.fn();
+
+  beforeEach(async () => {
+    capturedTools = [];
+    onOutfit.mockReset();
+    const service = makeChatService();
+    await service.streamChat({
+      messages: [{ role: "user", content: "Suggest an outfit." }],
+      onChunk: vi.fn(),
+      onOutfit,
+      wardrobeItems: [
+        { id: "shoe-1", name: "Timberland Boots", category: "shoes" },
+        { id: "shoe-2", name: "Gray Sneakers", category: "shoes" },
+        { id: "top-1", name: "Black Polo", category: "tops" },
+        { id: "pants-1", name: "Gray Sweatpants", category: "pants" }
+      ]
+    });
+  });
+
+  it("returns { ok: false } when two items share the same category", async () => {
+    const result = await invokeToolByName(
+      "submit_outfit",
+      JSON.stringify({
+        outfitName: "Two Shoes Outfit",
+        reason: "Has two pairs of shoes",
+        items: [
+          { id: "shoe-1", name: "Timberland Boots" },
+          { id: "shoe-2", name: "Gray Sneakers" },
+          { id: "top-1", name: "Black Polo" }
+        ]
+      })
+    ) as { ok: boolean; error: string };
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('"shoes"');
+    expect(result.error).toContain("at most one item per category");
+    expect(onOutfit).not.toHaveBeenCalled();
+  });
+
+  it("returns { ok: true } when all items have unique categories", async () => {
+    const result = await invokeToolByName(
+      "submit_outfit",
+      JSON.stringify({
+        outfitName: "Valid Outfit",
+        reason: "One item per category",
+        items: [
+          { id: "shoe-1", name: "Timberland Boots" },
+          { id: "top-1", name: "Black Polo" },
+          { id: "pants-1", name: "Gray Sweatpants" }
+        ]
+      })
+    );
+
+    expect(result).toEqual({ ok: true, submitted: "Valid Outfit" });
+    expect(onOutfit).toHaveBeenCalledOnce();
+  });
+});

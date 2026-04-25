@@ -604,13 +604,29 @@ export class ChatService {
               parse: (rawArguments: string) => JSON.parse(rawArguments) as SubmitOutfitArgs,
               function: async (args: SubmitOutfitArgs) => {
                 if (input.wardrobeItems) {
-                  const validIds = new Set(input.wardrobeItems.map((i) => i.id));
-                  const invalid = args.items.filter((item) => !validIds.has(item.id));
+                  const wardrobeMap = new Map(input.wardrobeItems.map((i) => [i.id, i]));
+
+                  const invalid = args.items.filter((item) => !wardrobeMap.has(item.id));
                   if (invalid.length > 0) {
                     return {
                       ok: false,
                       error: `Unknown item IDs: ${invalid.map((i) => `"${i.id}" ("${i.name}")`).join(", ")}. Call find_wardrobe_item to look up the correct IDs first.`
                     };
+                  }
+
+                  const seenCategories = new Map<string, string>();
+                  for (const item of args.items) {
+                    const category = wardrobeMap.get(item.id)?.category;
+                    if (category) {
+                      const existing = seenCategories.get(category);
+                      if (existing) {
+                        return {
+                          ok: false,
+                          error: `Outfit contains two items in category "${category}": "${existing}" and "${item.name}". Each outfit may have at most one item per category. Remove one of them.`
+                        };
+                      }
+                      seenCategories.set(category, item.name);
+                    }
                   }
                 }
                 try {
