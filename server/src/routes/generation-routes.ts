@@ -81,6 +81,8 @@ export function createGenerationRoutes({
       let clothingItemIds: string[];
       let recommendationOutfitName: string | undefined;
       let recommendationReason: string | undefined;
+      let recommendationOccasions: string[] | undefined;
+      let recommendationWeatherSummary: string | null | undefined;
 
       if (recommendationId) {
         const recommendation = await recommendationRepository.findById(userId, recommendationId);
@@ -95,6 +97,8 @@ export function createGenerationRoutes({
         clothingItemIds = recommendation.items.map((item) => item.id);
         recommendationOutfitName = recommendation.outfitName;
         recommendationReason = recommendation.reason;
+        recommendationOccasions = recommendation.occasions.length > 0 ? recommendation.occasions : undefined;
+        recommendationWeatherSummary = recommendation.weather ?? null;
       } else {
         clothingItemIds = directClothingItemIds;
       }
@@ -144,7 +148,9 @@ export function createGenerationRoutes({
         clothingImageUrls,
         ...(options.prompt ? { promptOverride: options.prompt } : {}),
         aspectRatio: options.aspectRatio ?? "3:4",
-        ...(backgroundContext ? { backgroundContext } : {})
+        ...(backgroundContext ? { backgroundContext } : {}),
+        ...(recommendationOccasions ? { occasions: recommendationOccasions } : {}),
+        ...(recommendationWeatherSummary ? { weatherSummary: recommendationWeatherSummary } : {})
       });
 
       // 7. Upload generated image to R2

@@ -5,6 +5,7 @@ import { ClosetRepository } from "./repositories/closet-repository.js";
 import { ConversationRepository } from "./repositories/conversation-repository.js";
 import { GenerationRepository } from "./repositories/generation-repository.js";
 import { RecommendationRepository } from "./repositories/recommendation-repository.js";
+import { AccountDeletionRepository } from "./repositories/account-deletion-repository.js";
 import { UserRepository } from "./repositories/user-repository.js";
 import { createAuthRoutes } from "./routes/auth-routes.js";
 import { createChatRoutes } from "./routes/chat-routes.js";
@@ -12,6 +13,7 @@ import { createRecommendationRoutes } from "./routes/recommendation-routes.js";
 import { createClosetRoutes } from "./routes/closet-routes.js";
 import { createGenerationRoutes } from "./routes/generation-routes.js";
 import { createHealthRoutes } from "./routes/health-routes.js";
+import { createAccountRoutes } from "./routes/account-routes.js";
 import { createProfileRoutes } from "./routes/profile-routes.js";
 import { createUploadsRoutes } from "./routes/uploads-routes.js";
 import { AuthService } from "./services/auth-service.js";
@@ -65,6 +67,15 @@ export function createApp() {
     databaseName: env.mongoDatabaseName,
     collectionName: env.mongoRecommendationsCollection
   });
+  const accountDeletionRepository = new AccountDeletionRepository({
+    mongoUri: env.mongoUri,
+    databaseName: env.mongoDatabaseName,
+    usersCollectionName: env.mongoUsersCollection,
+    closetCollectionName: env.mongoClosetCollection,
+    conversationsCollectionName: env.mongoConversationsCollection,
+    recommendationsCollectionName: env.mongoRecommendationsCollection,
+    generationsCollectionName: env.mongoGenerationsCollection
+  });
   const r2StorageService = new R2StorageService({
     bucket: env.s3Bucket,
     region: env.s3Region,
@@ -110,6 +121,18 @@ export function createApp() {
     createProfileRoutes({
       authService,
       userRepository,
+      r2StorageService
+    })
+  );
+
+  app.use(
+    "/api",
+    createAccountRoutes({
+      authService,
+      closetRepository,
+      recommendationRepository,
+      generationRepository,
+      accountDeletionRepository,
       r2StorageService
     })
   );
