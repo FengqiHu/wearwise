@@ -20,15 +20,25 @@ interface UserDocument {
 }
 
 export class AccountDeletionRepository {
-  constructor(private readonly options: AccountDeletionRepositoryOptions) {}
+  private readonly client: MongoClient;
+  private connectPromise: Promise<MongoClient> | null = null;
 
-  async deleteUserData(userId: string): Promise<void> {
-    const client = new MongoClient(this.options.mongoUri, {
+  constructor(private readonly options: AccountDeletionRepositoryOptions) {
+    this.client = new MongoClient(options.mongoUri, {
       serverSelectionTimeoutMS: 10_000
     });
+  }
 
-    await client.connect();
+  private async getClient(): Promise<MongoClient> {
+    if (!this.connectPromise) {
+      this.connectPromise = this.client.connect();
+    }
 
+    return this.connectPromise;
+  }
+
+  async deleteUserData(userId: string): Promise<void> {
+    const client = await this.getClient();
     const session = client.startSession();
 
     try {
@@ -48,7 +58,6 @@ export class AccountDeletionRepository {
       });
     } finally {
       await session.endSession();
-      await client.close();
     }
   }
 }
