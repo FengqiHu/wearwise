@@ -19,6 +19,12 @@ interface ChatRoutesDependencies {
 }
 
 
+const LEADING_TIMESTAMP_RE = /^\[\d{4}-\d{2}-\d{2}T[\d:.Z]+\]\s*/;
+
+export function filterAssistantText(text: string): string {
+  return text.replace(LEADING_TIMESTAMP_RE, "").trimStart();
+}
+
 function buildAccessoryModeSection(
   accessoryMode: AccessoryMode,
   pendingConfirmation: PendingConfirmation | undefined
@@ -509,14 +515,24 @@ export function createChatRoutes({ authService, chatService, conversationReposit
           signal: abortController.signal,
           onChunk: (chunk) => {
             assistantText += chunk;
-            writeChunk(chunk);
           },
           onOutfit: (outfit) => {
             collectedOutfits.push(outfit);
             writeOutfitEvent(outfit);
           }
         });
-        assistantText = chatResult.assistantText;
+
+        const filteredText = filterAssistantText(chatResult.assistantText);
+        assistantText = filteredText;
+
+        const FAKE_STREAM_CHUNK_SIZE = 3;
+        const FAKE_STREAM_DELAY_MS = process.env.NODE_ENV === "test" ? 0 : 15;
+        for (let i = 0; i < filteredText.length; i += FAKE_STREAM_CHUNK_SIZE) {
+          writeChunk(filteredText.slice(i, i + FAKE_STREAM_CHUNK_SIZE));
+          if (FAKE_STREAM_DELAY_MS > 0) {
+            await new Promise<void>((resolve) => setTimeout(resolve, FAKE_STREAM_DELAY_MS));
+          }
+        }
 
         // Save assistant message and recommendations to database
         if (assistantText.trim().length > 0 || collectedOutfits.length > 0) {

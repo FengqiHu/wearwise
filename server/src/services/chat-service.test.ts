@@ -2,18 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChatService, type WardrobeItem } from "./chat-service.js";
 import { OpenWeatherService } from "./openweather-service.js";
 
-// Minimal fake runner returned by runTools.
-function makeFakeRunner(onContent?: string) {
+function makeFakeRunner() {
   return {
-    on: vi.fn((event: string, cb: (chunk: string) => void) => {
-      if (event === "content" && onContent) cb(onContent);
-    }),
+    on: vi.fn(),
     done: vi.fn().mockResolvedValue(undefined),
     messages: []
   };
 }
 
-// Captured tools from the most recent runTools call.
 let capturedTools: Array<{
   function: {
     name: string;
@@ -22,12 +18,16 @@ let capturedTools: Array<{
   };
 }> = [];
 
+let capturedDeveloperContent = "";
+
 vi.mock("openai", () => ({
   default: class {
     chat = {
       completions: {
-        runTools: vi.fn((params: { tools: typeof capturedTools }) => {
+        runTools: vi.fn((params: { tools: typeof capturedTools; messages: Array<{ role: string; content: string }> }) => {
           capturedTools = params.tools as typeof capturedTools;
+          const devMsg = params.messages.find((m) => m.role === "developer");
+          capturedDeveloperContent = devMsg?.content ?? "";
           return makeFakeRunner();
         })
       }
@@ -60,14 +60,34 @@ async function invokeToolByName(name: string, rawArgs: string): Promise<unknown>
   return tool.function.function(parsed);
 }
 
-async function runStreamChat(wardrobeItems: WardrobeItem[]): Promise<void> {
+async function runStreamChat(wardrobeItems: WardrobeItem[], onOutfit?: ReturnType<typeof vi.fn>): Promise<void> {
   const service = makeChatService();
   await service.streamChat({
     messages: [{ role: "user", content: "Suggest an outfit." }],
     onChunk: vi.fn(),
-    wardrobeItems
+    wardrobeItems,
+    ...(onOutfit ? { onOutfit } : {})
   });
 }
+
+describe("buildDeveloperInstructions (#327)", () => {
+  beforeEach(async () => {
+    capturedDeveloperContent = "";
+    await runStreamChat([]);
+  });
+
+  it("instructs the LLM never to include ISO timestamps in responses", () => {
+    expect(capturedDeveloperContent).toContain(
+      "Never include ISO timestamps or date prefixes in your responses"
+    );
+  });
+
+  it("instructs the LLM never to expose internal reasoning", () => {
+    expect(capturedDeveloperContent).toContain(
+      "Never expose your internal reasoning or thinking steps"
+    );
+  });
+});
 
 describe("find_wardrobe_item tool (#325)", () => {
   beforeEach(async () => {
@@ -120,13 +140,7 @@ describe("submit_outfit ID validation (#325)", () => {
   beforeEach(async () => {
     capturedTools = [];
     onOutfit.mockReset();
-    const service = makeChatService();
-    await service.streamChat({
-      messages: [{ role: "user", content: "Suggest an outfit." }],
-      onChunk: vi.fn(),
-      onOutfit,
-      wardrobeItems: makeWardrobeItems()
-    });
+    await runStreamChat(makeWardrobeItems(), onOutfit);
   });
 
   it("returns { ok: true } when all item IDs are valid", async () => {
@@ -207,20 +221,14 @@ describe("submit_outfit category uniqueness validation (#325)", () => {
   beforeEach(async () => {
     capturedTools = [];
     onOutfit.mockReset();
-    const service = makeChatService();
-    await service.streamChat({
-      messages: [{ role: "user", content: "Suggest an outfit." }],
-      onChunk: vi.fn(),
-      onOutfit,
-      wardrobeItems: [
-        { id: "shoe-1", name: "Timberland Boots", category: "shoes" },
-        { id: "shoe-2", name: "Gray Sneakers", category: "shoes" },
-        { id: "top-1", name: "Black Polo", category: "tops" },
-        { id: "pants-1", name: "Gray Sweatpants", category: "pants" },
-        { id: "acc-1", name: "Baseball Hat", category: "accessories" },
-        { id: "acc-2", name: "Leather Bag", category: "accessories" }
-      ]
-    });
+    await runStreamChat([
+      { id: "shoe-1", name: "Timberland Boots", category: "shoes" },
+      { id: "shoe-2", name: "Gray Sneakers", category: "shoes" },
+      { id: "top-1", name: "Black Polo", category: "tops" },
+      { id: "pants-1", name: "Gray Sweatpants", category: "pants" },
+      { id: "acc-1", name: "Baseball Hat", category: "accessories" },
+      { id: "acc-2", name: "Leather Bag", category: "accessories" }
+    ], onOutfit);
   });
 
   it("returns { ok: false } when two items share the same category", async () => {
