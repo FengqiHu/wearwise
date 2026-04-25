@@ -617,7 +617,7 @@ export class ChatService {
                   const seenCategories = new Map<string, string>();
                   for (const item of args.items) {
                     const category = wardrobeMap.get(item.id)?.category;
-                    if (category) {
+                    if (category && category !== "accessories") {
                       const existing = seenCategories.get(category);
                       if (existing) {
                         return {

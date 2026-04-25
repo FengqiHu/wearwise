@@ -216,7 +216,9 @@ describe("submit_outfit category uniqueness validation (#325)", () => {
         { id: "shoe-1", name: "Timberland Boots", category: "shoes" },
         { id: "shoe-2", name: "Gray Sneakers", category: "shoes" },
         { id: "top-1", name: "Black Polo", category: "tops" },
-        { id: "pants-1", name: "Gray Sweatpants", category: "pants" }
+        { id: "pants-1", name: "Gray Sweatpants", category: "pants" },
+        { id: "acc-1", name: "Baseball Hat", category: "accessories" },
+        { id: "acc-2", name: "Leather Bag", category: "accessories" }
       ]
     });
   });
@@ -239,6 +241,24 @@ describe("submit_outfit category uniqueness validation (#325)", () => {
     expect(result.error).toContain('"shoes"');
     expect(result.error).toContain("at most one item per category");
     expect(onOutfit).not.toHaveBeenCalled();
+  });
+
+  it("returns { ok: true } when multiple accessories are included", async () => {
+    const result = await invokeToolByName(
+      "submit_outfit",
+      JSON.stringify({
+        outfitName: "Accessorized Look",
+        reason: "Hat and bag are both accessories — allowed",
+        items: [
+          { id: "shoe-1", name: "Timberland Boots" },
+          { id: "top-1", name: "Black Polo" },
+          { id: "acc-1", name: "Baseball Hat" },
+          { id: "acc-2", name: "Leather Bag" }
+        ]
+      })
+    );
+    expect(result).toEqual({ ok: true, submitted: "Accessorized Look" });
+    expect(onOutfit).toHaveBeenCalledOnce();
   });
 
   it("returns { ok: true } when all items have unique categories", async () => {
