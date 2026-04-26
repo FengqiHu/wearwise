@@ -310,20 +310,6 @@ interface CreateClosetItemResponse {
   item: ClosetItemRecord;
 }
 
-interface ImportTestClosetItemsPayload {
-  items: Array<{
-    imageUrl: string;
-    analysisStatus: "pending" | "ready" | "error";
-    analysisError: string | null;
-    name: string | null;
-    category: string | null;
-    tags: string[];
-    description: string | null;
-    createdAt?: string;
-    updatedAt?: string;
-  }>;
-}
-
 export async function createClosetItem(
   token: string,
   file: File
@@ -427,25 +413,6 @@ export async function replaceClosetItemImage(
   }
 
   return (await response.json()) as ReplaceClosetItemImageResponse;
-}
-
-export async function importTestClosetItems(
-  token: string,
-  payload: ImportTestClosetItemsPayload
-): Promise<ClosetItemRecord[]> {
-  const response = await fetch(`${API_BASE_URL}/api/closet/items/import-test-data`, {
-    method: "POST",
-    headers: createAuthHeaders(token),
-    body: JSON.stringify(payload)
-  });
-
-  if (!response.ok) {
-    const message = await parseResponseError(response, "Failed to import test closet items.");
-    throw new Error(message);
-  }
-
-  const data = (await response.json()) as { items?: ClosetItemRecord[] };
-  return Array.isArray(data.items) ? data.items : [];
 }
 
 export async function analyzeClosetItem(token: string, itemId: string, mimeType: string): Promise<void> {
