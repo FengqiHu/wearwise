@@ -30,9 +30,8 @@ interface RecommendationHistoryRecord extends Omit<RecommendationRecord, "items"
   conversationTitle: string | null;
 }
 
-function normalizeOccasions(occasions: string[], conversationTitle: string | null): string[] {
-  const values = occasions.length > 0 ? occasions : conversationTitle ? [conversationTitle] : [];
-  return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
+function normalizeOccasions(occasions: string[]): string[] {
+  return [...new Set(occasions.map((value) => value.trim()).filter(Boolean))];
 }
 
 export function createRecommendationRoutes({
@@ -130,8 +129,9 @@ export function createRecommendationRoutes({
 
       const userId = authResolution.user.id;
       const recommendations = await recommendationRepository.listByUser(userId);
+      const generatedRecommendations = recommendations.filter((recommendation) => recommendation.generation !== null);
 
-      if (recommendations.length === 0) {
+      if (generatedRecommendations.length === 0) {
         const emptyHistory: RecommendationHistoryRecord[] = [];
         res.json({ recommendations: emptyHistory });
         return;
@@ -140,10 +140,10 @@ export function createRecommendationRoutes({
       const [closetItems, conversations] = await Promise.all([
         closetRepository.findByIds(
           userId,
-          recommendations.flatMap((recommendation) => recommendation.items.map((item) => item.id))
+          generatedRecommendations.flatMap((recommendation) => recommendation.items.map((item) => item.id))
         ),
         Promise.all(
-          [...new Set(recommendations.map((recommendation) => recommendation.conversationId))].map((conversationId) =>
+          [...new Set(generatedRecommendations.map((recommendation) => recommendation.conversationId))].map((conversationId) =>
             conversationRepository.findById(userId, conversationId)
           )
         )
@@ -156,7 +156,7 @@ export function createRecommendationRoutes({
           .map((conversation) => [conversation.id, conversation])
       );
 
-      const history = recommendations
+      const history = generatedRecommendations
         .map<RecommendationHistoryRecord>((recommendation) => {
           const conversation = conversationMap.get(recommendation.conversationId) ?? null;
           const conversationTitle = conversation?.title?.trim() || null;
@@ -168,7 +168,7 @@ export function createRecommendationRoutes({
               name: item.name,
               imageUrl: closetItemMap.get(item.id)?.imageUrl ?? item.imageUrl ?? null
             })),
-            occasions: normalizeOccasions(recommendation.occasions, conversationTitle),
+            occasions: normalizeOccasions(recommendation.occasions),
             vote: recommendation.vote,
             conversationTitle
           };

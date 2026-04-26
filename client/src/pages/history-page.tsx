@@ -14,19 +14,6 @@ function hasGeneratedTryOn(entry: RecommendationHistoryEntry): entry is Generate
   return entry.generation !== null;
 }
 
-function sortNewestFirst<T extends RecommendationHistoryEntry>(entries: T[]): T[] {
-  return [...entries].sort((left, right) => {
-    const leftTime = Date.parse(left.updatedAt);
-    const rightTime = Date.parse(right.updatedAt);
-
-    if (Number.isNaN(leftTime) || Number.isNaN(rightTime)) {
-      return right.updatedAt.localeCompare(left.updatedAt);
-    }
-
-    return rightTime - leftTime;
-  });
-}
-
 export function HistoryPage() {
   const { token } = useAuth();
   const [entries, setEntries] = useState<GeneratedHistoryEntry[]>([]);
@@ -62,7 +49,7 @@ export function HistoryPage() {
           return;
         }
 
-        setEntries(sortNewestFirst(historyWithGeneratedTryOns));
+        setEntries(historyWithGeneratedTryOns);
         setVoteStates({});
         setVoteLoadingStates({});
       } catch (loadError) {
