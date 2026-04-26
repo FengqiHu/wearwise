@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { ThinkingDots } from "../components/thinking-dots";
@@ -76,11 +76,7 @@ const steps = [
 export function WelcomePage() {
   const { isAuthenticated, isBootstrapping, profile } = useAuth();
   const [configError, setConfigError] = useState<string | null>(null);
-  const [accountDeletedNotice, setAccountDeletedNotice] = useState(false);
-
-  useEffect(() => {
-    setAccountDeletedNotice(consumeAccountDeletedNotice());
-  }, []);
+  const [accountDeletedNotice] = useState(() => consumeAccountDeletedNotice());
 
   if (isBootstrapping) {
     return (

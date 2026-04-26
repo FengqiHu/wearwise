@@ -1,5 +1,4 @@
 import express, { type Request, type Response, Router } from "express";
-import { z } from "zod";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
@@ -85,22 +84,6 @@ function toRecommendationContext(item: ReadyClosetItem): RecommendationItemConte
     description: item.description
   };
 }
-
-const importClosetItemSchema = z.object({
-  imageUrl: z.string().url(),
-  analysisStatus: z.enum(["pending", "ready", "error"]),
-  analysisError: z.string().nullable(),
-  name: z.string().nullable(),
-  category: z.string().nullable(),
-  tags: z.array(z.string()),
-  description: z.string().nullable(),
-  createdAt: z.string().optional(),
-  updatedAt: z.string().optional()
-});
-
-const importClosetItemsRequestSchema = z.object({
-  items: z.array(importClosetItemSchema).min(1).max(200)
-});
 
 export function createClosetRoutes({
   authService,
@@ -233,31 +216,6 @@ export function createClosetRoutes({
 
       console.error("Closet item upload error:", error);
       res.status(500).json({ error: "Failed to create closet item." });
-    }
-  });
-
-  /**
-   * POST /api/closet/items/import-test-data
-   *
-   * Imports pre-analyzed closet items for the authenticated user.
-   * Intended for local/demo sample data seeding from the client.
-   */
-  router.post("/closet/items/import-test-data", async (req, res): Promise<void> => {
-    try {
-      const user = await requireAuth(req, res);
-      if (!user) return;
-
-      const parsed = importClosetItemsRequestSchema.safeParse(req.body);
-      if (!parsed.success) {
-        res.status(400).json({ error: "Invalid import payload." });
-        return;
-      }
-
-      const imported = await closetRepository.importMany(user.id, parsed.data.items);
-      res.status(201).json({ items: imported });
-    } catch (error) {
-      console.error("Closet test data import error:", error);
-      res.status(500).json({ error: "Failed to import test closet items." });
     }
   });
 

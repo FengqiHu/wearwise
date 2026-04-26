@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { ChatService, type WardrobeItem } from "./chat-service.js";
+import { ChatService, type SubmitOutfitArgs, type WardrobeItem } from "./chat-service.js";
 import { OpenWeatherService } from "./openweather-service.js";
+
+type OnOutfit = (outfit: SubmitOutfitArgs) => void | Promise<void>;
 
 function makeFakeRunner() {
   return {
@@ -60,7 +62,7 @@ async function invokeToolByName(name: string, rawArgs: string): Promise<unknown>
   return tool.function.function(parsed);
 }
 
-async function runStreamChat(wardrobeItems: WardrobeItem[], onOutfit?: ReturnType<typeof vi.fn>): Promise<void> {
+async function runStreamChat(wardrobeItems: WardrobeItem[], onOutfit?: OnOutfit): Promise<void> {
   const service = makeChatService();
   await service.streamChat({
     messages: [{ role: "user", content: "Suggest an outfit." }],
@@ -135,7 +137,7 @@ describe("find_wardrobe_item tool (#325)", () => {
 });
 
 describe("submit_outfit ID validation (#325)", () => {
-  const onOutfit = vi.fn();
+  const onOutfit = vi.fn<OnOutfit>();
 
   beforeEach(async () => {
     capturedTools = [];
@@ -195,7 +197,7 @@ describe("submit_outfit ID validation (#325)", () => {
   it("skips validation and calls onOutfit when wardrobeItems is not provided", async () => {
     capturedTools = [];
     const service = makeChatService();
-    const onOutfitNoWardrobe = vi.fn();
+    const onOutfitNoWardrobe = vi.fn<OnOutfit>();
     await service.streamChat({
       messages: [{ role: "user", content: "Suggest an outfit." }],
       onChunk: vi.fn(),
@@ -216,7 +218,7 @@ describe("submit_outfit ID validation (#325)", () => {
 });
 
 describe("submit_outfit category uniqueness validation (#325)", () => {
-  const onOutfit = vi.fn();
+  const onOutfit = vi.fn<OnOutfit>();
 
   beforeEach(async () => {
     capturedTools = [];
