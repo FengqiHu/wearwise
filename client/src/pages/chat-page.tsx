@@ -75,6 +75,15 @@ function buildGenerationStatesFromMessages(messages: ChatMessage[]): Record<stri
   return nextStates;
 }
 
+function getCurrentVote(
+  voteStates: Record<string, "up" | "down" | null>,
+  recommendation: Recommendation
+): "up" | "down" | null {
+  return Object.prototype.hasOwnProperty.call(voteStates, recommendation.id)
+    ? voteStates[recommendation.id] ?? null
+    : recommendation.vote ?? null;
+}
+
 function OutfitCardSkeleton() {
   return (
     <div className="flex flex-col gap-3 rounded-2xl border border-boutique-200 bg-boutique-50/85 p-3 shadow-sm animate-pulse">
@@ -121,7 +130,7 @@ function RecommendationCards({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         {recommendations.map((rec) => {
           const generationState = generationStates[rec.id] ?? { generatedImageUrl: null, error: null, isLoading: false };
-          const currentVote = voteStates[rec.id] ?? rec.vote ?? null;
+          const currentVote = getCurrentVote(voteStates, rec);
 
           return (
             <div key={rec.id} className="flex flex-col gap-3 rounded-xl border border-pebble bg-cream p-4">

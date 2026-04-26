@@ -52,6 +52,16 @@ function makeRecommendationRecord(overrides: Partial<RecommendationRecord> = {})
   };
 }
 
+function makeGeneratedRecommendationRecord(overrides: Partial<RecommendationRecord> = {}): RecommendationRecord {
+  return makeRecommendationRecord({
+    generation: {
+      imageUrl: "https://cdn.example.com/generated-look.png",
+      createdAt: "2026-01-01T00:00:00.000Z"
+    },
+    ...overrides
+  });
+}
+
 async function startServer(dependencies: {
   authService: AuthService;
   recommendationRepository: RecommendationRepository;
@@ -581,7 +591,7 @@ describe("createRecommendationRoutes GET /recommendations/history", () => {
   });
 
   it("returns recommendations with enriched items, occasions, conversationTitle, and vote", async () => {
-    const rec = makeRecommendationRecord({
+    const rec = makeGeneratedRecommendationRecord({
       items: [{ id: "item-1", name: "Blue Shirt" }],
       occasions: ["casual"],
       vote: "up"
@@ -608,9 +618,38 @@ describe("createRecommendationRoutes GET /recommendations/history", () => {
     expect(items[0]!.imageUrl).toBe("https://cdn.example.com/item-1.jpg");
   });
 
+  it("filters out records without generation before enriching history", async () => {
+    const generated = makeGeneratedRecommendationRecord({
+      id: "rec-generated",
+      items: [{ id: "item-1", name: "Blue Shirt" }],
+      conversationId: "conv-generated"
+    });
+    const ungenerated = makeRecommendationRecord({
+      id: "rec-ungenerated",
+      items: [{ id: "item-ignored", name: "Ignored Shirt" }],
+      conversationId: "conv-ignored"
+    });
+
+    const harness = makeHarness();
+    harness.spies.listByUser.mockResolvedValue([ungenerated, generated]);
+    harness.spies.findByIds.mockResolvedValue([]);
+    harness.spies.conversationFindById.mockResolvedValue(null);
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await fetch(`${started.baseUrl}/api/recommendations/history`);
+
+    expect(res.status).toBe(200);
+    const body = await res.json() as { recommendations: { id: string }[] };
+    expect(body.recommendations).toEqual([expect.objectContaining({ id: "rec-generated" })]);
+    expect(harness.spies.findByIds).toHaveBeenCalledWith("user-1", ["item-1"]);
+    expect(harness.spies.conversationFindById).toHaveBeenCalledWith("user-1", "conv-generated");
+    expect(harness.spies.conversationFindById).not.toHaveBeenCalledWith("user-1", "conv-ignored");
+  });
+
   it("sorts results by updatedAt descending", async () => {
-    const older = makeRecommendationRecord({ id: "rec-old", updatedAt: "2026-01-01T00:00:00.000Z" });
-    const newer = makeRecommendationRecord({ id: "rec-new", updatedAt: "2026-02-01T00:00:00.000Z" });
+    const older = makeGeneratedRecommendationRecord({ id: "rec-old", updatedAt: "2026-01-01T00:00:00.000Z" });
+    const newer = makeGeneratedRecommendationRecord({ id: "rec-new", updatedAt: "2026-02-01T00:00:00.000Z" });
 
     const harness = makeHarness();
     harness.spies.listByUser.mockResolvedValue([older, newer]);
@@ -626,8 +665,8 @@ describe("createRecommendationRoutes GET /recommendations/history", () => {
     expect(body.recommendations[1]!.id).toBe("rec-old");
   });
 
-  it("normalizes occasions by falling back to conversationTitle when occasions array is empty", async () => {
-    const rec = makeRecommendationRecord({ occasions: [], conversationId: "conv-1" });
+  it("keeps occasions empty instead of falling back to conversationTitle", async () => {
+    const rec = makeGeneratedRecommendationRecord({ occasions: [], conversationId: "conv-1" });
     const conversation = makeConversation({ id: "conv-1", title: "Date night look" });
 
     const harness = makeHarness();
@@ -641,7 +680,7 @@ describe("createRecommendationRoutes GET /recommendations/history", () => {
 
     expect(res.status).toBe(200);
     const body = await res.json() as { recommendations: { occasions: string[] }[] };
-    expect(body.recommendations[0]!.occasions).toEqual(["Date night look"]);
+    expect(body.recommendations[0]!.occasions).toEqual([]);
   });
 
   it("scopes results to the authenticated user", async () => {
