@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
+import { ImageModal } from "../components/image-modal";
 import { Button } from "../components/ui/button";
 import {
   PromptInput,
@@ -118,6 +119,7 @@ function RecommendationCards({
   onVote: (recommendationId: string, vote: "up" | "down" | null) => Promise<void>;
   showSkeleton?: boolean;
 }) {
+  const [modalImage, setModalImage] = useState<{ src: string; alt: string } | null>(null);
   const itemMap = useMemo(() => {
     const map = new Map<string, ClothingItem>();
     for (const item of closetItems) map.set(item.id, item);
@@ -191,7 +193,10 @@ function RecommendationCards({
               </div>
 
               {generationState.generatedImageUrl ? (
-                <div className="overflow-hidden rounded-xl border border-pebble">
+                <div
+                  className="overflow-hidden rounded-xl border border-pebble cursor-zoom-in"
+                  onClick={() => { setModalImage({ src: generationState.generatedImageUrl!, alt: `${rec.outfitName} try-on` }); }}
+                >
                   <img
                     src={generationState.generatedImageUrl}
                     alt={`${rec.outfitName} try-on`}
@@ -229,6 +234,13 @@ function RecommendationCards({
         })}
         {showSkeleton && <OutfitCardSkeleton />}
       </div>
+      {modalImage ? (
+        <ImageModal
+          src={modalImage.src}
+          alt={modalImage.alt}
+          onClose={() => { setModalImage(null); }}
+        />
+      ) : null}
     </div>
   );
 }

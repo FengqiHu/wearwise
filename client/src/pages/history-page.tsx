@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ImageModal } from "../components/image-modal";
 import { RecommendationVoteControls } from "../components/recommendation-vote-controls";
 import { Card } from "../components/ui/card";
 import { ThinkingDots } from "../components/thinking-dots";
@@ -22,6 +23,7 @@ export function HistoryPage() {
   const [voteStates, setVoteStates] = useState<Record<string, RecommendationVote | null>>({});
   const [voteLoadingStates, setVoteLoadingStates] = useState<Record<string, boolean>>({});
   const [voteError, setVoteError] = useState<string | null>(null);
+  const [modalImage, setModalImage] = useState<{ src: string; alt: string } | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -150,7 +152,10 @@ export function HistoryPage() {
                   <div className="border-b border-pebble bg-[rgba(28,28,28,0.02)] p-4 lg:border-b-0 lg:border-r">
                     <p className="font-sans text-xs font-medium uppercase tracking-wide text-dim">Try-On Image</p>
 
-                    <div className="mt-3 overflow-hidden rounded-xl border border-pebble bg-cream">
+                    <div
+                      className="mt-3 overflow-hidden rounded-xl border border-pebble bg-cream cursor-zoom-in"
+                      onClick={() => { setModalImage({ src: entry.generation.imageUrl, alt: `${entry.outfitName} try-on` }); }}
+                    >
                       <img
                         src={entry.generation.imageUrl}
                         alt={`${entry.outfitName} try-on`}
@@ -243,6 +248,13 @@ export function HistoryPage() {
           })}
         </div>
       )}
+      {modalImage ? (
+        <ImageModal
+          src={modalImage.src}
+          alt={modalImage.alt}
+          onClose={() => { setModalImage(null); }}
+        />
+      ) : null}
     </section>
   );
 }
