@@ -98,7 +98,9 @@ function makeRouteHarness(options: {
     create: vi.fn().mockResolvedValue(makeClosetItem()),
     findById: vi.fn().mockResolvedValue(makeClosetItem()),
     updateExtraction: vi.fn().mockResolvedValue(makeClosetItem({ analysisStatus: "ready" })),
-    updateImage: vi.fn().mockResolvedValue(makeClosetItem())
+    updateImage: vi.fn().mockResolvedValue(makeClosetItem()),
+    updateMetadata: vi.fn().mockResolvedValue(makeClosetItem({ name: "Updated Shirt" })),
+    deleteById: vi.fn().mockResolvedValue(true)
   } as unknown as ClosetRepository;
 
   const r2StorageService = {
@@ -130,7 +132,15 @@ function makeRouteHarness(options: {
     })
   } as unknown as GeminiExtractionService;
 
-  const geminiRecommendationService = {} as unknown as GeminiRecommendationService;
+  const geminiRecommendationService = {
+    isConfigured: vi.fn().mockReturnValue(isGeminiConfigured),
+    recommendOutfit: vi.fn().mockResolvedValue({
+      styleNote: "A clean, casual look.",
+      recommendations: [
+        { category: "pants", itemId: "pants-1", reason: "Pairs well with the shirt." }
+      ]
+    })
+  } as unknown as GeminiRecommendationService;
 
   return {
     dependencies: {
@@ -147,9 +157,12 @@ function makeRouteHarness(options: {
       findById: (closetRepository as unknown as { findById: ReturnType<typeof vi.fn> }).findById,
       updateExtraction: (closetRepository as unknown as { updateExtraction: ReturnType<typeof vi.fn> }).updateExtraction,
       updateImage: (closetRepository as unknown as { updateImage: ReturnType<typeof vi.fn> }).updateImage,
+      updateMetadata: (closetRepository as unknown as { updateMetadata: ReturnType<typeof vi.fn> }).updateMetadata,
+      deleteById: (closetRepository as unknown as { deleteById: ReturnType<typeof vi.fn> }).deleteById,
       storeUserImage: (reviewedImageStorageService as unknown as { storeUserImage: ReturnType<typeof vi.fn> }).storeUserImage,
       deleteObject: (r2StorageService as unknown as { deleteObject: ReturnType<typeof vi.fn> }).deleteObject,
-      analyzeClothingImage: (geminiExtractionService as unknown as { analyzeClothingImage: ReturnType<typeof vi.fn> }).analyzeClothingImage
+      analyzeClothingImage: (geminiExtractionService as unknown as { analyzeClothingImage: ReturnType<typeof vi.fn> }).analyzeClothingImage,
+      recommendOutfit: (geminiRecommendationService as unknown as { recommendOutfit: ReturnType<typeof vi.fn> }).recommendOutfit
     }
   };
 }
@@ -706,6 +719,319 @@ describe("createClosetRoutes", () => {
         "item-1",
         expect.objectContaining({ analysisStatus: "error" })
       );
+    });
+  });
+
+  describe("PATCH /closet/items/:id", () => {
+    it("returns 200 with updated item on success", async () => {
+      const harness = makeRouteHarness();
+      const updated = makeClosetItem({ name: "Linen Shirt", category: "tops", tags: ["beige"] });
+      harness.spies.updateMetadata.mockResolvedValue(updated);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "Linen Shirt", category: "tops", tags: ["beige"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(200);
+      expect((body.item as Record<string, unknown>).name).toBe("Linen Shirt");
+      expect(harness.spies.updateMetadata).toHaveBeenCalledWith(
+        "user-1",
+        "item-1",
+        expect.objectContaining({ name: "Linen Shirt", category: "tops" })
+      );
+    });
+
+    it("returns 401 when not authenticated", async () => {
+      const harness = makeRouteHarness({ authenticated: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Name" })
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 404 when item not found", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(null);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/nonexistent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: "New Name" })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(404);
+      expect(body.error).toBe("Closet item not found.");
+    });
+
+    it("returns 400 when no valid fields are provided", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(400);
+      expect(body.error).toBe("No valid fields provided for update.");
+    });
+
+    it("updates only the description when only description is provided", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ description: "A relaxed everyday tee" })
+      });
+
+      expect(harness.spies.updateMetadata).toHaveBeenCalledWith(
+        "user-1",
+        "item-1",
+        { description: "A relaxed everyday tee" }
+      );
+    });
+  });
+
+  describe("DELETE /closet/items/:id", () => {
+    it("returns 204 and deletes the item and its R2 image", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(
+        makeClosetItem({ imageUrl: "https://cdn.example.com/user-1/item-1.jpg" })
+      );
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "DELETE"
+      });
+
+      expect(response.status).toBe(204);
+      expect(harness.spies.deleteById).toHaveBeenCalledWith("user-1", "item-1");
+      expect(harness.spies.deleteObject).toHaveBeenCalledWith("https://cdn.example.com/user-1/item-1.jpg");
+    });
+
+    it("returns 401 when not authenticated", async () => {
+      const harness = makeRouteHarness({ authenticated: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "DELETE"
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 404 when item not found", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(null);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/nonexistent`, {
+        method: "DELETE"
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(404);
+      expect(body.error).toBe("Closet item not found.");
+    });
+
+    it("does not call deleteObject when R2 is not configured", async () => {
+      const harness = makeRouteHarness({ isR2Configured: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/items/item-1`, {
+        method: "DELETE"
+      });
+
+      expect(response.status).toBe(204);
+      expect(harness.spies.deleteById).toHaveBeenCalledWith("user-1", "item-1");
+      expect(harness.spies.deleteObject).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("POST /closet/recommend", () => {
+    function makeReadyItem(overrides: Partial<ClosetItemRecord> = {}): ClosetItemRecord {
+      return makeClosetItem({
+        analysisStatus: "ready",
+        name: "Blue Shirt",
+        category: "tops",
+        tags: ["blue"],
+        description: "A blue shirt",
+        ...overrides
+      });
+    }
+
+    it("returns 200 with a complete outfit when Gemini fills missing categories", async () => {
+      const selectedItem = makeReadyItem({ id: "top-1", category: "tops", name: "Blue Shirt" });
+      const candidatePants = makeReadyItem({ id: "pants-1", category: "pants", name: "Slim Jeans" });
+
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(selectedItem);
+      harness.spies.listByUser.mockResolvedValue([selectedItem, candidatePants]);
+      harness.spies.recommendOutfit.mockResolvedValue({
+        styleNote: "A clean casual look.",
+        recommendations: [{ category: "pants", itemId: "pants-1", reason: "Pairs well." }]
+      });
+
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["top-1"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(200);
+      expect(Array.isArray(body.outfit)).toBe(true);
+      expect(typeof body.styleNote).toBe("string");
+    });
+
+    it("returns 401 when not authenticated", async () => {
+      const harness = makeRouteHarness({ authenticated: false });
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["top-1"] })
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("returns 422 when a selected item is not found", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(null);
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["nonexistent"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(body.error).toContain("not found");
+    });
+
+    it("returns 422 when a selected item is not ready", async () => {
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(makeClosetItem({ analysisStatus: "pending" }));
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["pending-item"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(422);
+      expect(body.error).toContain("ready");
+    });
+
+    it("returns 503 when Gemini is not configured and candidates exist", async () => {
+      const selectedItem = makeReadyItem({ id: "top-1", category: "tops" });
+      const candidatePants = makeReadyItem({ id: "pants-1", category: "pants" });
+
+      const harness = makeRouteHarness({ isGeminiConfigured: false });
+      harness.spies.findById.mockResolvedValue(selectedItem);
+      harness.spies.listByUser.mockResolvedValue([selectedItem, candidatePants]);
+
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["top-1"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(body.error).toContain("Gemini");
+    });
+
+    it("returns 200 with anchor-only outfit when no wardrobe candidates exist", async () => {
+      const selectedItem = makeReadyItem({ id: "top-1", category: "tops" });
+
+      const harness = makeRouteHarness();
+      harness.spies.findById.mockResolvedValue(selectedItem);
+      harness.spies.listByUser.mockResolvedValue([selectedItem]);
+
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["top-1"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(200);
+      expect(harness.spies.recommendOutfit).not.toHaveBeenCalled();
+    });
+
+    it("returns 400 when selectedItemIds is missing", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({})
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain("selectedItemIds");
+    });
+
+    it("returns 400 when selectedItemIds contains duplicates", async () => {
+      const harness = makeRouteHarness();
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/closet/recommend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ selectedItemIds: ["top-1", "top-1"] })
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(400);
+      expect(body.error).toContain("duplicates");
     });
   });
 });
