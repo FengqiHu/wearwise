@@ -122,18 +122,25 @@ cp client/.env.example client/.env
 
 ## Running Tests
 
-Tests are written with [Vitest](https://vitest.dev/) and live under `server/src/**/*.test.ts`.
+Tests are written with [Vitest](https://vitest.dev/) and live under `server/src/**/*.test.ts` (backend) and `client/src/**/*.test.{ts,tsx}` (frontend).
+
+Backend tests (services, repositories, and route handlers):
 
 ```bash
 cd server
 npm test
 ```
 
-This runs all server-side unit tests (services and repositories).
+Frontend tests (page components and shared utilities):
+
+```bash
+cd client
+npm test
+```
 
 ## Deployment
 
 The application is deployed and accessible at https://wearwise-cs423.web.app/
 
 - **Frontend**: Firebase Hosting
-+ **Backend**: Render
+- **Backend**: Render
