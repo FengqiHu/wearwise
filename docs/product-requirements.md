@@ -50,7 +50,6 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 - Users can upload an online product image, receive outfit recommendations incorporating the new item, and request a virtual try-on.
 - Users can permanently delete their accounts.
 - The system stores clothing features in a per-user private database accessible to the user and the AI agent.
-- The system contains mock test data that users can import.
 - The system stores chat sessions and try-on images in a history page where users can view past results.
 - Users can replace and delete their profile photos after initial upload.
 - Users can choose whether to include accessories in recommendations.
@@ -79,7 +78,7 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 
 #### Security
 
-- Usernames and email addresses are encrypted with SHA-256; uploaded images are encrypted with AES.
+- Sessions are signed with HMAC-SHA256; uploaded images rely on Cloudflare R2's at-rest encryption.
 - A JWT is generated on login and used for request validation on all API calls.
 - User accounts and sessions are managed through Google OAuth.
 - API keys are stored server-side and never exposed to the client.
