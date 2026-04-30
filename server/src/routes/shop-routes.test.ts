@@ -454,3 +454,149 @@ describe("createShopRoutes POST /shop/recommend", () => {
     expect(harness.spies.analyzeImage).not.toHaveBeenCalled();
   });
 });
+
+describe("createShopRoutes POST /shop/try-on", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  function postTryOn(baseUrl: string, body: Record<string, unknown>): Promise<Response> {
+    return fetch(`${baseUrl}/api/shop/try-on`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+  }
+
+  it("returns 200 with a generated try-on image URL on success", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "user-1/online-items/product.png",
+      outfitName: "Weekend Look",
+      productName: "Striped Shirt"
+    });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(typeof (body.result as Record<string, unknown>).imageUrl).toBe("string");
+    expect(harness.spies.generateImage).toHaveBeenCalledOnce();
+    expect(harness.spies.saveGeneration).toHaveBeenCalledOnce();
+  });
+
+  it("returns 401 when not authenticated", async () => {
+    const harness = makeHarness({ authenticated: false });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "user-1/online-items/product.png"
+    });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(401);
+    expect(body.success).toBe(false);
+  });
+
+  it("returns 503 when image generation service is not configured", async () => {
+    const harness = makeHarness({ imageConfigured: false });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "user-1/online-items/product.png"
+    });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(503);
+    expect(body.success).toBe(false);
+    expect(harness.spies.generateImage).not.toHaveBeenCalled();
+  });
+
+  it("returns 400 when productKey is missing", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, { outfitName: "Look" });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(400);
+    expect(body.success).toBe(false);
+  });
+
+  it("returns 403 when productKey does not belong to the current user", async () => {
+    const harness = makeHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "other-user/online-items/product.png"
+    });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(403);
+    expect(body.success).toBe(false);
+  });
+
+  it("returns 422 when user has no full-body photo", async () => {
+    const harness = makeHarness({
+      userRecord: {
+        id: "user-1",
+        googleSub: "google-sub-1",
+        email: "test@example.com",
+        name: "Taylor",
+        picture: null,
+        profile: {
+          name: "Taylor",
+          heightCm: 170,
+          weightKg: 65,
+          styleNote: "",
+          avatarUrl: null,
+          fullBodyImageUrl: null,
+          headshotImageUrl: null
+        },
+        createdAt: "2026-01-01T00:00:00.000Z",
+        updatedAt: "2026-01-01T00:00:00.000Z"
+      }
+    });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "user-1/online-items/product.png"
+    });
+    const body = await response.json() as Record<string, unknown>;
+
+    expect(response.status).toBe(422);
+    expect(body.success).toBe(false);
+    expect(body.message).toContain("full-body photo");
+  });
+
+  it("includes wardrobe item images when clothingItemIds are provided", async () => {
+    const wardrobeItem = makeClosetItem({ id: "pants-1", imageUrl: "https://cdn.example.com/closet/pants-1.jpg" });
+    const harness = makeHarness({ closetItem: wardrobeItem });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postTryOn(started.baseUrl, {
+      productKey: "user-1/online-items/product.png",
+      clothingItemIds: ["pants-1"]
+    });
+
+    expect(response.status).toBe(200);
+    expect(harness.spies.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clothingImageUrls: expect.arrayContaining(["https://cdn.example.com/user-1/online-items/product.png"])
+      })
+    );
+  });
+});
