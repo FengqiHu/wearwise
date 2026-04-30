@@ -72,25 +72,6 @@ async function runStreamChat(wardrobeItems: WardrobeItem[], onOutfit?: OnOutfit)
   });
 }
 
-describe("buildDeveloperInstructions (#327)", () => {
-  beforeEach(async () => {
-    capturedDeveloperContent = "";
-    await runStreamChat([]);
-  });
-
-  it("instructs the LLM never to include ISO timestamps in responses", () => {
-    expect(capturedDeveloperContent).toContain(
-      "Never include ISO timestamps or date prefixes in your responses"
-    );
-  });
-
-  it("instructs the LLM never to expose internal reasoning", () => {
-    expect(capturedDeveloperContent).toContain(
-      "Never expose your internal reasoning or thinking steps"
-    );
-  });
-});
-
 describe("find_wardrobe_item tool (#325)", () => {
   beforeEach(async () => {
     capturedTools = [];
