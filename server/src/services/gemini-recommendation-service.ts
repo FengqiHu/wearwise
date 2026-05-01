@@ -80,7 +80,7 @@ interface GeminiRecommendationServiceOptions {
   apiKey: string;
 }
 
-function buildRecommendationPrompt(input: RecommendOutfitInput): string {
+export function buildRecommendationPrompt(input: RecommendOutfitInput): string {
   const context = {
     selectedItems: input.selectedItems,
     missingCategories: input.missingCategories,
@@ -164,6 +164,32 @@ export function buildStyleSummaryPrompt(votedOutfits: VotedOutfit[]): string {
   ].join("\n");
 }
 
+export function buildShopOutfitsPrompt(input: {
+  productItem: RecommendationItemContext;
+  wardrobeByCategory: Partial<Record<OutfitCategory, RecommendationItemContext[]>>;
+}): string {
+  return [
+    "You are a professional fashion stylist assistant.",
+    "The user is considering buying a new product item. Suggest 1-3 distinct outfit combinations",
+    "from their existing wardrobe that pair well with it.",
+    "",
+    "Product (the new item the user may buy):",
+    JSON.stringify(input.productItem, null, 2),
+    "",
+    "Available wardrobe items by category (only use itemIds from these lists):",
+    JSON.stringify(input.wardrobeByCategory, null, 2),
+    "",
+    "Rules:",
+    "  - Select at most one item per category per outfit.",
+    `  - The product's category is '${input.productItem.category}' — do NOT add wardrobe items in the same category.`,
+    "  - Each outfit suggestion must be distinct (use different wardrobe item combinations).",
+    "  - Only use itemIds from the wardrobeByCategory lists provided. Never invent IDs.",
+    "  - Provide 1-3 outfit suggestions that best complement the product.",
+    "  - Each selection must include a one-sentence reason explaining the pairing.",
+    "  - Each outfit must include a one-sentence styleNote describing the overall vibe.",
+  ].join("\n");
+}
+
 export class GeminiRecommendationService {
   private readonly ai: GoogleGenAI | null;
 
@@ -196,26 +222,7 @@ export class GeminiRecommendationService {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
 
-    const prompt = [
-      "You are a professional fashion stylist assistant.",
-      "The user is considering buying a new product item. Suggest 1-3 distinct outfit combinations",
-      "from their existing wardrobe that pair well with it.",
-      "",
-      "Product (the new item the user may buy):",
-      JSON.stringify(input.productItem, null, 2),
-      "",
-      "Available wardrobe items by category (only use itemIds from these lists):",
-      JSON.stringify(input.wardrobeByCategory, null, 2),
-      "",
-      "Rules:",
-      "  - Select at most one item per category per outfit.",
-      `  - The product's category is '${input.productItem.category}' — do NOT add wardrobe items in the same category.`,
-      "  - Each outfit suggestion must be distinct (use different wardrobe item combinations).",
-      "  - Only use itemIds from the wardrobeByCategory lists provided. Never invent IDs.",
-      "  - Provide 1-3 outfit suggestions that best complement the product.",
-      "  - Each selection must include a one-sentence reason explaining the pairing.",
-      "  - Each outfit must include a one-sentence styleNote describing the overall vibe.",
-    ].join("\n");
+    const prompt = buildShopOutfitsPrompt(input);
 
     const response = await this.ai.models.generateContent({
       model: GEMINI_MODEL,

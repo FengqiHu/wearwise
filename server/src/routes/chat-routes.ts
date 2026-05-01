@@ -80,7 +80,7 @@ When the user's latest turn is off-topic while pending is "addAccessoriesOffer" 
 - Answer the off-topic request first, then RE-ASK the pending question once at the end of your reply. Only re-ask once per pending state.`;
 }
 
-function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, pendingConfirmation: PendingConfirmation | undefined, userTimezone?: string, presetContext?: PrefetchedContext, hasUserLocation?: boolean): string {
+export function buildWardrobeSystemMessage(profile: UserProfile | null, items: ClosetItemRecord[], accessoryMode: AccessoryMode, pendingConfirmation: PendingConfirmation | undefined, userTimezone?: string, presetContext?: PrefetchedContext, hasUserLocation?: boolean): string {
   const profileSection = profile
     ? `User profile:
 - Name: ${profile.name}

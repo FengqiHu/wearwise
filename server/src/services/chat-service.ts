@@ -195,7 +195,7 @@ function toIsoLocalDate(date: Date): string {
   return formatter.format(date);
 }
 
-function buildDeveloperInstructions(todayIsoDate: string): string {
+export function buildDeveloperInstructions(todayIsoDate: string): string {
   return [
     "You are WearWise, a personal outfit styling assistant that helps users get dressed using the clothes they already own.",
     `Today's date is ${todayIsoDate}.`,
