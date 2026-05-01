@@ -73,11 +73,13 @@ export class GeminiClothingPresenceService {
       });
 
       const parsed = clothingPresenceSchema.parse(JSON.parse(response.text ?? ""));
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasClothing: parsed.hasClothing }));
 
       if (!parsed.hasClothing) {
+        console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, hasClothing: false, error: "clothing_not_detected" }));
         throw new ClothingPresenceRejectedError(parsed.reason);
       }
+
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasClothing: true }));
     } catch (error) {
       if (error instanceof ClothingPresenceRejectedError) {
         throw error;

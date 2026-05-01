@@ -83,7 +83,13 @@ export class GeminiExtractionService {
     }
 
     const raw = response.text ?? "";
-    const result = closetItemExtractionSchema.parse(JSON.parse(raw));
+    let result;
+    try {
+      result = closetItemExtractionSchema.parse(JSON.parse(raw));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
     console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }

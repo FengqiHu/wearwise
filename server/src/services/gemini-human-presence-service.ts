@@ -77,11 +77,13 @@ export class GeminiHumanPresenceService {
 
       responseText = response.text ?? "";
       const parsed = humanPresenceSchema.parse(JSON.parse(responseText));
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasRealHuman: parsed.hasRealHuman }));
 
       if (!parsed.hasRealHuman) {
+        console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, hasRealHuman: false, error: "human_not_detected" }));
         throw new HumanPresenceRejectedError(parsed.reason);
       }
+
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasRealHuman: true }));
     } catch (error) {
       if (error instanceof HumanPresenceRejectedError) {
         throw error;

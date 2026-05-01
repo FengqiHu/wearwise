@@ -252,10 +252,17 @@ export class GeminiRecommendationService {
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("Gemini returned an empty shop recommendation response.");
     }
 
-    const result = shopOutfitsSchema.parse(JSON.parse(raw));
+    let result;
+    try {
+      result = shopOutfitsSchema.parse(JSON.parse(raw));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
     console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
@@ -285,10 +292,17 @@ export class GeminiRecommendationService {
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("Gemini returned an empty recommendation response.");
     }
 
-    const result = recommendationSchema.parse(JSON.parse(raw));
+    let result;
+    try {
+      result = recommendationSchema.parse(JSON.parse(raw));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
     console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
