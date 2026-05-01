@@ -237,7 +237,7 @@ Identity preserved (face and body shape matched reference). Both sweater and jea
 - [ ] No identity swap or fictional face introduced
 
 **Actual result** *(tested 2026-04-28, evaluator: ZeliMa776)*
-Face fidelity noticeably improved compared to Case TRY-01 (headshot-only run). Hair and skin tone consistent. Blazer and chinos correctly rendered. No fictional identity introduced.
+Face fidelity noticeably improved compared to Case TRY-01 (no-headshot run). Hair and skin tone consistent. Blazer and chinos correctly rendered. No fictional identity introduced.
 
 **Verdict: PASS**
 
