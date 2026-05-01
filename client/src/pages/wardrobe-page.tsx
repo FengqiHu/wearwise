@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ImageModal } from "../components/image-modal";
 import { Badge } from "../components/ui/badge";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -54,6 +55,7 @@ export function WardrobePage() {
   const [tryOnImageUrl, setTryOnImageUrl] = useState<string | null>(null);
   const [isGeneratingTryOn, setIsGeneratingTryOn] = useState(false);
   const [tryOnError, setTryOnError] = useState<string | null>(null);
+  const [modalImage, setModalImage] = useState<{ src: string; alt: string } | null>(null);
 
   // ── Selection mode helpers ──────────────────────────────────────────────
 
@@ -535,7 +537,10 @@ export function WardrobePage() {
             ) : null}
 
             {tryOnImageUrl ? (
-              <div className="overflow-hidden rounded-xl border border-pebble">
+              <div
+                className="overflow-hidden rounded-xl border border-pebble cursor-zoom-in"
+                onClick={() => { setModalImage({ src: tryOnImageUrl, alt: "Virtual try-on result" }); }}
+              >
                 <img
                   src={tryOnImageUrl}
                   alt="Virtual try-on result"
@@ -545,6 +550,13 @@ export function WardrobePage() {
             ) : null}
           </div>
         </Card>
+      ) : null}
+      {modalImage ? (
+        <ImageModal
+          src={modalImage.src}
+          alt={modalImage.alt}
+          onClose={() => { setModalImage(null); }}
+        />
       ) : null}
     </section>
   );
