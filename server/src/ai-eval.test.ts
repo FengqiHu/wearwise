@@ -14,13 +14,14 @@
  *   - Shop recommendation      → buildShopOutfitsPrompt (gemini-recommendation-service.ts)
  */
 
-import { describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { buildWardrobeSystemMessage } from "./routes/chat-routes.js";
 import { buildDeveloperInstructions } from "./services/chat-service.js";
 import {
   buildStyleSummaryPrompt,
   buildRecommendationPrompt,
   buildShopOutfitsPrompt,
+  GeminiRecommendationService,
   type VotedOutfit,
   type RecommendOutfitInput,
   type RecommendationItemContext,
@@ -636,5 +637,68 @@ describe("AI Eval — Shop Recommendation Prompt (Gemini)", () => {
   it("instructs the model to include a styleNote per outfit", () => {
     const prompt = buildShopOutfitsPrompt(makeShopInput());
     expect(prompt).toContain("styleNote");
+  });
+});
+
+// ---------------------------------------------------------------------------
+// GeminiRecommendationService — structured logging behavior
+// ---------------------------------------------------------------------------
+
+describe("GeminiRecommendationService logging", () => {
+  let consoleSpy: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    consoleSpy.mockRestore();
+  });
+
+  it("emits ok:true log after summarizeStyle succeeds", async () => {
+    const fakeAi = {
+      models: {
+        generateContent: vi.fn().mockResolvedValue({ text: "I prefer casual styles." })
+      }
+    };
+    const service = new GeminiRecommendationService({ apiKey: "test-key" });
+    (service as unknown as { ai: typeof fakeAi }).ai = fakeAi;
+
+    await service.summarizeStyle([{
+      outfitName: "Casual Look",
+      items: [{ id: "item-1", name: "Blue Shirt", category: "tops", tags: ["blue"] }],
+      vote: "up",
+      updatedAt: new Date().toISOString()
+    }]);
+
+    const logged = consoleSpy.mock.calls.map((args: unknown[]) => JSON.parse(args[0] as string) as Record<string, unknown>);
+    const successLog = logged.find((l: Record<string, unknown>) => l["op"] === "summarizeStyle" && l["ok"] === true);
+    expect(successLog).toBeDefined();
+    expect(successLog).toMatchObject({ service: "gemini", op: "summarizeStyle", ok: true });
+    expect(typeof successLog!["latencyMs"]).toBe("number");
+    expect(typeof successLog!["traceId"]).toBe("string");
+  });
+
+  it("emits ok:false log when the Gemini API throws during summarizeStyle", async () => {
+    const fakeAi = {
+      models: {
+        generateContent: vi.fn().mockRejectedValue(new Error("API unavailable"))
+      }
+    };
+    const service = new GeminiRecommendationService({ apiKey: "test-key" });
+    (service as unknown as { ai: typeof fakeAi }).ai = fakeAi;
+
+    await expect(service.summarizeStyle([{
+      outfitName: "Casual Look",
+      items: [],
+      vote: "up",
+      updatedAt: new Date().toISOString()
+    }])).rejects.toThrow("API unavailable");
+
+    const logged = consoleSpy.mock.calls.map((args: unknown[]) => JSON.parse(args[0] as string) as Record<string, unknown>);
+    const failLog = logged.find((l: Record<string, unknown>) => l["op"] === "summarizeStyle" && l["ok"] === false);
+    expect(failLog).toBeDefined();
+    expect(failLog).toMatchObject({ service: "gemini", op: "summarizeStyle", ok: false });
+    expect(typeof failLog!["error"]).toBe("string");
   });
 });
