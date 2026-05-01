@@ -489,7 +489,11 @@ describe("createShopRoutes POST /shop/try-on", () => {
     expect(body.success).toBe(true);
     expect(typeof (body.result as Record<string, unknown>).imageUrl).toBe("string");
     expect(harness.spies.generateImage).toHaveBeenCalledOnce();
-    expect(harness.spies.saveGeneration).toHaveBeenCalledOnce();
+    expect(harness.spies.saveGeneration).toHaveBeenCalledWith(
+      "user-1",
+      expect.any(Array),
+      expect.stringContaining("https://")
+    );
   });
 
   it("returns 401 when not authenticated", async () => {
@@ -549,24 +553,7 @@ describe("createShopRoutes POST /shop/try-on", () => {
 
   it("returns 422 when user has no full-body photo", async () => {
     const harness = makeHarness({
-      userRecord: {
-        id: "user-1",
-        googleSub: "google-sub-1",
-        email: "test@example.com",
-        name: "Taylor",
-        picture: null,
-        profile: {
-          name: "Taylor",
-          heightCm: 170,
-          weightKg: 65,
-          styleNote: "",
-          avatarUrl: null,
-          fullBodyImageUrl: null,
-          headshotImageUrl: null
-        },
-        createdAt: "2026-01-01T00:00:00.000Z",
-        updatedAt: "2026-01-01T00:00:00.000Z"
-      }
+      userRecord: makeUserRecord({ profile: { name: "Taylor", heightCm: 170, weightKg: 65, styleNote: "", avatarUrl: null, fullBodyImageUrl: null, headshotImageUrl: null } })
     });
     const started = await startServer(harness.dependencies);
     server = started.server;
@@ -595,7 +582,10 @@ describe("createShopRoutes POST /shop/try-on", () => {
     expect(response.status).toBe(200);
     expect(harness.spies.generateImage).toHaveBeenCalledWith(
       expect.objectContaining({
-        clothingImageUrls: expect.arrayContaining(["https://cdn.example.com/user-1/online-items/product.png"])
+        clothingImageUrls: expect.arrayContaining([
+          "https://cdn.example.com/user-1/online-items/product.png",
+          "https://cdn.example.com/closet/pants-1.jpg"
+        ])
       })
     );
   });
