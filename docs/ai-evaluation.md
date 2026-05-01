@@ -4,7 +4,7 @@ This document records manual evaluations of WearWise's AI components against gol
 
 **Evaluation approach:** Manual testing against the production deployment. Each case is run by a team member who records what the AI actually produced and whether it meets the acceptance criteria.
 
-**Coverage:** Five AI components are evaluated:
+**Coverage:** This document covers the five recommendation and generation AI components. Upload-path AI services (clothing extraction, clothing-presence validation, and human-presence validation) are not included here; their output quality is evaluated separately via integration tests and manual upload testing.
 
 | Component | Service | Model |
 |---|---|---|
