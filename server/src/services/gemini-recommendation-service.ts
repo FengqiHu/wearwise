@@ -245,7 +245,6 @@ export class GeminiRecommendationService {
           responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
         }
       });
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
@@ -256,7 +255,9 @@ export class GeminiRecommendationService {
       throw new Error("Gemini returned an empty shop recommendation response.");
     }
 
-    return shopOutfitsSchema.parse(JSON.parse(raw));
+    const result = shopOutfitsSchema.parse(JSON.parse(raw));
+    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    return result;
   }
 
   async recommendOutfit(input: RecommendOutfitInput): Promise<RecommendOutfitResult> {
@@ -277,7 +278,6 @@ export class GeminiRecommendationService {
           responseJsonSchema: z.toJSONSchema(recommendationSchema)
         }
       });
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
@@ -288,6 +288,8 @@ export class GeminiRecommendationService {
       throw new Error("Gemini returned an empty recommendation response.");
     }
 
-    return recommendationSchema.parse(JSON.parse(raw));
+    const result = recommendationSchema.parse(JSON.parse(raw));
+    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    return result;
   }
 }

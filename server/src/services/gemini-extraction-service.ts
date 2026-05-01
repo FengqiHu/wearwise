@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
@@ -57,23 +58,33 @@ export class GeminiExtractionService {
     const imageBuffer = await imageResponse.arrayBuffer();
     const base64Data = Buffer.from(imageBuffer).toString("base64");
 
-    const response = await this.ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          parts: [
-            { inlineData: { data: base64Data, mimeType } },
-            { text: EXTRACTION_PROMPT }
-          ]
-        }
-      ],
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: z.toJSONSchema(closetItemExtractionSchema),
-      },
-    });
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
+    let response;
+    try {
+      response = await this.ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [
+          {
+            parts: [
+              { inlineData: { data: base64Data, mimeType } },
+              { text: EXTRACTION_PROMPT }
+            ]
+          }
+        ],
+        config: {
+          responseMimeType: "application/json",
+          responseJsonSchema: z.toJSONSchema(closetItemExtractionSchema),
+        },
+      });
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
 
     const raw = response.text ?? "";
-    return closetItemExtractionSchema.parse(JSON.parse(raw));
+    const result = closetItemExtractionSchema.parse(JSON.parse(raw));
+    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    return result;
   }
 }

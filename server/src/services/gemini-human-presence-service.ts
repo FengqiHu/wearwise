@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
@@ -53,6 +54,8 @@ export class GeminiHumanPresenceService {
       throw new HumanPresenceUnavailableError();
     }
 
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
     let responseText = "";
 
     try {
@@ -74,6 +77,7 @@ export class GeminiHumanPresenceService {
 
       responseText = response.text ?? "";
       const parsed = humanPresenceSchema.parse(JSON.parse(responseText));
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasRealHuman: parsed.hasRealHuman }));
 
       if (!parsed.hasRealHuman) {
         throw new HumanPresenceRejectedError(parsed.reason);
@@ -83,6 +87,7 @@ export class GeminiHumanPresenceService {
         throw error;
       }
 
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
       throw new HumanPresenceUnavailableError(undefined, error);
     }
   }

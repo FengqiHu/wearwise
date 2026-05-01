@@ -102,6 +102,7 @@ export class ImageGenerationService {
 
     const _traceId = crypto.randomUUID().slice(0, 8);
     const _t0 = Date.now();
+    const _imageCount = 1 + (headshotImage ? 1 : 0) + clothingImages.length;
     let response;
     try {
       response = await this.ai.models.generateContent({
@@ -112,23 +113,25 @@ export class ImageGenerationService {
           imageConfig: { aspectRatio }
         }
       });
-      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: clothingImages.length + 1, latencyMs: Date.now() - _t0, ok: true }));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
 
     const candidates = response.candidates ?? [];
     if (candidates.length === 0) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: "no candidates" }));
       throw new Error("Gemini returned no candidates.");
     }
 
     for (const part of candidates[0]?.content?.parts ?? []) {
       if (part.inlineData?.data) {
+        console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: true }));
         return Buffer.from(part.inlineData.data, "base64");
       }
     }
 
+    console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: "no image data in response" }));
     throw new Error("Gemini response contained no image data.");
   }
 }
