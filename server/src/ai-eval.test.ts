@@ -693,12 +693,37 @@ describe("GeminiRecommendationService logging", () => {
       items: [],
       vote: "up",
       updatedAt: new Date().toISOString()
-    }])).rejects.toThrow("API unavailable");
+    }])).rejects.toThrow("AI service is temporarily unavailable");
 
     const logged = consoleSpy.mock.calls.map((args: unknown[]) => JSON.parse(args[0] as string) as Record<string, unknown>);
     const failLog = logged.find((l: Record<string, unknown>) => l["op"] === "summarizeStyle" && l["ok"] === false);
     expect(failLog).toBeDefined();
     expect(failLog).toMatchObject({ service: "gemini", op: "summarizeStyle", ok: false });
     expect(typeof failLog!["error"]).toBe("string");
+  });
+
+  it("retries a transient Gemini recommendation failure once before succeeding", async () => {
+    const fakeAi = {
+      models: {
+        generateContent: vi.fn()
+          .mockRejectedValueOnce(new Error("429 rate limit"))
+          .mockResolvedValueOnce({ text: "I prefer relaxed casual layers." })
+      }
+    };
+    const service = new GeminiRecommendationService({
+      apiKey: "test-key",
+      reliability: { timeoutMs: 100, retryDelayMs: 0 }
+    });
+    (service as unknown as { ai: typeof fakeAi }).ai = fakeAi;
+
+    const result = await service.summarizeStyle([{
+      outfitName: "Casual Look",
+      items: [],
+      vote: "up",
+      updatedAt: new Date().toISOString()
+    }]);
+
+    expect(result).toBe("I prefer relaxed casual layers.");
+    expect(fakeAi.models.generateContent).toHaveBeenCalledTimes(2);
   });
 });

@@ -12,6 +12,8 @@ function makeFakeRunner() {
   };
 }
 
+let nextRunner: ReturnType<typeof makeFakeRunner> | null = null;
+
 let capturedTools: Array<{
   function: {
     name: string;
@@ -30,7 +32,9 @@ vi.mock("openai", () => ({
           capturedTools = params.tools as typeof capturedTools;
           const devMsg = params.messages.find((m) => m.role === "developer");
           capturedDeveloperContent = devMsg?.content ?? "";
-          return makeFakeRunner();
+          const runner = nextRunner ?? makeFakeRunner();
+          nextRunner = null;
+          return runner;
         })
       }
     };
@@ -75,6 +79,7 @@ async function runStreamChat(wardrobeItems: WardrobeItem[], onOutfit?: OnOutfit)
 describe("find_wardrobe_item tool (#325)", () => {
   beforeEach(async () => {
     capturedTools = [];
+    nextRunner = null;
     await runStreamChat(makeWardrobeItems());
   });
 
@@ -122,6 +127,7 @@ describe("submit_outfit ID validation (#325)", () => {
 
   beforeEach(async () => {
     capturedTools = [];
+    nextRunner = null;
     onOutfit.mockReset();
     await runStreamChat(makeWardrobeItems(), onOutfit);
   });
@@ -203,6 +209,7 @@ describe("submit_outfit category uniqueness validation (#325)", () => {
 
   beforeEach(async () => {
     capturedTools = [];
+    nextRunner = null;
     onOutfit.mockReset();
     await runStreamChat([
       { id: "shoe-1", name: "Timberland Boots", category: "shoes" },
@@ -268,5 +275,25 @@ describe("submit_outfit category uniqueness validation (#325)", () => {
 
     expect(result).toEqual({ ok: true, submitted: "Valid Outfit" });
     expect(onOutfit).toHaveBeenCalledOnce();
+  });
+});
+
+describe("streamChat reliability (#356)", () => {
+  it("fails with a friendly AI service error when the OpenAI stream times out", async () => {
+    nextRunner = {
+      on: vi.fn(),
+      done: vi.fn(() => new Promise<void>(() => {})),
+      messages: []
+    };
+    const service = new ChatService(
+      "test-api-key",
+      new OpenWeatherService(""),
+      { timeoutMs: 1 }
+    );
+
+    await expect(service.streamChat({
+      messages: [{ role: "user", content: "Suggest an outfit." }],
+      onChunk: vi.fn()
+    })).rejects.toThrow("AI service is temporarily unavailable");
   });
 });

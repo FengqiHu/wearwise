@@ -5,6 +5,7 @@ import type { AccessoryMode, ChatRole } from "../types/domain.js";
 import { CurrentTimeService } from "./current-time-service.js";
 import { OpenWeatherService, type OpenWeatherToolResult } from "./openweather-service.js";
 import { UserLocationService, type BrowserLocation } from "./user-location-service.js";
+import { type AiReliabilityOptions, DEFAULT_AI_RELIABILITY_OPTIONS, withTimeout } from "./ai-reliability.js";
 
 interface ModelInputMessage {
   role: ChatRole | "system";
@@ -309,12 +310,14 @@ export class ChatService {
   private readonly openWeatherService: OpenWeatherService;
   private readonly currentTimeService: CurrentTimeService;
   private readonly userLocationService: UserLocationService;
+  private readonly reliability: AiReliabilityOptions;
 
-  constructor(apiKey: string, openWeatherService: OpenWeatherService) {
+  constructor(apiKey: string, openWeatherService: OpenWeatherService, reliability: AiReliabilityOptions = {}) {
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
     this.openWeatherService = openWeatherService;
     this.currentTimeService = new CurrentTimeService();
     this.userLocationService = new UserLocationService(openWeatherService);
+    this.reliability = reliability;
   }
 
   isConfigured(): boolean {
@@ -653,7 +656,10 @@ export class ChatService {
     });
 
     try {
-      await runner.done();
+      const timeoutMs = this.reliability.timeoutMs ?? DEFAULT_AI_RELIABILITY_OPTIONS.timeoutMs;
+      // Do not retry active streams: chunks and submit_outfit tool events may already
+      // have been emitted, so replaying the request could duplicate user-visible output.
+      await withTimeout(runner.done(), timeoutMs, "OpenAI streamChat");
       console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, responseChars: assistantText.length, latencyMs: Date.now() - _aiT0, ok: true }));
     } catch (err) {
       console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, latencyMs: Date.now() - _aiT0, ok: false, error: String(err) }));

@@ -4,6 +4,7 @@ import type { GenerationRepository } from "../repositories/generation-repository
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import { AI_SERVICE_UNAVAILABLE_MESSAGE, AiServiceUnavailableError } from "../services/ai-reliability.js";
 import type { ImageGenerationService } from "../services/image-generation-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
 import type { GenerateOutfitRequest, GenerateOutfitResponse } from "../types/domain.js";
@@ -180,10 +181,12 @@ export function createGenerationRoutes({
       } satisfies GenerateOutfitResponse);
     } catch (error) {
       console.error("Outfit generation error:", error);
-      res.status(500).json({
+      res.status(error instanceof AiServiceUnavailableError ? 503 : 500).json({
         success: false,
         result: null,
-        message: "Failed to generate outfit image."
+        message: error instanceof AiServiceUnavailableError
+          ? AI_SERVICE_UNAVAILABLE_MESSAGE
+          : "Failed to generate outfit image."
       } satisfies GenerateOutfitResponse);
     }
   });

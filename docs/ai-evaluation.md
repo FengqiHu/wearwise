@@ -6,6 +6,8 @@ This document records manual evaluations of WearWise's AI components against gol
 
 **Coverage:** This document covers the five recommendation and generation AI components. Upload-path AI services (clothing extraction, clothing-presence validation, and human-presence validation) are not included here; their output quality is evaluated separately via integration tests and manual upload testing.
 
+**AI failure policy:** Core recommendation and generation model calls use a 3 minute timeout and one retry for transient upstream failures such as timeouts, rate limits, quota/unavailable errors, and 5xx-like provider errors. If the retry still fails, backend routes return the safe user-facing message: "AI service is temporarily unavailable. Please try again later." Active OpenAI chat streams are timed out but not automatically retried because chunks or outfit cards may already have been emitted, and replaying the request could duplicate user-visible output.
+
 | Component | Service | Model |
 |---|---|---|
 | Outfit recommendation agent | `chat-service.ts → streamChat()` | GPT (OpenAI) |
