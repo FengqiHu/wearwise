@@ -1560,3 +1560,61 @@ describe("createChatRoutes POST /chat – fake streaming and filtering (#327)", 
   });
 
 });
+
+describe("createChatRoutes POST /chat – route-level timezone extraction and priority (#339)", () => {
+  let server: Server | null = null;
+
+  afterEach(async () => {
+    if (server) {
+      await stopServer(server);
+      server = null;
+    }
+  });
+
+  it("prefers userLocation.timezone over top-level timezone when both are present", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, {
+      message: "Suggest an outfit.",
+      timezone: "Asia/Tokyo",
+      userLocation: { lat: 40.7128, lon: -74.006, timezone: "America/New_York" }
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain('get_current_time with timezone "America/New_York"');
+    expect(systemMessage).not.toContain("Asia/Tokyo");
+    expect(systemMessage).toContain("Location is available");
+  });
+
+  it("uses location-unavailable branch and passes top-level timezone to Step 2 when userLocation is absent", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, {
+      message: "Suggest an outfit.",
+      timezone: "Asia/Tokyo"
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Location is not available from the browser");
+    expect(systemMessage).toContain('get_current_time with timezone "Asia/Tokyo"');
+  });
+
+  it("uses location-available branch and userLocation.timezone when only userLocation is provided", async () => {
+    const harness = makeRouteHarness();
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, {
+      message: "Suggest an outfit.",
+      userLocation: { lat: 35.6762, lon: 139.6503, timezone: "Asia/Tokyo" }
+    });
+
+    const systemMessage = harness.getCapturedStreamInput()?.messages[0]?.content ?? "";
+    expect(systemMessage).toContain("Location is available");
+    expect(systemMessage).toContain('get_current_time with timezone "Asia/Tokyo"');
+  });
+});
