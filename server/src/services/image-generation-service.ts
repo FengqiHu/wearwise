@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 
 const GENERATION_MODEL = "gemini-3.1-flash-image-preview";
@@ -99,14 +100,23 @@ export class ImageGenerationService {
       }))
     ];
 
-    const response = await this.ai.models.generateContent({
-      model: GENERATION_MODEL,
-      contents: [{ parts }],
-      config: {
-        responseModalities: ["TEXT", "IMAGE"],
-        imageConfig: { aspectRatio }
-      }
-    });
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
+    let response;
+    try {
+      response = await this.ai.models.generateContent({
+        model: GENERATION_MODEL,
+        contents: [{ parts }],
+        config: {
+          responseModalities: ["TEXT", "IMAGE"],
+          imageConfig: { aspectRatio }
+        }
+      });
+      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: clothingImages.length + 1, latencyMs: Date.now() - _t0, ok: true }));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
 
     const candidates = response.candidates ?? [];
     if (candidates.length === 0) {

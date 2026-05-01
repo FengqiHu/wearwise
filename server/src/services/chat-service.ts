@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import OpenAI from "openai";
 import { z } from "zod";
 import type { AccessoryMode, ChatRole } from "../types/domain.js";
@@ -385,6 +386,9 @@ export class ChatService {
     const accessoryModeContext = input.accessoryModeContext;
 
     let assistantText = "";
+    const _aiTraceId = crypto.randomUUID().slice(0, 8);
+    const _aiT0 = Date.now();
+    const _aiPromptChars = nonEmptyMessages.reduce((n, m) => n + m.content.length, 0);
     const runner = this.client.chat.completions.runTools(
       {
         model: CHAT_MODEL,
@@ -648,7 +652,13 @@ export class ChatService {
       input.onChunk(content);
     });
 
-    await runner.done();
+    try {
+      await runner.done();
+      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, responseChars: assistantText.length, latencyMs: Date.now() - _aiT0, ok: true }));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, latencyMs: Date.now() - _aiT0, ok: false, error: String(err) }));
+      throw err;
+    }
 
     return {
       assistantText,
