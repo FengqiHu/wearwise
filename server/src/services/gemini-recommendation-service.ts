@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { RecommendationItem, RecommendationVote } from "../types/domain.js";
@@ -206,11 +207,19 @@ export class GeminiRecommendationService {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
     const prompt = buildStyleSummaryPrompt(votedOutfits);
-    // console.log("[summarizeStyle] prompt sent to Gemini:\n", prompt);
-    const response = await this.ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ parts: [{ text: prompt }] }]
-    });
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
+    let response;
+    try {
+      response = await this.ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [{ parts: [{ text: prompt }] }]
+      });
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "summarizeStyle", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "summarizeStyle", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
     return (response.text ?? "").trim();
   }
 
@@ -224,21 +233,38 @@ export class GeminiRecommendationService {
 
     const prompt = buildShopOutfitsPrompt(input);
 
-    const response = await this.ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [{ parts: [{ text: prompt }] }],
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
-      }
-    });
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
+    let response;
+    try {
+      response = await this.ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
+        }
+      });
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("Gemini returned an empty shop recommendation response.");
     }
 
-    return shopOutfitsSchema.parse(JSON.parse(raw));
+    let result;
+    try {
+      result = shopOutfitsSchema.parse(JSON.parse(raw));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
+    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    return result;
   }
 
   async recommendOutfit(input: RecommendOutfitInput): Promise<RecommendOutfitResult> {
@@ -246,24 +272,38 @@ export class GeminiRecommendationService {
       throw new Error("GEMINI_API_KEY is not configured on server.");
     }
 
-    const response = await this.ai.models.generateContent({
-      model: GEMINI_MODEL,
-      contents: [
-        {
-          parts: [{ text: buildRecommendationPrompt(input) }]
+    const _prompt = buildRecommendationPrompt(input);
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
+    let response;
+    try {
+      response = await this.ai.models.generateContent({
+        model: GEMINI_MODEL,
+        contents: [{ parts: [{ text: _prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          responseJsonSchema: z.toJSONSchema(recommendationSchema)
         }
-      ],
-      config: {
-        responseMimeType: "application/json",
-        responseJsonSchema: z.toJSONSchema(recommendationSchema)
-      }
-    });
+      });
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("Gemini returned an empty recommendation response.");
     }
 
-    return recommendationSchema.parse(JSON.parse(raw));
+    let result;
+    try {
+      result = recommendationSchema.parse(JSON.parse(raw));
+    } catch (err) {
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      throw err;
+    }
+    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    return result;
   }
 }

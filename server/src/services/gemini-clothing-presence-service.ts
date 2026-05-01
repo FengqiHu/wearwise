@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 
@@ -52,6 +53,8 @@ export class GeminiClothingPresenceService {
       throw new ClothingPresenceUnavailableError();
     }
 
+    const _traceId = crypto.randomUUID().slice(0, 8);
+    const _t0 = Date.now();
     try {
       const response = await this.ai.models.generateContent({
         model: GEMINI_MODEL,
@@ -72,13 +75,17 @@ export class GeminiClothingPresenceService {
       const parsed = clothingPresenceSchema.parse(JSON.parse(response.text ?? ""));
 
       if (!parsed.hasClothing) {
+        console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, hasClothing: false, error: "clothing_not_detected" }));
         throw new ClothingPresenceRejectedError(parsed.reason);
       }
+
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasClothing: true }));
     } catch (error) {
       if (error instanceof ClothingPresenceRejectedError) {
         throw error;
       }
 
+      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertClothingPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
       throw new ClothingPresenceUnavailableError(undefined, error);
     }
   }
