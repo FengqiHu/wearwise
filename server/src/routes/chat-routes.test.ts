@@ -1563,6 +1563,28 @@ describe("filterAssistantText – add-accessories tail trim (#360)", () => {
       "Done — I added a necklace to the second outfit. " + ANCHOR
     );
   });
+
+  it("trims a trailing leak when the future-recommendations clause is at the end of the question", () => {
+    const variantQuestion =
+      "Would you like me to (a) let you decide, or (b) always include accessories for future recommendations?";
+    const reply =
+      "Nice — I added accessories to the second outfit. " +
+      variantQuestion +
+      "I couldn't access your location from the browser.";
+    expect(filterAssistantText(reply)).toBe(
+      "Nice — I added accessories to the second outfit. " + variantQuestion
+    );
+  });
+
+  it("matches the question regardless of leading capitalization", () => {
+    const lowercaseQuestion =
+      "would you like me to (a) let you decide, or (b) always include accessories?";
+    const reply =
+      "Done — accessories added. " +
+      lowercaseQuestion +
+      " We need to answer the user's last message...";
+    expect(filterAssistantText(reply)).toBe("Done — accessories added. " + lowercaseQuestion);
+  });
 });
 
 describe("createChatRoutes POST /chat – fake streaming and filtering (#327)", () => {

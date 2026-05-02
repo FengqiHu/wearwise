@@ -21,19 +21,21 @@ interface ChatRoutesDependencies {
 
 const LEADING_TIMESTAMP_RE = /^\[\d{4}-\d{2}-\d{2}T[\d:.Z]+\]\s*/;
 
-// The model is instructed to end its add-accessories reply with this exact
-// question. gpt-5-mini occasionally appends chain-of-thought or fabricated
-// tool-error text after it; anything past this anchor is unintended output.
-const ADD_ACCESSORIES_TAIL_ANCHOR =
-  "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?";
+// The model is instructed to end its add-accessories reply with the future-mode
+// question. It paraphrases the wording (e.g. moving "for future recommendations"
+// from the start to the end of the sentence), so the anchor matches on the
+// (a)/(b) option structure and trims at the next question mark — anything past
+// that point is unintended chain-of-thought or fabricated tool-error output.
+const ADD_ACCESSORIES_TAIL_ANCHOR_RE =
+  /would you like me to \(a\) let you decide, or \(b\) always include accessories[^?]*\?/i;
 
 export function filterAssistantText(text: string): string {
   const stripped = text.replace(LEADING_TIMESTAMP_RE, "").trimStart();
-  const anchorIndex = stripped.indexOf(ADD_ACCESSORIES_TAIL_ANCHOR);
-  if (anchorIndex === -1) {
+  const match = ADD_ACCESSORIES_TAIL_ANCHOR_RE.exec(stripped);
+  if (!match) {
     return stripped;
   }
-  return stripped.slice(0, anchorIndex + ADD_ACCESSORIES_TAIL_ANCHOR.length).trimEnd();
+  return stripped.slice(0, match.index + match[0].length).trimEnd();
 }
 
 function buildAccessoryModeSection(
