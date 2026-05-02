@@ -8,6 +8,7 @@ import type { GenerationRepository } from "../repositories/generation-repository
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import { AiServiceUnavailableError } from "../services/ai-reliability.js";
 import type { ImageGenerationService } from "../services/image-generation-service.js";
 import type { R2StorageService } from "../services/r2-storage-service.js";
 import { createGenerationRoutes } from "./generation-routes.js";
@@ -305,6 +306,24 @@ describe("createGenerationRoutes POST /generate/outfit – recommendationId flow
     const body = await res.json() as { success: boolean; result: { imageUrl: string; generatedAt: string } };
     expect(body.success).toBe(true);
     expect(body.result.imageUrl).toBe("https://cdn.example.com/out.png");
+  });
+
+  it("returns a structured 503 response when the AI image service is temporarily unavailable", async () => {
+    const harness = makeHarness();
+    harness.spies.generateImage.mockRejectedValue(new AiServiceUnavailableError());
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const res = await postGenerate(started.baseUrl, { recommendationId: "rec-1" });
+
+    expect(res.status).toBe(503);
+    const body = await res.json() as { success: boolean; result: null; message: string };
+    expect(body).toEqual({
+      success: false,
+      result: null,
+      message: "AI service is temporarily unavailable. Please try again later."
+    });
+    expect(harness.spies.uploadBuffer).not.toHaveBeenCalled();
   });
 
   it("updates recommendation.generation in place after successful generation", async () => {

@@ -5,6 +5,7 @@ import type { GenerationRepository } from "../repositories/generation-repository
 import type { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import type { UserRepository } from "../repositories/user-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import { AI_SERVICE_UNAVAILABLE_MESSAGE, AiServiceUnavailableError } from "../services/ai-reliability.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import {
   OUTFIT_CATEGORIES,
@@ -295,6 +296,11 @@ export function createShopRoutes({
         res.status(503).json({ error: error.message });
         return;
       }
+      if (error instanceof AiServiceUnavailableError) {
+        console.error("Shop recommendation AI service unavailable.", error.cause);
+        res.status(503).json({ error: AI_SERVICE_UNAVAILABLE_MESSAGE });
+        return;
+      }
       console.error("Shop recommend error:", error);
       res.status(500).json({ error: "Failed to generate shop recommendations." });
     }
@@ -451,10 +457,12 @@ export function createShopRoutes({
       } satisfies GenerateOutfitResponse);
     } catch (error) {
       console.error("Shop try-on error:", error);
-      res.status(500).json({
+      res.status(error instanceof AiServiceUnavailableError ? 503 : 500).json({
         success: false,
         result: null,
-        message: "Failed to generate try-on image."
+        message: error instanceof AiServiceUnavailableError
+          ? AI_SERVICE_UNAVAILABLE_MESSAGE
+          : "Failed to generate try-on image."
       } satisfies GenerateOutfitResponse);
     }
   });

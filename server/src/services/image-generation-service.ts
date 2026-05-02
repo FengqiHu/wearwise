@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
+import { type AiReliabilityOptions, withAiReliability } from "./ai-reliability.js";
 
 const GENERATION_MODEL = "gemini-3.1-flash-image-preview";
 
@@ -40,13 +41,16 @@ export function buildMainPrompt(params: {
 
 interface ImageGenerationServiceOptions {
   apiKey: string;
+  reliability?: AiReliabilityOptions;
 }
 
 export class ImageGenerationService {
   private readonly ai: GoogleGenAI | null;
+  private readonly reliability: AiReliabilityOptions;
 
   constructor(options: ImageGenerationServiceOptions) {
     this.ai = options.apiKey ? new GoogleGenAI({ apiKey: options.apiKey }) : null;
+    this.reliability = options.reliability ?? {};
   }
 
   isConfigured(): boolean {
@@ -54,10 +58,17 @@ export class ImageGenerationService {
   }
 
   private async fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string }> {
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch image from ${url}: HTTP ${response.status}.`);
-    }
+    const response = await withAiReliability(
+      "Fetch try-on reference image",
+      async () => {
+        const fetched = await fetch(url);
+        if (!fetched.ok) {
+          throw new Error(`Failed to fetch image from ${url}: HTTP ${fetched.status}.`);
+        }
+        return fetched;
+      },
+      this.reliability
+    );
     const contentType = response.headers.get("content-type") ?? "image/jpeg";
     const mimeType = (contentType.split(";")[0] ?? "image/jpeg").trim();
     const buffer = await response.arrayBuffer();
@@ -105,14 +116,18 @@ export class ImageGenerationService {
     const _imageCount = 1 + (headshotImage ? 1 : 0) + clothingImages.length;
     let response;
     try {
-      response = await this.ai.models.generateContent({
-        model: GENERATION_MODEL,
-        contents: [{ parts }],
-        config: {
-          responseModalities: ["TEXT", "IMAGE"],
-          imageConfig: { aspectRatio }
-        }
-      });
+      response = await withAiReliability(
+        "Gemini generateTryOn",
+        () => this.ai!.models.generateContent({
+          model: GENERATION_MODEL,
+          contents: [{ parts }],
+          config: {
+            responseModalities: ["TEXT", "IMAGE"],
+            imageConfig: { aspectRatio }
+          }
+        }),
+        this.reliability
+      );
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;

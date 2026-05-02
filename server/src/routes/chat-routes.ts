@@ -5,6 +5,7 @@ import { ConversationRepository } from "../repositories/conversation-repository.
 import { RecommendationRepository } from "../repositories/recommendation-repository.js";
 import { UserRepository } from "../repositories/user-repository.js";
 import { AuthService } from "../services/auth-service.js";
+import { AI_SERVICE_UNAVAILABLE_MESSAGE } from "../services/ai-reliability.js";
 import type { AccessoryMode, ChatRequest, ClosetItemRecord, PendingConfirmation, UserProfile } from "../types/domain.js";
 import { ChatService } from "../services/chat-service.js";
 import type { AccessoryModeContext, AddBackResult, PrefetchedContext, SubmitOutfitArgs } from "../services/chat-service.js";
@@ -578,7 +579,9 @@ export function createChatRoutes({ authService, chatService, conversationReposit
       } catch (error) {
         if (!abortController.signal.aborted) {
           console.error("Chat stream error:", error);
-          writeChunk("\n\nUnable to reach the AI service right now. Please try again.");
+          const fallbackText = AI_SERVICE_UNAVAILABLE_MESSAGE;
+          assistantText = fallbackText;
+          writeChunk(`\n\n${fallbackText}`);
         }
       } finally {
         // cleanup the event listener to prevent memory leak

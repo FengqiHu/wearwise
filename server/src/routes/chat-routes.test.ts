@@ -377,6 +377,41 @@ describe("createChatRoutes POST /chat", () => {
     expect(systemMessage).toContain("Only use items from the wardrobe list above, with their exact IDs");
   });
 
+  it("streams a friendly fallback message when chat AI service fails", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.streamChat.mockRejectedValue(new Error("429 rate limit"));
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit."
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(body).toContain("AI service is temporarily unavailable. Please try again later.");
+    expect(body).not.toContain("429 rate limit");
+  });
+
+  it("persists the fallback message when chat AI service fails", async () => {
+    const harness = makeRouteHarness();
+    harness.spies.streamChat.mockRejectedValue(new Error("OpenAI timeout"));
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    const response = await postChat(started.baseUrl, {
+      message: "Build me an outfit."
+    });
+    await response.text();
+
+    expect(harness.spies.appendMessage).toHaveBeenCalledWith(
+      "user-1",
+      "conversation-1",
+      "assistant",
+      "AI service is temporarily unavailable. Please try again later."
+    );
+  });
+
 });
 
 describe("createChatRoutes POST /chat – submit_outfit tool behavior", () => {

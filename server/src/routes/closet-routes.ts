@@ -1,6 +1,7 @@
 import express, { type Request, type Response, Router } from "express";
 import type { ClosetRepository } from "../repositories/closet-repository.js";
 import type { AuthService } from "../services/auth-service.js";
+import { AI_SERVICE_UNAVAILABLE_MESSAGE, AiServiceUnavailableError } from "../services/ai-reliability.js";
 import type { GeminiExtractionService } from "../services/gemini-extraction-service.js";
 import {
   OUTFIT_CATEGORIES,
@@ -732,7 +733,11 @@ export function createClosetRoutes({
       res.json({ outfit, styleNote } satisfies RecommendOutfitResponse);
     } catch (error) {
       console.error("Closet recommendation error:", error);
-      res.status(500).json({ error: "Failed to generate outfit recommendation." });
+      res.status(error instanceof AiServiceUnavailableError ? 503 : 500).json({
+        error: error instanceof AiServiceUnavailableError
+          ? AI_SERVICE_UNAVAILABLE_MESSAGE
+          : "Failed to generate outfit recommendation."
+      });
     }
   });
 

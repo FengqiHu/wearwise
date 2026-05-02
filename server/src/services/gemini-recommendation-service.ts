@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { GoogleGenAI } from "@google/genai";
 import { z } from "zod";
 import type { RecommendationItem, RecommendationVote } from "../types/domain.js";
+import { type AiReliabilityOptions, withAiReliability } from "./ai-reliability.js";
 
 const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
@@ -79,6 +80,7 @@ export interface RecommendOutfitInput {
 
 interface GeminiRecommendationServiceOptions {
   apiKey: string;
+  reliability?: AiReliabilityOptions;
 }
 
 export function buildRecommendationPrompt(input: RecommendOutfitInput): string {
@@ -193,9 +195,11 @@ export function buildShopOutfitsPrompt(input: {
 
 export class GeminiRecommendationService {
   private readonly ai: GoogleGenAI | null;
+  private readonly reliability: AiReliabilityOptions;
 
   constructor(options: GeminiRecommendationServiceOptions) {
     this.ai = options.apiKey ? new GoogleGenAI({ apiKey: options.apiKey }) : null;
+    this.reliability = options.reliability ?? {};
   }
 
   isConfigured(): boolean {
@@ -211,10 +215,14 @@ export class GeminiRecommendationService {
     const _t0 = Date.now();
     let response;
     try {
-      response = await this.ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ parts: [{ text: prompt }] }]
-      });
+      response = await withAiReliability(
+        "Gemini summarizeStyle",
+        () => this.ai!.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [{ parts: [{ text: prompt }] }]
+        }),
+        this.reliability
+      );
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "summarizeStyle", model: GEMINI_MODEL, promptChars: prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "summarizeStyle", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
@@ -237,14 +245,18 @@ export class GeminiRecommendationService {
     const _t0 = Date.now();
     let response;
     try {
-      response = await this.ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
-        }
-      });
+      response = await withAiReliability(
+        "Gemini recommendShopOutfits",
+        () => this.ai!.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [{ parts: [{ text: prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseJsonSchema: z.toJSONSchema(shopOutfitsSchema)
+          }
+        }),
+        this.reliability
+      );
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendShopOutfits", model: GEMINI_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
@@ -277,14 +289,18 @@ export class GeminiRecommendationService {
     const _t0 = Date.now();
     let response;
     try {
-      response = await this.ai.models.generateContent({
-        model: GEMINI_MODEL,
-        contents: [{ parts: [{ text: _prompt }] }],
-        config: {
-          responseMimeType: "application/json",
-          responseJsonSchema: z.toJSONSchema(recommendationSchema)
-        }
-      });
+      response = await withAiReliability(
+        "Gemini recommendOutfit",
+        () => this.ai!.models.generateContent({
+          model: GEMINI_MODEL,
+          contents: [{ parts: [{ text: _prompt }] }],
+          config: {
+            responseMimeType: "application/json",
+            responseJsonSchema: z.toJSONSchema(recommendationSchema)
+          }
+        }),
+        this.reliability
+      );
     } catch (err) {
       console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "recommendOutfit", model: GEMINI_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
