@@ -82,7 +82,7 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 - A JWT is generated on login and used for request validation on all API calls.
 - User accounts and sessions are managed through Google OAuth.
 - API keys are stored server-side and never exposed to the client.
-- Age verification and explicit consent gating are required before any face/body upload or try-on.
+- Uploaded face/body photos are screened for inappropriate content using Google Cloud Vision SafeSearch before being processed. Self-attested age verification was intentionally scoped out, since a checkbox cannot meaningfully verify a user's real age; content-based screening provides stronger and more verifiable protection.
 
 #### Privacy
 
