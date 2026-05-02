@@ -1519,6 +1519,52 @@ describe("filterAssistantText (#327)", () => {
   });
 });
 
+describe("filterAssistantText – add-accessories tail trim (#360)", () => {
+  const ANCHOR =
+    "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?";
+
+  it("trims a chain-of-thought block that follows the anchor", () => {
+    const reply =
+      "Done — I added a necklace to the second outfit and saved it. " +
+      ANCHOR +
+      "\nI'll call the process.\n\nWe need to answer the user's last message...";
+    expect(filterAssistantText(reply)).toBe(
+      "Done — I added a necklace to the second outfit and saved it. " + ANCHOR
+    );
+  });
+
+  it("trims a fabricated tool-failure narration that follows the anchor", () => {
+    const reply =
+      "Nice — I added the accessory to the second outfit. " +
+      ANCHOR +
+      "I couldn't retrieve your location — it looks like the browser denied permission.";
+    expect(filterAssistantText(reply)).toBe(
+      "Nice — I added the accessory to the second outfit. " + ANCHOR
+    );
+  });
+
+  it("leaves the reply unchanged when the anchor is present but nothing follows it", () => {
+    const reply = "Done — added accessories to the second outfit. " + ANCHOR;
+    expect(filterAssistantText(reply)).toBe(reply);
+  });
+
+  it("leaves the reply unchanged when the anchor is absent", () => {
+    const reply =
+      "Got it — I'll exclude accessories from future outfit recommendations. How can I help with getting dressed today?";
+    expect(filterAssistantText(reply)).toBe(reply);
+  });
+
+  it("strips a leading timestamp and trims a trailing leak in the same response", () => {
+    const reply =
+      "[2026-05-02T03:23:41Z] Done — I added a necklace to the second outfit. " +
+      ANCHOR +
+      "\nI'll call the process.";
+    expect(filterAssistantText(reply)).toBe(
+      "Done — I added a necklace to the second outfit. " + ANCHOR
+    );
+  });
+});
+
 describe("createChatRoutes POST /chat – fake streaming and filtering (#327)", () => {
   let server: Server | null = null;
 
@@ -1556,6 +1602,27 @@ describe("createChatRoutes POST /chat – fake streaming and filtering (#327)", 
       expect.any(String),
       "assistant",
       "Here are some outfit ideas."
+    );
+  });
+
+  it("saves the trimmed text to the database when a trailing reasoning leak follows the add-accessories anchor (#360)", async () => {
+    const anchor =
+      "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?";
+    const leakedReply =
+      "Done — I added a necklace to the second outfit. " +
+      anchor +
+      "\nI'll call the process.\n\nWe need to answer the user's last message...";
+    const harness = makeRouteHarness({ assistantReply: leakedReply });
+    const started = await startServer(harness.dependencies);
+    server = started.server;
+
+    await postChat(started.baseUrl, { message: "Add accessories to the second outfit." });
+
+    expect(harness.spies.appendMessage).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(String),
+      "assistant",
+      "Done — I added a necklace to the second outfit. " + anchor
     );
   });
 

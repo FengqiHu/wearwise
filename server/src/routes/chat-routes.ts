@@ -21,8 +21,19 @@ interface ChatRoutesDependencies {
 
 const LEADING_TIMESTAMP_RE = /^\[\d{4}-\d{2}-\d{2}T[\d:.Z]+\]\s*/;
 
+// The model is instructed to end its add-accessories reply with this exact
+// question. gpt-5-mini occasionally appends chain-of-thought or fabricated
+// tool-error text after it; anything past this anchor is unintended output.
+const ADD_ACCESSORIES_TAIL_ANCHOR =
+  "For future recommendations, would you like me to (a) let you decide, or (b) always include accessories?";
+
 export function filterAssistantText(text: string): string {
-  return text.replace(LEADING_TIMESTAMP_RE, "").trimStart();
+  const stripped = text.replace(LEADING_TIMESTAMP_RE, "").trimStart();
+  const anchorIndex = stripped.indexOf(ADD_ACCESSORIES_TAIL_ANCHOR);
+  if (anchorIndex === -1) {
+    return stripped;
+  }
+  return stripped.slice(0, anchorIndex + ADD_ACCESSORIES_TAIL_ANCHOR.length).trimEnd();
 }
 
 function buildAccessoryModeSection(
