@@ -16,8 +16,8 @@ People who want help organizing their wardrobe and making outfit decisions — p
 
 ### AI Component
 
-- **Gemini** handles outfit reasoning: it analyzes the user's cloud closet, interprets their natural language request, queries weather context via tool use, and selects three distinct outfit combinations.
-- **Nano Banana** generates virtual try-on images: given the user's full-body photo and selected clothing items, it composites a realistic image of the user wearing the outfit.
+- **OpenAI gpt-5-mini** handles chat reasoning: it interprets the user's natural language request, queries weather context via tool use, and orchestrates the outfit recommendation flow.
+- **Gemini** handles outfit logic and virtual try-on image generation: it analyzes the user's cloud closet, selects three distinct outfit combinations, writes style notes, and composites a realistic image of the user wearing each outfit.
 - **Google Cloud Vision SafeSearch** reviews uploaded images for explicit or offensive content before storage.
 
 ### Similar Existing Solutions
@@ -58,7 +58,6 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 
 - Users can select specific items from the cloud closet and request recommendations based only on those items.
 - The system recognizes and recommends accessories (jewelry, hats, bags).
-- The system automatically detects illegal and offensive content in uploaded images.
 
 #### Out of Scope (Won't Have)
 
@@ -88,7 +87,7 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 
 - Users have full control over their data, including the ability to delete uploaded content and their accounts.
 - Only data necessary for the cloud closet and recommendations is stored: account and login information, profile information (height, weight, face/body photos), cloud closet content (clothing images and extracted attributes), user feedback on outfits, and virtual try-on results.
-- Google Gemini API (paid tier) and Cloud Vision API do not use submitted content, including images, to train or improve their models (see Appendix).
+- OpenAI API, Google Gemini API (paid tier), and Cloud Vision API do not use submitted content, including images, to train or improve their models (see Appendix).
 
 #### Usability
 
@@ -106,7 +105,7 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 - **Auth:** Google OAuth 2.0
 - **Consent Review:** Google Cloud Vision – SafeSearch
 - **Weather API:** OpenWeather
-- **AI Services:** Gemini (reasoning and recommendations), Nano Banana (virtual try-on image generation)
+- **AI Services:** OpenAI gpt-5-mini (chat reasoning), Gemini (outfit logic, style notes, virtual try-on image generation)
 - **Deployment:** Firebase Hosting (frontend), Render (backend API and long-running image generation workers)
 - **Testing:** Vitest
 
@@ -169,7 +168,6 @@ WearWise differs by combining an existing wardrobe library, AI-driven recommenda
 
 **Nice-to-Have Features:**
 - Users can permanently delete their accounts
-- Automatic detection of illegal and offensive content in uploaded images
 
 ---
 
