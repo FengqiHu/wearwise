@@ -11,7 +11,7 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 * **Frontend**: TypeScript, React
 
-* **Backend**: TypeScript, Vercel
+* **Backend**: TypeScript, Express
 
 * **Database**: MongoDB
 
@@ -23,7 +23,7 @@ Additionally, when users want to buy new clothes, our agent can help them make d
 
 * **Weather API:** OpenWeather (weather query)
 
-* **AI Services:** Gemini (reasoning for recommendation), Nano Banana (image generation)
+* **AI Services:** OpenAI gpt-5-mini (chat reasoning), Gemini (outfit logic, style notes, virtual try-on image generation)
 
 * **Deployment:** Firebase Hosting (frontend), Render (backend)
 
