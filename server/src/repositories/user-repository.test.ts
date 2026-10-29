@@ -68,6 +68,18 @@ describe("UserRepository", () => {
   });
 
   describe("findById", () => {
+    it("retries initialization after a temporary database connection failure", async () => {
+      const repo = makeRepo();
+      mockClient.connect
+        .mockRejectedValueOnce(new Error("querySrv ENOTFOUND"))
+        .mockResolvedValueOnce(undefined);
+      mockCollection.findOne.mockResolvedValue(makeDoc());
+
+      await expect(repo.findById("user-1")).rejects.toThrow("querySrv ENOTFOUND");
+      await expect(repo.findById("user-1")).resolves.toMatchObject({ id: "user-1" });
+      expect(mockClient.connect).toHaveBeenCalledTimes(2);
+    });
+
     it("returns UserRecord when document exists", async () => {
       const repo = makeRepo();
       const doc = makeDoc();

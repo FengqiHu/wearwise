@@ -22,10 +22,11 @@ export function createAuthRoutes({
   const router = Router();
 
   router.post("/auth/google/exchange", async (req, res): Promise<void> => {
+    let stage: "google_exchange" | "user_persistence" | "session_creation" = "google_exchange";
     try {
       console.log("[oauth] /api/auth/google/exchange request received");
 
-      const body = req.body as { code?: unknown; redirectUri?: unknown; codeVerifier?: unknown };
+      const body = (req.body ?? {}) as { code?: unknown; redirectUri?: unknown; codeVerifier?: unknown };
       const code = typeof body.code === "string" ? body.code.trim() : "";
       const redirectUri = typeof body.redirectUri === "string" ? body.redirectUri.trim() : "";
       const codeVerifier = typeof body.codeVerifier === "string" ? body.codeVerifier.trim() : "";
@@ -45,8 +46,9 @@ export function createAuthRoutes({
         return;
       }
 
-      // get userinfo, and store token
+      stage = "user_persistence";
       const user = await userRepository.upsertFromGoogleIdentity(exchangeResult.identity);
+      stage = "session_creation";
       const accessToken = sessionService.createSessionToken(user.id);
 
       // return user info and token, incluidng expire time
@@ -60,7 +62,15 @@ export function createAuthRoutes({
         isFirstLogin: user.profile === null
       });
     } catch (error) {
-      console.error("OAuth exchange error:", error);
+      console.error(`[oauth] Sign-in failed during ${stage}:`, error);
+      if (stage === "user_persistence") {
+        res.status(503).json({
+          error: "Google sign-in succeeded, but WearWise could not save your account. Please try signing in again later.",
+          errorCode: "AUTH_DATABASE_UNAVAILABLE"
+        });
+        return;
+      }
+
       res.status(500).json({ error: "OAuth exchange failed unexpectedly." });
     }
   });

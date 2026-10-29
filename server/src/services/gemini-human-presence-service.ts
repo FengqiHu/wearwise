@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
-import { GoogleGenAI } from "@google/genai";
+import { OpenAIContentClient } from "./openai-content-client.js";
 import { z } from "zod";
-
-const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 const HUMAN_PRESENCE_PROMPT =
   "Review this profile image for WearWise. Determine whether the image clearly contains a real human person. " +
@@ -36,13 +35,16 @@ export class HumanPresenceUnavailableError extends Error {
 
 interface GeminiHumanPresenceServiceOptions {
   apiKey: string;
+  model?: string;
 }
 
 export class GeminiHumanPresenceService {
-  private readonly ai: GoogleGenAI | null;
+  private readonly ai: OpenAIContentClient | null;
+  private readonly model: string;
 
   constructor(options: GeminiHumanPresenceServiceOptions) {
-    this.ai = options.apiKey ? new GoogleGenAI({ apiKey: options.apiKey }) : null;
+    this.model = options.model?.trim() || env.models.humanPresence;
+    this.ai = options.apiKey ? new OpenAIContentClient({ apiKey: options.apiKey }) : null;
   }
 
   isConfigured(): boolean {
@@ -60,7 +62,7 @@ export class GeminiHumanPresenceService {
 
     try {
       const response = await this.ai.models.generateContent({
-        model: GEMINI_MODEL,
+        model: this.model,
         contents: [
           {
             parts: [
@@ -79,17 +81,17 @@ export class GeminiHumanPresenceService {
       const parsed = humanPresenceSchema.parse(JSON.parse(responseText));
 
       if (!parsed.hasRealHuman) {
-        console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, hasRealHuman: false, error: "human_not_detected" }));
+        console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertRealHumanPresent", model: this.model, latencyMs: Date.now() - _t0, ok: false, hasRealHuman: false, error: "human_not_detected" }));
         throw new HumanPresenceRejectedError(parsed.reason);
       }
 
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: true, hasRealHuman: true }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertRealHumanPresent", model: this.model, latencyMs: Date.now() - _t0, ok: true, hasRealHuman: true }));
     } catch (error) {
       if (error instanceof HumanPresenceRejectedError) {
         throw error;
       }
 
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "assertRealHumanPresent", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertRealHumanPresent", model: this.model, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
       throw new HumanPresenceUnavailableError(undefined, error);
     }
   }

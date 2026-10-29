@@ -41,6 +41,7 @@ async function startServer(dependencies: {
 }): Promise<{ baseUrl: string; server: Server }> {
   const app = express();
   app.use(express.json());
+  app.use(express.urlencoded({ extended: false }));
   app.use("/api", createAuthRoutes(dependencies));
 
   const server = app.listen(0, "127.0.0.1");
@@ -218,6 +219,36 @@ describe("createAuthRoutes", () => {
 
       expect(response.status).toBe(500);
       expect(body.error).toBe("OAuth exchange failed unexpectedly.");
+    });
+
+    it("distinguishes a database failure after Google sign-in and does not issue a session", async () => {
+      const harness = makeRouteHarness();
+      vi.mocked(harness.dependencies.userRepository.upsertFromGoogleIdentity)
+        .mockRejectedValue(new Error("querySrv ENOTFOUND _mongodb._tcp.unavailable.mongodb.net"));
+      const started = await startServer(harness.dependencies);
+      server = started.server;
+
+      const response = await fetch(`${started.baseUrl}/api/auth/google/exchange`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({
+          code: "auth-code",
+          redirectUri: "https://wearwise-two.vercel.app/auth/callback",
+          codeVerifier: "pkce-verifier"
+        }).toString()
+      });
+      const body = await response.json() as Record<string, unknown>;
+
+      expect(response.status).toBe(503);
+      expect(body.errorCode).toBe("AUTH_DATABASE_UNAVAILABLE");
+      expect(body.error).toContain("Google sign-in succeeded");
+      expect(JSON.stringify(body)).not.toContain("unavailable.mongodb.net");
+      expect(harness.dependencies.googleOAuthService.exchangeCodeForIdentity).toHaveBeenCalledWith({
+        code: "auth-code",
+        redirectUri: "https://wearwise-two.vercel.app/auth/callback",
+        codeVerifier: "pkce-verifier"
+      });
+      expect(harness.dependencies.sessionService.createSessionToken).not.toHaveBeenCalled();
     });
   });
 

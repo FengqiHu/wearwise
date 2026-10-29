@@ -63,7 +63,11 @@ export class UserRepository {
   // lazy initialization of the MongoDB collection to ensure it's only created when needed and reused across method calls
   private async getCollection(): Promise<Collection<UserDocument>> {
     if (!this.collectionPromise) {
-      this.collectionPromise = this.initializeCollection();
+      this.collectionPromise = this.initializeCollection().catch((error: unknown) => {
+        // Allow a new sign-in to reconnect after a DNS/database outage is resolved.
+        this.collectionPromise = null;
+        throw error;
+      });
     }
 
     return this.collectionPromise;

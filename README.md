@@ -1,6 +1,6 @@
 # WearWise
 
-**Live App:** https://wearwise-cs423.web.app/
+**Live App:** https://wearwise-two.vercel.app/
 
 WearWise is a personal cloud clothing library that lets you upload your wardrobe and get AI-powered outfit recommendations. Provide your clothing images and basic body info, and the agent recommends outfits based on weather, occasion, or personal preferences — then generates a virtual try-on image so you can see how each look would appear on you. You can also upload a product image from any online store to preview how it would fit with your existing wardrobe before buying.
 
@@ -20,13 +20,13 @@ WearWise is a personal cloud clothing library that lets you upload your wardrobe
 | Database | MongoDB |
 | Image Storage | Cloudflare R2 |
 | Auth | Google OAuth 2.0 |
-| Content Review | Google Cloud Vision SafeSearch |
+| Content Review | OpenAI image moderation |
 | Weather | OpenWeather API |
 | Chat / Reasoning | OpenAI (gpt-5-mini) |
-| Outfit Logic & Style Notes | Gemini |
-| Try-on Image Generation | Gemini |
-| Frontend Hosting | Firebase |
-| Backend Hosting | Render |
+| Outfit Logic & Style Notes | OpenAI |
+| Try-on Image Generation | OpenAI GPT Image |
+| Frontend Hosting | Vercel |
+| Backend Hosting | Railway |
 | Testing | Vitest |
 
 ## Features
@@ -89,7 +89,7 @@ cp server/.env.example server/.env
 |---|---|
 | `PORT` | Port the server listens on (default `3001`) |
 | `CLIENT_ORIGIN` | Frontend origin for CORS (e.g. `http://localhost:5173`) |
-| `OPENAI_API_KEY` | OpenAI API key for LLM reasoning |
+| `OPENAI_API_KEY` | OpenAI API key for chat, image review, recognition, recommendations, and generation |
 | `GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID |
 | `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret |
 | `GOOGLE_REDIRECT_URI` | OAuth redirect URI (e.g. `http://localhost:5173/auth/callback`) |
@@ -105,7 +105,9 @@ cp server/.env.example server/.env
 | `S3_SECRET_ACCESS_KEY` | R2 secret access key |
 | `S3_REGION` | R2 region (typically `auto`) |
 | `S3_PUBLIC_BASE_URL` | Public base URL for serving stored images |
-| `GEMINI_API_KEY` | Gemini API key for outfit reasoning |
+| `OPENAI_ANALYSIS_MODEL` | Shared default for recognition and recommendations (default `gpt-5-mini`) |
+| `OPENAI_RECOMMENDATION_MODEL` | Optional shared default for style summaries and outfit recommendations |
+| `OPENAI_IMAGE_MODEL` | Optional try-on model (default `gpt-image-2.5-sunburst`) |
 | `OPENWEATHER_API_KEY` | OpenWeather API key for weather data |
 
 ### Client (`client/.env`)
@@ -140,7 +142,59 @@ npm test
 
 ## Deployment
 
-The application is deployed and accessible at https://wearwise-cs423.web.app/
+The application is deployed and accessible at https://wearwise-two.vercel.app/
 
-- **Frontend**: Firebase Hosting
-- **Backend**: Render
+- **Frontend**: Vercel, with the project root set to `client`.
+- **Backend**: Railway, with the service root set to `/server`.
+
+Set the Vercel variables `VITE_API_BASE_URL=https://wearwise-production.up.railway.app`
+and `VITE_GOOGLE_REDIRECT_URI=https://wearwise-two.vercel.app/auth/callback`.
+On Railway, set `CLIENT_ORIGIN=https://wearwise-two.vercel.app` and the same
+callback URL in `GOOGLE_REDIRECT_URI`. Add that exact callback URL to the Google
+OAuth client's authorized redirect URIs.
+
+Railway also needs a working `MONGODB_URI`. A healthy `/api/health` response only
+confirms that Express is running; it does not check MongoDB. If sign-in logs show
+`querySrv ENOTFOUND`, verify the Atlas cluster is available and copy its current
+connection string into Railway. Google authentication can succeed while saving
+the user fails because the database is unavailable.
+
+Image uploads accept JPEG, PNG, WebP, HEIC, and HEIF. HEIC/HEIF photos are converted
+to JPEG before image moderation, person/clothing recognition, and R2 storage.
+Image processing uses `OPENAI_API_KEY`; Google OAuth still uses its own client
+credentials. Google Vision billing and Gemini API credits are no longer required.
+OpenAI image generation may require organization verification and available API credits.
+
+## Model Selection
+
+Set these variables in `server/.env` for local development, or in the Railway
+service variables for production. Restart the server (redeploy on Railway) after
+changing them; no source change or frontend rebuild is needed.
+
+| Module | Environment variable | Default |
+|---|---|---|
+| Chat and tool calls | `OPENAI_CHAT_MODEL` | `gpt-5-mini` |
+| Person detection | `OPENAI_HUMAN_PRESENCE_MODEL` | Analysis default |
+| Clothing detection | `OPENAI_CLOTHING_PRESENCE_MODEL` | Analysis default |
+| Clothing metadata extraction | `OPENAI_CLOTHING_EXTRACTION_MODEL` | Analysis default |
+| Style summary | `OPENAI_STYLE_SUMMARY_MODEL` | Recommendation default |
+| Wardrobe outfit completion | `OPENAI_OUTFIT_RECOMMENDATION_MODEL` | Recommendation default |
+| Shop product pairing | `OPENAI_SHOP_RECOMMENDATION_MODEL` | Recommendation default |
+| Image safety review | `OPENAI_MODERATION_MODEL` | `omni-moderation-latest` |
+| Virtual try-on generation | `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-sunburst` |
+
+A non-empty module variable wins over its shared default. The analysis default is
+`OPENAI_ANALYSIS_MODEL`, falling back to `gpt-5-mini`. The recommendation default is
+`OPENAI_RECOMMENDATION_MODEL`, falling back to the analysis default. Empty values
+and surrounding whitespace are ignored. Chat, moderation, and image generation
+are independent of these shared defaults.
+
+Recognition models must support image inputs and structured outputs through
+Responses. Recommendation models need Responses and structured outputs. Chat
+models must support streaming and function calling through Chat Completions.
+Moderation models must support images on the Moderations endpoint, and image
+models must support reference-image editing on the Images endpoint. Keep model
+IDs compatible with the module's endpoint; changing a model does not change its
+API endpoint. Analysis requests retain `minimal` reasoning for the original GPT-5
+family; other models use their provider default rather than inheriting an
+unsupported effort setting. Service logs show the actual selected model.

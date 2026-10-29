@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
-import { GoogleGenAI } from "@google/genai";
+import OpenAI, { toFile } from "openai";
 import { type AiReliabilityOptions, withAiReliability } from "./ai-reliability.js";
-
-const GENERATION_MODEL = "gemini-3.1-flash-image-preview";
 
 const BASE_PROMPT =
   "The first reference image is the user's full-body photo. The second reference image, if present, is the user's headshot photo. The remaining reference images are clothing items. " +
@@ -41,15 +40,18 @@ export function buildMainPrompt(params: {
 
 interface ImageGenerationServiceOptions {
   apiKey: string;
+  model?: string;
   reliability?: AiReliabilityOptions;
 }
 
 export class ImageGenerationService {
-  private readonly ai: GoogleGenAI | null;
+  private readonly ai: OpenAI | null;
+  private readonly model: string;
   private readonly reliability: AiReliabilityOptions;
 
   constructor(options: ImageGenerationServiceOptions) {
-    this.ai = options.apiKey ? new GoogleGenAI({ apiKey: options.apiKey }) : null;
+    this.model = options.model?.trim() || env.models.imageGeneration;
+    this.ai = options.apiKey ? new OpenAI({ apiKey: options.apiKey, maxRetries: 0, timeout: 180_000 }) : null;
     this.reliability = options.reliability ?? {};
   }
 
@@ -57,23 +59,14 @@ export class ImageGenerationService {
     return this.ai !== null;
   }
 
-  private async fetchImageAsBase64(url: string): Promise<{ base64: string; mimeType: string }> {
-    const response = await withAiReliability(
-      "Fetch try-on reference image",
-      async () => {
-        const fetched = await fetch(url);
-        if (!fetched.ok) {
-          throw new Error(`Failed to fetch image from ${url}: HTTP ${fetched.status}.`);
-        }
-        return fetched;
-      },
-      this.reliability
-    );
-    const contentType = response.headers.get("content-type") ?? "image/jpeg";
-    const mimeType = (contentType.split(";")[0] ?? "image/jpeg").trim();
-    const buffer = await response.arrayBuffer();
-    const base64 = Buffer.from(buffer).toString("base64");
-    return { base64, mimeType };
+  private async fetchReferenceImage(url: string, index: number) {
+    return withAiReliability("Fetch try-on reference image", async () => {
+      const response = await fetch(url, { signal: AbortSignal.timeout(this.reliability.timeoutMs ?? 30_000) });
+      if (!response.ok) throw new Error(`Failed to fetch reference image: HTTP ${response.status}.`);
+      const mimeType = (response.headers.get("content-type") ?? "image/jpeg").split(";")[0]!.trim();
+      const extension = mimeType === "image/png" ? "png" : mimeType === "image/webp" ? "webp" : "jpg";
+      return toFile(Buffer.from(await response.arrayBuffer()), `reference-${index}.${extension}`, { type: mimeType });
+    }, this.reliability);
   }
 
   async generateOutfitImage(params: {
@@ -86,67 +79,30 @@ export class ImageGenerationService {
     occasions?: string[];
     weatherSummary?: string | null;
   }): Promise<Buffer> {
-    if (!this.ai) {
-      throw new Error("GEMINI_API_KEY is not configured on server.");
-    }
-
-    const { bodyImageUrl, headshotImageUrl, clothingImageUrls, promptOverride, aspectRatio = "3:4", backgroundContext, occasions, weatherSummary } = params;
-
-    const bodyImage = await this.fetchImageAsBase64(bodyImageUrl);
-    const headshotImage = headshotImageUrl ? await this.fetchImageAsBase64(headshotImageUrl) : null;
-    const clothingImages = await Promise.all(clothingImageUrls.map((url) => this.fetchImageAsBase64(url)));
-
-    const parts: object[] = [
-      { text: promptOverride ?? buildMainPrompt({
-        ...(occasions ? { occasions } : {}),
-        ...(weatherSummary ? { weatherSummary } : {}),
-        ...(backgroundContext ? { backgroundContext } : {})
-      }) },
-      { inlineData: { mimeType: bodyImage.mimeType, data: bodyImage.base64 } },
-      ...(headshotImage
-        ? [{ inlineData: { mimeType: headshotImage.mimeType, data: headshotImage.base64 } }]
-        : []),
-      ...clothingImages.map((img) => ({
-        inlineData: { mimeType: img.mimeType, data: img.base64 }
-      }))
-    ];
-
-    const _traceId = crypto.randomUUID().slice(0, 8);
-    const _t0 = Date.now();
-    const _imageCount = 1 + (headshotImage ? 1 : 0) + clothingImages.length;
-    let response;
+    if (!this.ai) throw new Error("OPENAI_API_KEY is not configured on server.");
+    const urls = [params.bodyImageUrl, ...(params.headshotImageUrl ? [params.headshotImageUrl] : []), ...params.clothingImageUrls];
+    const images = await Promise.all(urls.map((url, index) => this.fetchReferenceImage(url, index)));
+    const prompt = params.promptOverride ?? buildMainPrompt({
+      ...(params.occasions ? { occasions: params.occasions } : {}),
+      ...(params.weatherSummary ? { weatherSummary: params.weatherSummary } : {}),
+      ...(params.backgroundContext ? { backgroundContext: params.backgroundContext } : {})
+    });
+    const [width = 3, height = 4] = (params.aspectRatio ?? "3:4").split(":").map(Number);
+    const size = width === height ? "1024x1024" : width > height ? "1536x1024" : "1024x1536";
+    const traceId = crypto.randomUUID().slice(0, 8);
+    const startedAt = Date.now();
+    const model = this.model;
     try {
-      response = await withAiReliability(
-        "Gemini generateTryOn",
-        () => this.ai!.models.generateContent({
-          model: GENERATION_MODEL,
-          contents: [{ parts }],
-          config: {
-            responseModalities: ["TEXT", "IMAGE"],
-            imageConfig: { aspectRatio }
-          }
-        }),
-        this.reliability
-      );
-    } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
-      throw err;
+      const response = await withAiReliability("OpenAI generateTryOn", () => this.ai!.images.edit({
+        model, image: images, prompt, n: 1, size, quality: "medium", output_format: "png"
+      }), this.reliability);
+      const encoded = response.data?.[0]?.b64_json;
+      if (!encoded) throw new Error("OpenAI returned no generated image.");
+      console.log(JSON.stringify({ traceId, service: "image-generation", op: "generateTryOn", model, imageCount: images.length, latencyMs: Date.now() - startedAt, ok: true }));
+      return Buffer.from(encoded, "base64");
+    } catch (error) {
+      console.error(JSON.stringify({ traceId, service: "image-generation", op: "generateTryOn", model, latencyMs: Date.now() - startedAt, ok: false, error: String(error) }));
+      throw error;
     }
-
-    const candidates = response.candidates ?? [];
-    if (candidates.length === 0) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: "no candidates" }));
-      throw new Error("Gemini returned no candidates.");
-    }
-
-    for (const part of candidates[0]?.content?.parts ?? []) {
-      if (part.inlineData?.data) {
-        console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: true }));
-        return Buffer.from(part.inlineData.data, "base64");
-      }
-    }
-
-    console.log(JSON.stringify({ traceId: _traceId, service: "image-generation", op: "generateTryOn", model: GENERATION_MODEL, imageCount: _imageCount, latencyMs: Date.now() - _t0, ok: false, error: "no image data in response" }));
-    throw new Error("Gemini response contained no image data.");
   }
 }

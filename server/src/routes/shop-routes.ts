@@ -18,11 +18,12 @@ import {
   ImageModerationRejectedError,
   ImageModerationUnavailableError
 } from "../services/image-moderation-service.js";
-import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
+import { R2StorageService } from "../services/r2-storage-service.js";
 import {
   ClothingPresenceRejectedError,
   ClothingPresenceUnavailableError
 } from "../services/gemini-clothing-presence-service.js";
+import { isSupportedUploadMimeType, InvalidImageUploadError } from "../services/image-upload-service.js";
 import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { GenerateOutfitResponse, OutfitItem } from "../types/domain.js";
 
@@ -62,10 +63,10 @@ const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
-    if (isAllowedMimeType(file.mimetype)) {
+    if (isSupportedUploadMimeType(file.mimetype)) {
       cb(null, true);
     } else {
-      cb(new Error(`Unsupported image type '${file.mimetype}'. Allowed: image/jpeg, image/png, image/webp.`));
+      cb(new Error(`Unsupported image type '${file.mimetype}'. Allowed: image/jpeg, image/png, image/webp, image/heic, image/heif.`));
     }
   }
 });
@@ -115,9 +116,9 @@ export function createShopRoutes({
 
       const mimeType = req.file.mimetype;
 
-      if (!isAllowedMimeType(mimeType)) {
+      if (!isSupportedUploadMimeType(mimeType)) {
         res.status(400).json({
-          error: `Unsupported image type '${mimeType}'. Allowed: image/jpeg, image/png, image/webp.`
+          error: `Unsupported image type '${mimeType}'. Allowed: image/jpeg, image/png, image/webp, image/heic, image/heif.`
         });
         return;
       }
@@ -271,6 +272,11 @@ export function createShopRoutes({
         throw postUploadError;
       }
     } catch (error) {
+      if (error instanceof InvalidImageUploadError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
       if (error instanceof ImageModerationRejectedError) {
         console.warn("Shop image upload rejected by SafeSearch.", {
           findings: error.findings,

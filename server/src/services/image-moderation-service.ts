@@ -1,3 +1,6 @@
+import { env } from "../config/env.js";
+import OpenAI from "openai";
+
 interface VisionSafeSearchAnnotation {
   adult?: VisionLikelihood;
   spoof?: VisionLikelihood;
@@ -47,6 +50,8 @@ const SAFE_SEARCH_POLICY = [
 
 interface ImageModerationServiceOptions {
   apiKey: string;
+  openaiApiKey?: string;
+  model?: string;
   timeoutMs?: number;
 }
 
@@ -89,17 +94,26 @@ function findPolicyViolations(annotation: VisionSafeSearchAnnotation): string[] 
 export class ImageModerationService {
   private readonly apiKey: string;
   private readonly timeoutMs: number;
+  private readonly openai: OpenAI | null;
+  private readonly model: string;
 
   constructor(options: ImageModerationServiceOptions) {
     this.apiKey = options.apiKey.trim();
+    this.model = options.model?.trim() || env.models.moderation;
     this.timeoutMs = options.timeoutMs ?? 10_000;
+    this.openai = options.openaiApiKey?.trim()
+      ? new OpenAI({ apiKey: options.openaiApiKey.trim(), timeout: this.timeoutMs, maxRetries: 0 })
+      : null;
   }
 
   isConfigured(): boolean {
-    return this.apiKey.length > 0;
+    return this.openai !== null || this.apiKey.length > 0;
   }
 
   async reviewImage(buffer: Buffer): Promise<VisionSafeSearchAnnotation> {
+    if (this.openai) {
+      return this.reviewWithOpenAI(buffer);
+    }
     if (!this.isConfigured()) {
       throw new ImageModerationUnavailableError(
         "Image review is temporarily unavailable. Please try uploading again later."
@@ -170,5 +184,35 @@ export class ImageModerationService {
     }
 
     return annotation;
+  }
+
+  private async reviewWithOpenAI(buffer: Buffer): Promise<VisionSafeSearchAnnotation> {
+    try {
+      const mimeType = buffer.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        ? "image/png"
+        : buffer.subarray(8, 12).toString() === "WEBP" ? "image/webp" : "image/jpeg";
+      const response = await this.openai!.moderations.create({
+        model: this.model,
+        input: [{ type: "image_url", image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` } }]
+      });
+      const result = response.results[0];
+      if (!result || typeof result.flagged !== "boolean") {
+        throw new Error("Missing OpenAI image moderation result.");
+      }
+      if (result.flagged) {
+        const findings = Object.entries(result.categories).filter(([, flagged]) => flagged).map(([category]) => category);
+        throw new ImageModerationRejectedError(
+          "This image could not be uploaded because it appears to violate WearWise's image safety policy. Please choose a different image.",
+          findings,
+          {}
+        );
+      }
+      return {};
+    } catch (error) {
+      if (error instanceof ImageModerationRejectedError) throw error;
+      throw new ImageModerationUnavailableError(
+        "Image review is temporarily unavailable. Please try uploading again later.", error
+      );
+    }
   }
 }

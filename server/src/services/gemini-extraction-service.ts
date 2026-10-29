@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
-import { GoogleGenAI } from "@google/genai";
+import { OpenAIContentClient } from "./openai-content-client.js";
 import { z } from "zod";
-
-const GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -26,13 +25,16 @@ export type ClosetItemExtraction = z.infer<typeof closetItemExtractionSchema>;
 
 interface GeminiExtractionServiceOptions {
   apiKey: string;
+  model?: string;
 }
 
 export class GeminiExtractionService {
-  private readonly ai: GoogleGenAI | null;
+  private readonly ai: OpenAIContentClient | null;
+  private readonly model: string;
 
   constructor(options: GeminiExtractionServiceOptions) {
-    this.ai = options.apiKey ? new GoogleGenAI({ apiKey: options.apiKey }) : null;
+    this.model = options.model?.trim() || env.models.clothingExtraction;
+    this.ai = options.apiKey ? new OpenAIContentClient({ apiKey: options.apiKey }) : null;
   }
 
   isConfigured(): boolean {
@@ -41,7 +43,7 @@ export class GeminiExtractionService {
 
   async analyzeClothingImage(imageUrl: string, mimeType: string): Promise<ClosetItemExtraction> {
     if (!this.ai) {
-      throw new Error("GEMINI_API_KEY is not configured on server.");
+      throw new Error("OPENAI_API_KEY is not configured on server.");
     }
 
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
@@ -63,7 +65,7 @@ export class GeminiExtractionService {
     let response;
     try {
       response = await this.ai.models.generateContent({
-        model: GEMINI_MODEL,
+        model: this.model,
         contents: [
           {
             parts: [
@@ -78,7 +80,7 @@ export class GeminiExtractionService {
         },
       });
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
 
@@ -87,10 +89,10 @@ export class GeminiExtractionService {
     try {
       result = closetItemExtractionSchema.parse(JSON.parse(raw));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
-    console.log(JSON.stringify({ traceId: _traceId, service: "gemini", op: "analyzeClothingImage", model: GEMINI_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
 }
