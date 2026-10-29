@@ -6,6 +6,8 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = createApp();
 
-app.listen(env.port, () => {
-  console.log(`Server running at http://localhost:${env.port}`);
+const PORT = Number.parseInt(process.env.PORT ?? "", 10) || env.port || 8080;
+
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on port ${PORT}`);
 });
