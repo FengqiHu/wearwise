@@ -329,6 +329,7 @@ export class ChatService {
   async prefetchWeatherAndTime(userLocation: BrowserLocation | undefined, signal?: AbortSignal): Promise<PrefetchedContext> {
     const currentTime = userLocation?.timezone
       ? (() => {
+          console.log("[tool] get_current_time called (prefetch)", { timezone: userLocation.timezone });
           const result = this.currentTimeService.executeTool(JSON.stringify({ timezone: userLocation.timezone }));
           return result.ok && result.datetime ? result.datetime.time : null;
         })()
@@ -339,6 +340,7 @@ export class ChatService {
     }
 
     try {
+      console.log("[tool] get_user_location called (prefetch)");
       const locationResult = await this.userLocationService.executeTool(userLocation, signal);
 
       if (!locationResult.ok || !locationResult.location) {
@@ -358,6 +360,7 @@ export class ChatService {
         ...(loc.country ? { countryCode: loc.country } : {}),
         mode: "current"
       });
+      console.log("[tool] get_weather called (prefetch)", JSON.parse(weatherArgs));
       const weatherResult = await this.openWeatherService.executeTool(weatherArgs, signal);
 
       const weatherSummary = weatherResult.ok && weatherResult.weather
@@ -371,6 +374,7 @@ export class ChatService {
   }
 
   async streamChat(input: StreamChatInput): Promise<StreamChatResult> {
+    console.log("[chat] streamChat called, messages:", input.messages.length);
     if (!this.client) {
       throw new Error("OPENAI_API_KEY is not configured on server.");
     }
@@ -416,6 +420,7 @@ export class ChatService {
               parameters: weatherToolParameters,
               parse: (rawArguments: string) => weatherToolInputSchema.parse(JSON.parse(rawArguments)),
               function: async (args: WeatherToolArgs) => {
+                console.log("[tool] get_weather called", args);
                 try {
                   return await this.openWeatherService.executeTool(JSON.stringify(args), input.signal);
                 } catch (error) {
@@ -446,6 +451,7 @@ export class ChatService {
               },
               parse: (rawArguments: string) => JSON.parse(rawArguments) as { timezone?: string },
               function: (args: { timezone?: string }) => {
+                console.log("[tool] get_current_time called", args);
                 return this.currentTimeService.executeTool(JSON.stringify(args));
               }
             }
@@ -464,6 +470,7 @@ export class ChatService {
               },
               parse: (_rawArguments: string) => ({}),
               function: async (_args: Record<string, never>) => {
+                console.log("[tool] get_user_location called");
                 try {
                   return await this.userLocationService.executeTool(userLocation, input.signal);
                 } catch (error) {
@@ -489,6 +496,7 @@ export class ChatService {
                     parse: (rawArguments: string) =>
                       accessoryModeToolInputSchema.parse(JSON.parse(rawArguments)),
                     function: async (args: AccessoryModeToolArgs) => {
+                      console.log("[tool] set_accessory_mode called", args);
                       if (args.mode === "include" && !accessoryModeContext.wardrobeHasAccessories) {
                         return { ok: false, error: "no_accessories_in_wardrobe" };
                       }
@@ -518,6 +526,7 @@ export class ChatService {
                     parse: (rawArguments: string) =>
                       addAccessoriesToolInputSchema.parse(JSON.parse(rawArguments)),
                     function: async (args: AddAccessoriesToolArgs) => {
+                      console.log("[tool] add_accessories_to_recommendation called", args);
                       try {
                         return await accessoryModeContext.onAddBackRequested(
                           args.outfitIndex !== undefined ? { outfitIndex: args.outfitIndex } : {}
@@ -555,6 +564,7 @@ export class ChatService {
               },
               parse: (rawArguments: string) => JSON.parse(rawArguments) as { name: string },
               function: async (args: { name: string }) => {
+                console.log("[tool] find_wardrobe_item called", args);
                 const query = args.name.toLowerCase();
                 const matches = (input.wardrobeItems ?? []).filter(
                   (item) => item.name?.toLowerCase().includes(query)
@@ -614,6 +624,7 @@ export class ChatService {
               },
               parse: (rawArguments: string) => JSON.parse(rawArguments) as SubmitOutfitArgs,
               function: async (args: SubmitOutfitArgs) => {
+                console.log("[tool] submit_outfit called", args);
                 if (input.wardrobeItems) {
                   const wardrobeMap = new Map(input.wardrobeItems.map((i) => [i.id, i]));
 

@@ -348,6 +348,7 @@ export function createChatRoutes({ authService, chatService, conversationReposit
 
   // handle chat message, stream the response from the chat service, and save the conversation history in database
   router.post("/chat", async (req, res): Promise<void> => {
+    console.log("[route] POST /chat received");
     let shouldCloseResponse = true;
 
     try {
