@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { ResponseInputContent } from "openai/resources/responses/responses.js";
+import { analysisReasoning } from "../config/model-config.js";
 
 interface ContentRequest {
   model: string;
@@ -24,10 +25,11 @@ export class OpenAIContentClient {
       return part.text ? [{ type: "input_text", text: part.text }] : [];
     }));
     const schema = request.config?.responseJsonSchema;
+    const reasoning = analysisReasoning(request.model);
     const response = await this.client.responses.create({
-      model: process.env.OPENAI_ANALYSIS_MODEL?.trim() || request.model,
+      model: request.model,
       input: [{ role: "user", content }],
-      reasoning: { effort: "minimal" },
+      ...(reasoning ? { reasoning } : {}),
       store: false,
       ...(schema ? { text: { format: { type: "json_schema", name: "wearwise_result", schema, strict: true } } } : {})
     });

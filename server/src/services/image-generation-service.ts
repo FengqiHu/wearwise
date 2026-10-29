@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
 import OpenAI, { toFile } from "openai";
 import { type AiReliabilityOptions, withAiReliability } from "./ai-reliability.js";
-
-const GENERATION_MODEL = "gpt-image-2.5-sunburst";
 
 const BASE_PROMPT =
   "The first reference image is the user's full-body photo. The second reference image, if present, is the user's headshot photo. The remaining reference images are clothing items. " +
@@ -41,14 +40,17 @@ export function buildMainPrompt(params: {
 
 interface ImageGenerationServiceOptions {
   apiKey: string;
+  model?: string;
   reliability?: AiReliabilityOptions;
 }
 
 export class ImageGenerationService {
   private readonly ai: OpenAI | null;
+  private readonly model: string;
   private readonly reliability: AiReliabilityOptions;
 
   constructor(options: ImageGenerationServiceOptions) {
+    this.model = options.model?.trim() || env.models.imageGeneration;
     this.ai = options.apiKey ? new OpenAI({ apiKey: options.apiKey, maxRetries: 0, timeout: 180_000 }) : null;
     this.reliability = options.reliability ?? {};
   }
@@ -89,7 +91,7 @@ export class ImageGenerationService {
     const size = width === height ? "1024x1024" : width > height ? "1536x1024" : "1024x1536";
     const traceId = crypto.randomUUID().slice(0, 8);
     const startedAt = Date.now();
-    const model = process.env.OPENAI_IMAGE_MODEL?.trim() || GENERATION_MODEL;
+    const model = this.model;
     try {
       const response = await withAiReliability("OpenAI generateTryOn", () => this.ai!.images.edit({
         model, image: images, prompt, n: 1, size, quality: "medium", output_format: "png"

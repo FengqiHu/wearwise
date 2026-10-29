@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
 import { OpenAIContentClient } from "./openai-content-client.js";
 import { z } from "zod";
-
-const ANALYSIS_MODEL = "gpt-5-mini";
 
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
@@ -26,12 +25,15 @@ export type ClosetItemExtraction = z.infer<typeof closetItemExtractionSchema>;
 
 interface GeminiExtractionServiceOptions {
   apiKey: string;
+  model?: string;
 }
 
 export class GeminiExtractionService {
   private readonly ai: OpenAIContentClient | null;
+  private readonly model: string;
 
   constructor(options: GeminiExtractionServiceOptions) {
+    this.model = options.model?.trim() || env.models.clothingExtraction;
     this.ai = options.apiKey ? new OpenAIContentClient({ apiKey: options.apiKey }) : null;
   }
 
@@ -63,7 +65,7 @@ export class GeminiExtractionService {
     let response;
     try {
       response = await this.ai.models.generateContent({
-        model: ANALYSIS_MODEL,
+        model: this.model,
         contents: [
           {
             parts: [
@@ -78,7 +80,7 @@ export class GeminiExtractionService {
         },
       });
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: ANALYSIS_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
 
@@ -87,10 +89,10 @@ export class GeminiExtractionService {
     try {
       result = closetItemExtractionSchema.parse(JSON.parse(raw));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: ANALYSIS_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
-    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: ANALYSIS_MODEL, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "analyzeClothingImage", model: this.model, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
 }

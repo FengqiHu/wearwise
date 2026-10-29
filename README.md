@@ -105,7 +105,8 @@ cp server/.env.example server/.env
 | `S3_SECRET_ACCESS_KEY` | R2 secret access key |
 | `S3_REGION` | R2 region (typically `auto`) |
 | `S3_PUBLIC_BASE_URL` | Public base URL for serving stored images |
-| `OPENAI_ANALYSIS_MODEL` | Optional recognition and recommendation model (default `gpt-5-mini`) |
+| `OPENAI_ANALYSIS_MODEL` | Shared default for recognition and recommendations (default `gpt-5-mini`) |
+| `OPENAI_RECOMMENDATION_MODEL` | Optional shared default for style summaries and outfit recommendations |
 | `OPENAI_IMAGE_MODEL` | Optional try-on model (default `gpt-image-2.5-sunburst`) |
 | `OPENWEATHER_API_KEY` | OpenWeather API key for weather data |
 
@@ -163,3 +164,37 @@ to JPEG before image moderation, person/clothing recognition, and R2 storage.
 Image processing uses `OPENAI_API_KEY`; Google OAuth still uses its own client
 credentials. Google Vision billing and Gemini API credits are no longer required.
 OpenAI image generation may require organization verification and available API credits.
+
+## Model Selection
+
+Set these variables in `server/.env` for local development, or in the Railway
+service variables for production. Restart the server (redeploy on Railway) after
+changing them; no source change or frontend rebuild is needed.
+
+| Module | Environment variable | Default |
+|---|---|---|
+| Chat and tool calls | `OPENAI_CHAT_MODEL` | `gpt-5-mini` |
+| Person detection | `OPENAI_HUMAN_PRESENCE_MODEL` | Analysis default |
+| Clothing detection | `OPENAI_CLOTHING_PRESENCE_MODEL` | Analysis default |
+| Clothing metadata extraction | `OPENAI_CLOTHING_EXTRACTION_MODEL` | Analysis default |
+| Style summary | `OPENAI_STYLE_SUMMARY_MODEL` | Recommendation default |
+| Wardrobe outfit completion | `OPENAI_OUTFIT_RECOMMENDATION_MODEL` | Recommendation default |
+| Shop product pairing | `OPENAI_SHOP_RECOMMENDATION_MODEL` | Recommendation default |
+| Image safety review | `OPENAI_MODERATION_MODEL` | `omni-moderation-latest` |
+| Virtual try-on generation | `OPENAI_IMAGE_MODEL` | `gpt-image-2.5-sunburst` |
+
+A non-empty module variable wins over its shared default. The analysis default is
+`OPENAI_ANALYSIS_MODEL`, falling back to `gpt-5-mini`. The recommendation default is
+`OPENAI_RECOMMENDATION_MODEL`, falling back to the analysis default. Empty values
+and surrounding whitespace are ignored. Chat, moderation, and image generation
+are independent of these shared defaults.
+
+Recognition models must support image inputs and structured outputs through
+Responses. Recommendation models need Responses and structured outputs. Chat
+models must support streaming and function calling through Chat Completions.
+Moderation models must support images on the Moderations endpoint, and image
+models must support reference-image editing on the Images endpoint. Keep model
+IDs compatible with the module's endpoint; changing a model does not change its
+API endpoint. Analysis requests retain `minimal` reasoning for the original GPT-5
+family; other models use their provider default rather than inheriting an
+unsupported effort setting. Service logs show the actual selected model.

@@ -1,8 +1,7 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
 import { OpenAIContentClient } from "./openai-content-client.js";
 import { z } from "zod";
-
-const ANALYSIS_MODEL = "gpt-5-mini";
 
 const CLOTHING_PRESENCE_PROMPT =
   "Review this image for WearWise before it is added to a clothing closet. Determine whether the image clearly contains at least one clothing item, top, pant, outwear, shoes, or wearable accessory. " +
@@ -35,12 +34,15 @@ export class ClothingPresenceUnavailableError extends Error {
 
 interface GeminiClothingPresenceServiceOptions {
   apiKey: string;
+  model?: string;
 }
 
 export class GeminiClothingPresenceService {
   private readonly ai: OpenAIContentClient | null;
+  private readonly model: string;
 
   constructor(options: GeminiClothingPresenceServiceOptions) {
+    this.model = options.model?.trim() || env.models.clothingPresence;
     this.ai = options.apiKey ? new OpenAIContentClient({ apiKey: options.apiKey }) : null;
   }
 
@@ -57,7 +59,7 @@ export class GeminiClothingPresenceService {
     const _t0 = Date.now();
     try {
       const response = await this.ai.models.generateContent({
-        model: ANALYSIS_MODEL,
+        model: this.model,
         contents: [
           {
             parts: [
@@ -75,17 +77,17 @@ export class GeminiClothingPresenceService {
       const parsed = clothingPresenceSchema.parse(JSON.parse(response.text ?? ""));
 
       if (!parsed.hasClothing) {
-        console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: ANALYSIS_MODEL, latencyMs: Date.now() - _t0, ok: false, hasClothing: false, error: "clothing_not_detected" }));
+        console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: this.model, latencyMs: Date.now() - _t0, ok: false, hasClothing: false, error: "clothing_not_detected" }));
         throw new ClothingPresenceRejectedError(parsed.reason);
       }
 
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: ANALYSIS_MODEL, latencyMs: Date.now() - _t0, ok: true, hasClothing: true }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: this.model, latencyMs: Date.now() - _t0, ok: true, hasClothing: true }));
     } catch (error) {
       if (error instanceof ClothingPresenceRejectedError) {
         throw error;
       }
 
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: ANALYSIS_MODEL, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "assertClothingPresent", model: this.model, latencyMs: Date.now() - _t0, ok: false, error: String(error) }));
       throw new ClothingPresenceUnavailableError(undefined, error);
     }
   }

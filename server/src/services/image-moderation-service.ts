@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import OpenAI from "openai";
 
 interface VisionSafeSearchAnnotation {
@@ -50,6 +51,7 @@ const SAFE_SEARCH_POLICY = [
 interface ImageModerationServiceOptions {
   apiKey: string;
   openaiApiKey?: string;
+  model?: string;
   timeoutMs?: number;
 }
 
@@ -93,9 +95,11 @@ export class ImageModerationService {
   private readonly apiKey: string;
   private readonly timeoutMs: number;
   private readonly openai: OpenAI | null;
+  private readonly model: string;
 
   constructor(options: ImageModerationServiceOptions) {
     this.apiKey = options.apiKey.trim();
+    this.model = options.model?.trim() || env.models.moderation;
     this.timeoutMs = options.timeoutMs ?? 10_000;
     this.openai = options.openaiApiKey?.trim()
       ? new OpenAI({ apiKey: options.openaiApiKey.trim(), timeout: this.timeoutMs, maxRetries: 0 })
@@ -188,7 +192,7 @@ export class ImageModerationService {
         ? "image/png"
         : buffer.subarray(8, 12).toString() === "WEBP" ? "image/webp" : "image/jpeg";
       const response = await this.openai!.moderations.create({
-        model: "omni-moderation-latest",
+        model: this.model,
         input: [{ type: "image_url", image_url: { url: `data:${mimeType};base64,${buffer.toString("base64")}` } }]
       });
       const result = response.results[0];

@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import { resolveModelConfig } from "./model-config.js";
 
 dotenv.config();
 
@@ -74,6 +75,7 @@ export const env = {
         .filter(Boolean)
     : true,
   openaiApiKey: getEnv("OPENAI_API_KEY"),
+  models: resolveModelConfig(process.env),
   openWeatherApiKey: getEnv("OPENWEATHER_API_KEY"),
   googleClientId: googleClientIdFromEnv || getEnv("VITE_GOOGLE_CLIENT_ID"),
   googleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),

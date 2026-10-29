@@ -1,10 +1,9 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
 import { OpenAIContentClient } from "./openai-content-client.js";
 import { z } from "zod";
 import type { RecommendationItem, RecommendationVote } from "../types/domain.js";
 import { type AiReliabilityOptions, withAiReliability } from "./ai-reliability.js";
-
-const ANALYSIS_MODEL = "gpt-5-mini";
 
 export const OUTFIT_CATEGORIES = ["tops", "pants", "outerwear", "shoes", "accessories"] as const;
 export type OutfitCategory = (typeof OUTFIT_CATEGORIES)[number];
@@ -80,6 +79,9 @@ export interface RecommendOutfitInput {
 
 interface GeminiRecommendationServiceOptions {
   apiKey: string;
+  styleSummaryModel?: string;
+  outfitModel?: string;
+  shopModel?: string;
   reliability?: AiReliabilityOptions;
 }
 
@@ -195,9 +197,15 @@ export function buildShopOutfitsPrompt(input: {
 
 export class GeminiRecommendationService {
   private readonly ai: OpenAIContentClient | null;
+  private readonly styleSummaryModel: string;
+  private readonly outfitModel: string;
+  private readonly shopModel: string;
   private readonly reliability: AiReliabilityOptions;
 
   constructor(options: GeminiRecommendationServiceOptions) {
+    this.styleSummaryModel = options.styleSummaryModel?.trim() || env.models.styleSummary;
+    this.outfitModel = options.outfitModel?.trim() || env.models.outfitRecommendation;
+    this.shopModel = options.shopModel?.trim() || env.models.shopRecommendation;
     this.ai = options.apiKey ? new OpenAIContentClient({ apiKey: options.apiKey }) : null;
     this.reliability = options.reliability ?? {};
   }
@@ -218,14 +226,14 @@ export class GeminiRecommendationService {
       response = await withAiReliability(
         "OpenAI summarizeStyle",
         () => this.ai!.models.generateContent({
-          model: ANALYSIS_MODEL,
+          model: this.styleSummaryModel,
           contents: [{ parts: [{ text: prompt }] }]
         }),
         this.reliability
       );
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "summarizeStyle", model: ANALYSIS_MODEL, promptChars: prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "summarizeStyle", model: this.styleSummaryModel, promptChars: prompt.length, responseChars: (response.text ?? "").length, latencyMs: Date.now() - _t0, ok: true }));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "summarizeStyle", model: ANALYSIS_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "summarizeStyle", model: this.styleSummaryModel, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
     return (response.text ?? "").trim();
@@ -248,7 +256,7 @@ export class GeminiRecommendationService {
       response = await withAiReliability(
         "OpenAI recommendShopOutfits",
         () => this.ai!.models.generateContent({
-          model: ANALYSIS_MODEL,
+          model: this.shopModel,
           contents: [{ parts: [{ text: prompt }] }],
           config: {
             responseMimeType: "application/json",
@@ -258,13 +266,13 @@ export class GeminiRecommendationService {
         this.reliability
       );
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: ANALYSIS_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: this.shopModel, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: ANALYSIS_MODEL, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: this.shopModel, promptChars: prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("OpenAI returned an empty shop recommendation response.");
     }
 
@@ -272,10 +280,10 @@ export class GeminiRecommendationService {
     try {
       result = shopOutfitsSchema.parse(JSON.parse(raw));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: ANALYSIS_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: this.shopModel, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
-    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: ANALYSIS_MODEL, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendShopOutfits", model: this.shopModel, promptChars: prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
 
@@ -292,7 +300,7 @@ export class GeminiRecommendationService {
       response = await withAiReliability(
         "OpenAI recommendOutfit",
         () => this.ai!.models.generateContent({
-          model: ANALYSIS_MODEL,
+          model: this.outfitModel,
           contents: [{ parts: [{ text: _prompt }] }],
           config: {
             responseMimeType: "application/json",
@@ -302,13 +310,13 @@ export class GeminiRecommendationService {
         this.reliability
       );
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: ANALYSIS_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: this.outfitModel, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
 
     const raw = response.text ?? "";
     if (!raw.trim()) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: ANALYSIS_MODEL, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: this.outfitModel, promptChars: _prompt.length, latencyMs: Date.now() - _t0, ok: false, error: "empty_response" }));
       throw new Error("OpenAI returned an empty recommendation response.");
     }
 
@@ -316,10 +324,10 @@ export class GeminiRecommendationService {
     try {
       result = recommendationSchema.parse(JSON.parse(raw));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: ANALYSIS_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: this.outfitModel, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: false, error: String(err) }));
       throw err;
     }
-    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: ANALYSIS_MODEL, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
+    console.log(JSON.stringify({ traceId: _traceId, service: "openai", op: "recommendOutfit", model: this.outfitModel, promptChars: _prompt.length, responseChars: raw.length, latencyMs: Date.now() - _t0, ok: true }));
     return result;
   }
 }

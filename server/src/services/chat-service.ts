@@ -1,3 +1,4 @@
+import { env } from "../config/env.js";
 import crypto from "node:crypto";
 import OpenAI from "openai";
 import { z } from "zod";
@@ -64,7 +65,6 @@ interface StreamChatInput {
   wardrobeItems?: WardrobeItem[];
 }
 
-const CHAT_MODEL = "gpt-5-mini";
 const weatherToolParameters = {
   type: "object",
   additionalProperties: false,
@@ -307,12 +307,14 @@ function extractRecommendationWeather(messages: RunnerMessage[]): string | null 
 
 export class ChatService {
   private readonly client: OpenAI | null;
+  private readonly model: string;
   private readonly openWeatherService: OpenWeatherService;
   private readonly currentTimeService: CurrentTimeService;
   private readonly userLocationService: UserLocationService;
   private readonly reliability: AiReliabilityOptions;
 
-  constructor(apiKey: string, openWeatherService: OpenWeatherService, reliability: AiReliabilityOptions = {}) {
+  constructor(apiKey: string, openWeatherService: OpenWeatherService, reliability: AiReliabilityOptions = {}, model = env.models.chat) {
+    this.model = model.trim() || env.models.chat;
     this.client = apiKey ? new OpenAI({ apiKey }) : null;
     this.openWeatherService = openWeatherService;
     this.currentTimeService = new CurrentTimeService();
@@ -394,7 +396,7 @@ export class ChatService {
     const _aiPromptChars = nonEmptyMessages.reduce((n, m) => n + m.content.length, 0);
     const runner = this.client.chat.completions.runTools(
       {
-        model: CHAT_MODEL,
+        model: this.model,
         stream: true,
         parallel_tool_calls: false,
         messages: [
@@ -660,9 +662,9 @@ export class ChatService {
       // Do not retry active streams: chunks and submit_outfit tool events may already
       // have been emitted, so replaying the request could duplicate user-visible output.
       await withTimeout(runner.done(), timeoutMs, "OpenAI streamChat");
-      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, responseChars: assistantText.length, latencyMs: Date.now() - _aiT0, ok: true }));
+      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: this.model, promptChars: _aiPromptChars, responseChars: assistantText.length, latencyMs: Date.now() - _aiT0, ok: true }));
     } catch (err) {
-      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: CHAT_MODEL, promptChars: _aiPromptChars, latencyMs: Date.now() - _aiT0, ok: false, error: String(err) }));
+      console.log(JSON.stringify({ traceId: _aiTraceId, service: "chat", op: "streamChat", model: this.model, promptChars: _aiPromptChars, latencyMs: Date.now() - _aiT0, ok: false, error: String(err) }));
       throw err;
     }
 
