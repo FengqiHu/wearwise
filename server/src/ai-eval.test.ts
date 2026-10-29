@@ -674,12 +674,12 @@ describe("GeminiRecommendationService logging", () => {
     const logged = consoleSpy.mock.calls.map((args: unknown[]) => JSON.parse(args[0] as string) as Record<string, unknown>);
     const successLog = logged.find((l: Record<string, unknown>) => l["op"] === "summarizeStyle" && l["ok"] === true);
     expect(successLog).toBeDefined();
-    expect(successLog).toMatchObject({ service: "gemini", op: "summarizeStyle", ok: true });
+    expect(successLog).toMatchObject({ service: "openai", op: "summarizeStyle", ok: true });
     expect(typeof successLog!["latencyMs"]).toBe("number");
     expect(typeof successLog!["traceId"]).toBe("string");
   });
 
-  it("emits ok:false log when the Gemini API throws during summarizeStyle", async () => {
+  it("emits ok:false log when the OpenAI API throws during summarizeStyle", async () => {
     const fakeAi = {
       models: {
         generateContent: vi.fn().mockRejectedValue(new Error("API unavailable"))
@@ -698,7 +698,7 @@ describe("GeminiRecommendationService logging", () => {
     const logged = consoleSpy.mock.calls.map((args: unknown[]) => JSON.parse(args[0] as string) as Record<string, unknown>);
     const failLog = logged.find((l: Record<string, unknown>) => l["op"] === "summarizeStyle" && l["ok"] === false);
     expect(failLog).toBeDefined();
-    expect(failLog).toMatchObject({ service: "gemini", op: "summarizeStyle", ok: false });
+    expect(failLog).toMatchObject({ service: "openai", op: "summarizeStyle", ok: false });
     expect(typeof failLog!["error"]).toBe("string");
   });
 

@@ -54,7 +54,6 @@ const s3Endpoint = getEnv("S3_ENDPOINT");
 const s3AccessKeyId = getEnv("S3_ACCESS_KEY_ID");
 const s3SecretAccessKey = getEnv("S3_SECRET_ACCESS_KEY");
 const s3PublicBaseUrl = stripTrailingSlashes(getEnv("S3_PUBLIC_BASE_URL"));
-const googleCloudVisionApiKey = getEnv("GOOGLE_CLOUD_VISION_API_KEY");
 
 function parseUploadModerationTimeoutMs(): number {
   const parsed = Number.parseInt(getEnv("UPLOAD_MODERATION_TIMEOUT_MS"), 10);
@@ -76,7 +75,6 @@ export const env = {
     : true,
   openaiApiKey: getEnv("OPENAI_API_KEY"),
   openWeatherApiKey: getEnv("OPENWEATHER_API_KEY"),
-  geminiApiKey: getEnv("GEMINI_API_KEY"),
   googleClientId: googleClientIdFromEnv || getEnv("VITE_GOOGLE_CLIENT_ID"),
   googleClientSecret: getEnv("GOOGLE_CLIENT_SECRET"),
   googleRedirectUri: getEnv("GOOGLE_REDIRECT_URI"),
@@ -96,6 +94,5 @@ export const env = {
   s3AccessKeyId,
   s3SecretAccessKey,
   s3PublicBaseUrl,
-  googleCloudVisionApiKey,
   uploadModerationTimeoutMs: parseUploadModerationTimeoutMs()
 };

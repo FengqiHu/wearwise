@@ -101,18 +101,19 @@ export function createApp() {
   const openWeatherService = new OpenWeatherService(env.openWeatherApiKey);
   const chatService = new ChatService(env.openaiApiKey, openWeatherService);
   const imageModerationService = new ImageModerationService({
-    apiKey: env.googleCloudVisionApiKey,
+    apiKey: "",
+    openaiApiKey: env.openaiApiKey,
     timeoutMs: env.uploadModerationTimeoutMs
   });
   const reviewedImageStorageService = new ReviewedImageStorageService(
     r2StorageService,
     imageModerationService,
-    new GeminiHumanPresenceService({ apiKey: env.geminiApiKey }),
-    new GeminiClothingPresenceService({ apiKey: env.geminiApiKey })
+    new GeminiHumanPresenceService({ apiKey: env.openaiApiKey }),
+    new GeminiClothingPresenceService({ apiKey: env.openaiApiKey })
   );
-  const geminiExtractionService = new GeminiExtractionService({ apiKey: env.geminiApiKey });
-  const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.geminiApiKey });
-  const imageGenerationService = new ImageGenerationService({ apiKey: env.geminiApiKey });
+  const geminiExtractionService = new GeminiExtractionService({ apiKey: env.openaiApiKey });
+  const geminiRecommendationService = new GeminiRecommendationService({ apiKey: env.openaiApiKey });
+  const imageGenerationService = new ImageGenerationService({ apiKey: env.openaiApiKey });
   const googleOAuthService = new GoogleOAuthService({
     clientId: env.googleClientId,
     clientSecret: env.googleClientSecret,
