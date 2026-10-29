@@ -6,6 +6,7 @@ import {
   type GeminiClothingPresenceService
 } from "./gemini-clothing-presence-service.js";
 import type { GeminiHumanPresenceService } from "./gemini-human-presence-service.js";
+import { normalizeUploadedImage } from "./image-upload-service.js";
 
 export type ManagedUploadFolder = "avatar" | "headshot" | "full-body" | "closet";
 
@@ -106,6 +107,7 @@ export class ReviewedImageStorageService {
   }
 
   async storeUserImage(params: StoreReviewedImageParams): Promise<{ key: string; publicUrl: string }> {
+    params = await normalizeUploadedImage(params);
     if (!isAllowedMimeType(params.contentType)) {
       throw new Error(
         `Invalid content type '${params.contentType}'. Allowed: image/jpeg, image/png, image/webp.`
@@ -134,6 +136,7 @@ export class ReviewedImageStorageService {
   }
 
   async storeUserShopImage(params: StoreReviewedShopImageParams): Promise<{ key: string; publicUrl: string }> {
+    params = await normalizeUploadedImage(params);
     if (!isAllowedMimeType(params.contentType)) {
       throw new Error(
         `Invalid content type '${params.contentType}'. Allowed: image/jpeg, image/png, image/webp.`
@@ -167,6 +170,8 @@ export class ReviewedImageStorageService {
     if (!this.humanPresenceService?.isConfigured()) {
       throw new Error("Profile image review is temporarily unavailable. Please try uploading again later.");
     }
+
+    params = await normalizeUploadedImage(params);
 
     if (!isAllowedMimeType(params.contentType)) {
       throw new Error(

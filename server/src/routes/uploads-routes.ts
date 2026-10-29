@@ -1,5 +1,6 @@
 import express, { Router } from "express";
 import { AuthService } from "../services/auth-service.js";
+import { InvalidImageUploadError } from "../services/image-upload-service.js";
 import {
   ImageModerationRejectedError,
   ImageModerationUnavailableError
@@ -81,6 +82,10 @@ export function createUploadsRoutes({
 
       res.status(201).json(uploadedImage);
     } catch (error) {
+      if (error instanceof InvalidImageUploadError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
       if (error instanceof ImageModerationRejectedError) {
         console.warn("Managed image upload rejected by SafeSearch.", {
           findings: error.findings,

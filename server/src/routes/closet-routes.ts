@@ -17,7 +17,8 @@ import {
   ClothingPresenceRejectedError,
   ClothingPresenceUnavailableError
 } from "../services/gemini-clothing-presence-service.js";
-import { isAllowedMimeType, R2StorageService } from "../services/r2-storage-service.js";
+import { R2StorageService } from "../services/r2-storage-service.js";
+import { isSupportedUploadMimeType, InvalidImageUploadError } from "../services/image-upload-service.js";
 import type { ReviewedImageStorageService } from "../services/reviewed-image-storage-service.js";
 import type { ClosetItemRecord, RecommendOutfitResponse } from "../types/domain.js";
 
@@ -150,9 +151,9 @@ export function createClosetRoutes({
         return;
       }
 
-      if (!isAllowedMimeType(contentType)) {
+      if (!isSupportedUploadMimeType(contentType)) {
         res.status(400).json({
-          error: `Invalid content type '${contentType}'. Allowed: image/jpeg, image/png, image/webp.`
+          error: `Invalid content type '${contentType}'. Allowed: image/jpeg, image/png, image/webp, image/heic, image/heif.`
         });
         return;
       }
@@ -186,6 +187,11 @@ export function createClosetRoutes({
         throw persistError;
       }
     } catch (error) {
+      if (error instanceof InvalidImageUploadError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
       if (error instanceof ImageModerationRejectedError) {
         console.warn("Closet image upload rejected by SafeSearch.", {
           findings: error.findings,
@@ -381,9 +387,9 @@ export function createClosetRoutes({
         return;
       }
 
-      if (!isAllowedMimeType(contentType)) {
+      if (!isSupportedUploadMimeType(contentType)) {
         res.status(400).json({
-          error: `Invalid content type '${contentType}'. Allowed: image/jpeg, image/png, image/webp.`
+          error: `Invalid content type '${contentType}'. Allowed: image/jpeg, image/png, image/webp, image/heic, image/heif.`
         });
         return;
       }
@@ -438,6 +444,11 @@ export function createClosetRoutes({
         throw persistError;
       }
     } catch (error) {
+      if (error instanceof InvalidImageUploadError) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+
       if (error instanceof ImageModerationRejectedError) {
         console.warn("Closet replacement upload rejected by SafeSearch.", {
           findings: error.findings,
